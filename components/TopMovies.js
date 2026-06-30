@@ -8,7 +8,7 @@ export class TopMovies extends Component {
   GotoDetails = ( id, navigation ) => {
     navigation.navigate('AnimeDetail', {
       animeId:id,
-   
+
     })
   }
 
@@ -19,8 +19,7 @@ export class TopMovies extends Component {
       kindData:false,
     })
   }
-  
- 
+
   render() {
 
     const {movieAnime} = this.props;
@@ -38,7 +37,7 @@ export class TopMovies extends Component {
           opacity:0.5,
           fontSize:15,
           marginTop:10,
-         
+
         }}>Anime movies</Text>
         <TouchableOpacity onPress={this.seeAll}>
         <Text style={{
@@ -53,7 +52,6 @@ export class TopMovies extends Component {
 
         </View>
 
-      
         <ScrollView horizontal>
         {movieAnime.map((itm, index) => {
           return (
@@ -65,9 +63,9 @@ export class TopMovies extends Component {
           )
         })}
         </ScrollView>
-       
+
        </View>
-            
+
     )
   }
 }

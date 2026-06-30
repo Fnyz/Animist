@@ -46,7 +46,7 @@ export class SearchAnime extends Component {
      })
      this.props.navigation.navigate('AnimeDetail', {
       animeId:id,
-   
+
     })
   }
 
@@ -61,9 +61,9 @@ export class SearchAnime extends Component {
             'Content-Type': 'application/json',
           }
         })
-  
+
         if(data.results.length){
-  
+
           this.setState({clicking:false, queryData: data.results, fetching:true, error:false, spin:false})
         }else{
           this.setState({clicking:false, queryData:[], spin:false, error:false})
@@ -71,9 +71,6 @@ export class SearchAnime extends Component {
       } catch (error) {
         this.setState({error:true})
       }
-     
-     
-
 
   }
 
@@ -82,7 +79,7 @@ export class SearchAnime extends Component {
       this.setState(
         (prevState) => ({
           currentPage: prevState.currentPage - 1,
-      
+
         }),
         this.handleSearch
       );
@@ -90,7 +87,7 @@ export class SearchAnime extends Component {
   };
 
   handleNextPage = () => {
-    
+
     this.setState(
       (prevState) => ({
         currentPage: prevState.currentPage + 1,
@@ -99,22 +96,13 @@ export class SearchAnime extends Component {
     );
   };
 
-
-   
-  
-
   render() {
-
-   
-
-    
     return (
-      <TouchableWithoutFeedback onPress={()=> Keyboard.dismiss}>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss()}>
       <SafeAreaView style={{
         flex: 1,
         backgroundColor:'rgba(0, 0, 0, 0.8)'
       }}>
-       
 
          <View style={{
            flexDirection:'row',
@@ -131,7 +119,7 @@ export class SearchAnime extends Component {
            fontWeight:'bold',
            color:'white',
            opacity:0.8,
-          
+
           }}>
             Ani<Text style={{
               color:'coral',
@@ -141,7 +129,7 @@ export class SearchAnime extends Component {
           </Text>
 
         </View>
-       
+
         <View style={{
           flexDirection:'row',
           justifyContent:'center',
@@ -162,10 +150,10 @@ export class SearchAnime extends Component {
         borderTopLeftRadius:20,
         marginBottom:10,
         borderBottomLeftRadius:20,
-        width:270,     
+        width:270,
       }}
       showDivider={false}
-     
+
       inputStyle= {{
         color:'white'
       }}
@@ -183,7 +171,7 @@ export class SearchAnime extends Component {
         borderTopRightRadius:20,
         borderBottomRightRadius:20,
         width:75,
-    
+
       }}>
         <Text style={{color:'coral'}}>Search</Text>
       </View>
@@ -206,10 +194,7 @@ export class SearchAnime extends Component {
         <Text style={{color:'coral'}}>Go back to home</Text>
       </View>
     </TouchableOpacity>
-       
 
-    
-    
     {!this.state.searchQuery.length && !this.state.clicking && (
       <View style={{
         flex:1,
@@ -220,8 +205,6 @@ export class SearchAnime extends Component {
       </View>
      )}
 
-     
-    
     {this.state.searchQuery.length > 0 && this.state.typing && (
       <View style={{
         flex:1,
@@ -264,7 +247,7 @@ export class SearchAnime extends Component {
           data={this.state.queryData}
           renderItem={({item}) => (
             <TouchableOpacity onPress={()=> this.handleDetails(item.image, item.id)} style={{
- 
+
               margin:5,
               width:width,
              }}>
@@ -277,22 +260,16 @@ export class SearchAnime extends Component {
             justifyContent: 'space-between',
             alignItems:'center',
             gap:5,
-      
+
           }}
-          
+
           columnWrapperStyle={{
             flexShrink:1,
           }}
         />
 
-
-
-
-
-        
-       
         </View>
-    
+
       </View>
      )}
 
@@ -306,19 +283,16 @@ export class SearchAnime extends Component {
       </View>
      )}
 
-
-     
 {this.state.fetching && (
 
-
-<View style={{ 
-        flexDirection: 'row', 
+<View style={{
+        flexDirection: 'row',
         justifyContent: 'center',
         padding:15,
         gap:5,
         }}>
-        
-          <TouchableOpacity 
+
+          <TouchableOpacity
            onPress={this.handlePreviousPage}
            disabled={this.state.currentPage === 1}
            style={{
@@ -372,17 +346,6 @@ export class SearchAnime extends Component {
 
         )}
 
-
-
-
-
-    
-    
-
-    
-    
-        
-  
       </SafeAreaView>
       </TouchableWithoutFeedback>
     )

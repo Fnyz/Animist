@@ -12,8 +12,8 @@ borderLeftWidth:2,
 };
 
   return (
-    
-    <PaperProvider> 
+
+    <PaperProvider>
       <Portal>
         <Modal visible={visible} contentContainerStyle={containerStyle}>
             <Image source={require('../assets/icons8-akatsuki-48.png')}
@@ -32,11 +32,11 @@ borderLeftWidth:2,
             opacity:0.8,
             textAlign:'center',
           }}>{message}.</Text>
-          
+
         </Modal>
-        
+
       </Portal>
-  
+
     </PaperProvider>
   )
 }

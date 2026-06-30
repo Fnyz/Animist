@@ -101,9 +101,4 @@ export const animedata = [
         category:'blackClover',
     },
 
-
-    
-    
-   
-
 ]

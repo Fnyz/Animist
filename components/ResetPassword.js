@@ -33,8 +33,7 @@ const ResetPassword = ({navigation}) => {
       });
 
   };
-  
-    
+
     const handleChangePassword = () => {
 
       if(!email){
@@ -47,13 +46,13 @@ const ResetPassword = ({navigation}) => {
         return;
       }
 
-     
         sendPasswordResetEmail(Auth, email.trim())
   .then(() => {
     setvisible(true);
     setEmailAdd('')
   })
   .catch((error) => {
+    let errorMessage = '';
     switch(error.code) {
       case "auth/invalid-email":
         errorMessage = "These email is not valid, please try again.";
@@ -105,7 +104,7 @@ const ResetPassword = ({navigation}) => {
         <Text style={{
             color:'white'
         }}>Email address</Text>
-        <TextInput 
+        <TextInput
                   mode='outlined'
                   activeOutlineColor='coral'
                   outlineColor='white'
@@ -118,20 +117,18 @@ const ResetPassword = ({navigation}) => {
                  opacity:0.9,
         }}/>
 
-
-       
       <Button icon={"key-variant"} textColor='white' labelStyle={{
         fontSize:20,
         marginTop:13,
-      }} 
+      }}
       onPress={handleChangePassword}
       mode="outlined" style={{
         padding:5,
         backgroundColor:'coral',
         borderWidth:0,
-       
+
         marginTop:20,
-        opacity:0.9,  
+        opacity:0.9,
       }}>
         Submit
       </Button>
@@ -182,8 +179,8 @@ const ResetPassword = ({navigation}) => {
               flexDirection:'row',
               gap:5,
               justifyContent:'center',
-          
-             }}> 
+
+             }}>
              <MaterialIcons name="email" size={20} color="white" />
               <Text style={{
               color:'white',
@@ -193,14 +190,14 @@ const ResetPassword = ({navigation}) => {
              }}>Check your email</Text>
 
              </View>
-            
+
              <Text style={{
                 color:'white',
                 opacity:0.7,
                 marginTop:5,
              }}>We have sent a password recover instructions to your email.</Text>
              </View>
-          
+
              <TouchableOpacity style={{
                 backgroundColor:'coral',
                 width:307,
@@ -209,7 +206,7 @@ const ResetPassword = ({navigation}) => {
                 justifyContent:'center',
                 alignItems:'center',
                 padding:15,
-                
+
              }} onPress={openGoogleAccount}>
                 <Text style={{
                     color:'white',
@@ -229,12 +226,10 @@ const ResetPassword = ({navigation}) => {
                 color:'white'
               }}>Skip, I'll comfirm later.</Text>
              </TouchableOpacity>
-           
-            
+
         </View>
       </Modal>
-          
-      
+
     </SafeAreaView>
       </AlertNotificationRoot>
   )

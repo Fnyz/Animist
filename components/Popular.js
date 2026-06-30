@@ -5,7 +5,6 @@ import GoTopAnimeInfo from './GoTopAnimeInfo'
 
 export class Popular extends Component {
 
- 
   GotoDetails = ( id, navigation ) => {
     navigation.navigate('AnimeDetail', {
       animeId:id
@@ -19,8 +18,6 @@ export class Popular extends Component {
       kindData:false,
     })
   }
-  
-
 
   render() {
     const {popAnime} = this.props;
@@ -38,7 +35,7 @@ export class Popular extends Component {
           opacity:0.5,
           fontSize:15,
           marginTop:10,
-         
+
         }}>Popular animes</Text>
         <TouchableOpacity onPress={this.seeAll}>
         <Text style={{
@@ -53,7 +50,6 @@ export class Popular extends Component {
 
         </View>
 
-        
         <ScrollView horizontal>
         {popAnime?.map((itm, index) => {
           return (
@@ -65,9 +61,9 @@ export class Popular extends Component {
             </TouchableOpacity>
           )
         })}
-        </ScrollView>        
+        </ScrollView>
        </View>
-            
+
     )
   }
 }

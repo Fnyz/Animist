@@ -53,7 +53,7 @@ const Modalism = ({visible, handlecloseModalism, handleVerifyModalism, email}) =
                 marginTop:5,
              }}>You are not a verified user please visit your email account to verify it.</Text>
              </View>
-          
+
              <TouchableOpacity style={{
                 borderColor:'coral',
                 borderWidth:1,
@@ -64,7 +64,7 @@ const Modalism = ({visible, handlecloseModalism, handleVerifyModalism, email}) =
                 justifyContent:'center',
                 alignItems:'center',
                 padding:10,
-                
+
              }} onPress={openGoogleAccount}>
                 <Text style={{
                     color:'coral',
@@ -90,7 +90,7 @@ const Modalism = ({visible, handlecloseModalism, handleVerifyModalism, email}) =
                     fontSize:15,
                 }}>Verify</Text>
              </TouchableOpacity>
-        
+
              <TouchableOpacity style={{
                 borderColor:'coral',
                 borderWidth:1,
@@ -108,10 +108,10 @@ const Modalism = ({visible, handlecloseModalism, handleVerifyModalism, email}) =
              </TouchableOpacity>
 
             </View>
-            
+
         </View>
       </Modal>
-          
+
     </View>
   )
 }

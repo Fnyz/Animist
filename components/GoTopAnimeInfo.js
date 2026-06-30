@@ -5,13 +5,12 @@ import { Image } from 'expo-image';
 import ListLoading from './listLoading';
 import { MotiView } from 'moti';
 
-
 export class GoTopAnimeInfo extends Component {
 
     state = {
         animeData: {}
     }
-    
+
     data = async () => {
         try {
 
@@ -36,13 +35,13 @@ export class GoTopAnimeInfo extends Component {
             console.log('theres was an error', err);
         }
     };
-  
+
   componentDidMount(){
 
     this.data();
 
   }
-  
+
   render() {
 
     const  {title, image, tEpisodes, subOrDub} = this.state.animeData;
@@ -61,8 +60,6 @@ export class GoTopAnimeInfo extends Component {
         )
     }
 
-    
-    
     return (
       <MotiView
       from={{
@@ -78,11 +75,11 @@ export class GoTopAnimeInfo extends Component {
         delay:index * 100,
       }}
       >
-        
+
         <View style={{
            width: 200, height: 200, margin:10,
            position:'relative',
-          
+
         }}>
         <View style={{
 
@@ -107,7 +104,7 @@ export class GoTopAnimeInfo extends Component {
             <View style={{
                 flexDirection:'row',
                 justifyContent:'space-between',
-                         
+
             }}>
             <View style={{
                 backgroundColor:'coral',
@@ -139,8 +136,7 @@ export class GoTopAnimeInfo extends Component {
             </View>
             )}
             </View>
-       
-           
+
         </View>
         <Image
         style={{ width: 200, height: 200, resizeMode:'cover',borderRadius:5, }}
@@ -149,7 +145,7 @@ export class GoTopAnimeInfo extends Component {
         transition={1000}
       />
         </View>
-        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}> 
+        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}>
           <Text style={{flex: 1, flexWrap: 'wrap', color:'white', textAlign:'center',fontWeight:'bold', opacity:0.7}}> {title}
           </Text>
         </View>

@@ -14,10 +14,8 @@ import Modal from "react-native-modal";
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 
-
 const ProfileModal = React.memo(({handleCloseModal,visible, files, load}) => {
-  
- 
+
   return (
 
     <Modal isVisible={visible} animationIn='slideInLeft' animationOut='fadeOut'>
@@ -35,7 +33,7 @@ const ProfileModal = React.memo(({handleCloseModal,visible, files, load}) => {
 
    {load? (
     <ActivityIndicator size="large" color="coral" />
-   ): 
+   ):
     files.img && (
 <Image
 style={{ width: 60, height: 60,borderRadius:50}}
@@ -52,12 +50,12 @@ transition={1000}
   fontWeight:'bold',
   }} />
     )}
-     
+
   <View>
   <Text style={{
     color:'white',
     fontSize:25,
-    fontWeight:'bold', 
+    fontWeight:'bold',
     opacity:0.9,
   }}>{files?.username}.</Text>
   <View style={{
@@ -95,13 +93,10 @@ transition={1000}
   )
 })
 
-
-
-
 export class Comments extends Component {
 
   static contextType = myContext;
- 
+
   debounceTimer = null;
 
   constructor(props) {
@@ -118,7 +113,7 @@ export class Comments extends Component {
       shouldPerformUpdateLogic:true,
       currentPage: 1,
       visible:false,
-      files:{},  
+      files:{},
       load:false,
     }
 
@@ -136,8 +131,6 @@ export class Comments extends Component {
 
   }
 
-
-
   showProfile = (sb,fn, ln, img, username) => {
     const dt = {
       sb,
@@ -147,7 +140,7 @@ export class Comments extends Component {
       username
     }
     this.setState({
-      visible:true, 
+      visible:true,
       files:dt,
       load:true,
     })
@@ -155,12 +148,10 @@ export class Comments extends Component {
       this.setState({load:false})
     }, 3000);
   }
-  
+
   handleCloseModal = () => {
     this.setState((prev) => ({visible: !prev.visible}));
   }
-
- 
 
   sendComments = () => {
     Keyboard.dismiss();
@@ -175,7 +166,7 @@ export class Comments extends Component {
     const epId = this.props.choose;
     const userData = this.props.userData;
     this.setState({comment:''})
-    
+
     addDoc(collection(db, 'comments'), {
       name: userData.user,
       userId: userData.id,
@@ -187,14 +178,13 @@ export class Comments extends Component {
       firstname: profile[0].data.firstname,
       createdAt: serverTimestamp(),
     }).then(()=>{
-      
+
         this.setState((prev)=>({isloading: !prev.isloading, shouldPerformUpdateLogic:!prev.shouldPerformUpdateLogic}))
         let pushPage = Math.ceil( this.state?.data.length / this.itemsPerPage );
         this.setState({currentPage: pushPage})
     })
-   
-  } 
 
+  }
 
   componentDidMount() {
     this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', this.handleKeyboardDidShow);
@@ -207,11 +197,8 @@ export class Comments extends Component {
       profile,
     })
     this.totalPages = Math.ceil(this.props.allComments.length / this.itemsPerPage)
-   
-    
-  }
 
- 
+  }
 
   scrollToEnd = () => {
     if (this.flatListRef.current) {
@@ -219,9 +206,7 @@ export class Comments extends Component {
     }
   };
 
-
- 
-  componentDidUpdate(prevProps, prevState) {  
+  componentDidUpdate(prevProps, prevState) {
     if(this.state.shouldPerformUpdateLogic &&  prevProps.allComments.length !== this.props.allComments.length){
       this.setState({data:this.props.allComments, currentPage:Math.ceil( this.props.allComments.length / this.itemsPerPage ),});
       this.totalItems = this.props.allComments.length;
@@ -239,7 +224,6 @@ export class Comments extends Component {
     }
   }
 
-
   handlePreviousPage = () => {
     if (this.state.currentPage > 1) {
       console.log(this.state.currentPage)
@@ -253,13 +237,12 @@ export class Comments extends Component {
 
     console.log(this.totalPages);
     if (this.state.currentPage < this.totalPages) {
-      
+
       this.setState((prevState) => ({
         currentPage: prevState.currentPage + 1,
       }));
     }
   };
-
 
   componentWillUnmount() {
     this.keyboardDidShowListener.remove();
@@ -280,15 +263,11 @@ export class Comments extends Component {
     const endIndex = Math.min(startIndex + this.itemsPerPage, this.totalItems);
     let com = this.state.data;
 
-
-    
-
         const items = [];
         for (let i = startIndex; i < endIndex; i++) {
-    
-      
+
           items.push(
-    
+
             <MotiView
             from={{
               opacity:0,
@@ -310,8 +289,7 @@ export class Comments extends Component {
               paddingLeft:5,
               paddingTop:5,
             }}>
-               
-      
+
             <View>
               <TouchableOpacity disabled={profile[0].data.userId === com[i]?.data.userId} onPress={()=> this.showProfile(com[i].data.subName, com[i].data.firstname, com[i].data.lastname, com[i].data.image, com[i].data.name)}>
             <View  style={{
@@ -319,7 +297,7 @@ export class Comments extends Component {
               alignItems:'center',
               opacity:0.9,
               gap:6
-            }}> 
+            }}>
 
             {com[i]?.data.image && (
    <Avatar.Image size={25} source={{uri:profile[0].data.image === com[i]?.data.image ? com[i]?.data.image : com[i]?.data.image}} />
@@ -332,7 +310,7 @@ export class Comments extends Component {
     fontWeight:'bold',
     }} />
           )}
-             
+
             <View>
             <Text style={{
               color:this.props.userData.id ===  com[i]?.data.userId ? 'coral': 'white',
@@ -354,37 +332,26 @@ export class Comments extends Component {
 }} />
  </TouchableOpacity>
            )}
-           
-           
-          
+
           </View>
           </TouchableOpacity>
-          <View style={{width:300, flexDirection:'row' , marginTop:5}}> 
+          <View style={{width:300, flexDirection:'row' , marginTop:5}}>
           <Text style={{flex: 1, flexWrap: 'wrap', color:'white', opacity:0.7}}>* {com[i]?.data.comments}
           </Text>
         </View>
-          
-            </View>
-           
-          </MotiView>
-    
-    
-          );
-        
-        }
-  
-        
-  
-        return items.map((item, index) => <View key={index}>{item}</View>);
-     
-     
-      
 
-    
-  
+            </View>
+
+          </MotiView>
+
+          );
+
+        }
+
+        return items.map((item, index) => <View key={index}>{item}</View>);
+
   };
   render() {
-
 
     return (
 
@@ -412,7 +379,7 @@ export class Comments extends Component {
           fontWeight:'bold',
         }}>{this.state.data.length}{this.state.data.length > 999 && 'k.'}</Text></Text>
           </View>
-       
+
         <View style={{
           flexDirection:'row',
           marginRight:10,
@@ -432,9 +399,9 @@ export class Comments extends Component {
           fontWeight:'bold',
           fontSize:20,
         }}> / </Text>
-        <TouchableOpacity  
+        <TouchableOpacity
           onPress={this.handleNextPage}
-          disabled={this.state.currentPage === this.totalPages} 
+          disabled={this.state.currentPage === this.totalPages}
           >
         <AntDesign name="right" size={20} color="white" style={{
           opacity:this.state.currentPage === this.totalPages? 0.5 : 0.8
@@ -443,12 +410,10 @@ export class Comments extends Component {
         </TouchableOpacity>
 
         </View>
-       
+
         </View>
 
-        
          {this.state.hidden && (
-
 
 <View style={{
   borderWidth:1,
@@ -459,7 +424,6 @@ export class Comments extends Component {
   marginHorizontal:4,
   padding:15,
 }}>
-
 
 {!this.state.data.length ? (
   <View style={{
@@ -477,7 +441,6 @@ export class Comments extends Component {
 
   (
 
-
     <FlatList
 ref={this.flatListRef}
 data={this.renderItems()}
@@ -492,10 +455,9 @@ renderItem={({item})=> <View>{item}</View>}
   initialNumToRender={10}
   />
   )}
-</View> 
-         )}   
-         
-  
+</View>
+         )}
+
         <View style={{
           flexDirection:'row',
           marginTop:10,
@@ -506,9 +468,9 @@ renderItem={({item})=> <View>{item}</View>}
         <TextInput
         placeholderTextColor='gray'
         multiline
-        style={{ 
-          height: 45, 
-          borderColor: 'gray', 
+        style={{
+          height: 45,
+          borderColor: 'gray',
           borderWidth: 1,
           padding:10,
           width:285,
@@ -516,13 +478,12 @@ renderItem={({item})=> <View>{item}</View>}
           borderBottomLeftRadius:10,
           color:'white',
           opacity:0.8,
-          
+
         }}
         onChangeText={text => this.setState({ comment: text })}
         value={this.state.comment}
         placeholder="Input your comments here."
         />
-      
 
     <TouchableOpacity style={{
       width:75,
@@ -547,9 +508,9 @@ renderItem={({item})=> <View>{item}</View>}
            <Ionicons name="send" size={25} color="white" />
         </Text>
         )}
-       
+
     </TouchableOpacity>
-      <ProfileModal 
+      <ProfileModal
 
       handleCloseModal={this.handleCloseModal}
       visible={this.state.visible}
@@ -557,11 +518,9 @@ renderItem={({item})=> <View>{item}</View>}
       load={this.state.load}
       />
         </View>
-  
+
       </>
 
- 
-      
     )
   }
 }

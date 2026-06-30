@@ -8,7 +8,7 @@ import { useContext } from 'react'
 import { useEffect } from 'react';
 import VideoLoad from './VideoLoading';
 const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick,  choose, subOrDub, setChoose, clicking, setEpNum, setQuality}) => {
-   
+
     const contextVal = useContext(myContext);
 
     const {getUserlikes, getAllLikes, getAllDisLikes, getDislikes, getUserWatchList} = contextVal;
@@ -21,7 +21,6 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
 
     const [loading, setloading] = useState(false);
 
-
     const handlePreviousPage = () => {
       setloading(true);
         if (currentPage > 1) {
@@ -30,27 +29,27 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
           setTimeout(() => {
             setloading(false);
           }, 2000);
-          
+
         }
       };
-    
+
     const handleNextPage = () => {
-   
+
         if (currentPage < totalPages) {
          setCurrentPage((prevState) => prevState + 1);
          setloading(true);
          setTimeout(() => {
            setloading(false);
          }, 2000);
-       
+
         }
       };
-    
+
      const renderItems = () => {
         const startIndex = (currentPage - 1) * itemsPerPage;
         const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
         let data = alldata;
-    
+
         const items = [];
         for (let i = startIndex; i < endIndex; i++) {
           items.push(
@@ -86,7 +85,7 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
                     color:'white',
                     fontSize:15,
                     fontWeight:'bold'
-                    
+
                   }}>/ Please wait... </Text>
                 ): (
 
@@ -94,31 +93,24 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
                     color:choose === data[i].id ? 'white' : 'coral',
                     fontSize:15,
                     fontWeight:'bold'
-                    
+
                   }}>/ {choose === data[i].id ? ' Watching...' : subOrDub} </Text>
 
                 )}
 
-              
                 </View>
 
                 </View>
-        
+
               </View>
                 </TouchableOpacity>
 
-
-
           );
-        
+
         }
-        
-    
+
         return items.map((item, index) => <View key={index}>{item}</View>);
       };
-
-
-   
 
     const handleNewAnime = async (id, i) => {
         setClick(true);
@@ -131,20 +123,19 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
          setQuality(data.sources[0].quality);
          setChoose(id);
          setEpNum(i);
-         setClick(false); 
+         setClick(false);
          setNextEp(false);
          getAllLikes(id);
          getAllDisLikes(id);
          getDislikes(id);
          getUserlikes(id);
          getUserWatchList(id);
-        
+
       } catch (err) {
           throw new Error(err.message);
-      }  
-        
       }
 
+      }
 
   useEffect(()=>{
 
@@ -160,7 +151,7 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
         justifyContent:'center',
         alignItems: 'center',
         flex:1,
-     
+
       }}>
         <VideoLoad message='Fetching episodes, please wait..'/>
       </View>
@@ -168,12 +159,8 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
   }
 
   return (
- 
-      
 
         <>
-        
-        
 
         <View style={{
             flexDirection: 'row',
@@ -182,7 +169,7 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
             alignItems: 'center',
             marginHorizontal:5,
         }}>
-        
+
         <Text
         style={{
             color:'white',
@@ -195,8 +182,6 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
         </TouchableOpacity>
 
         </View>
-       
-         
 
        <FlatList
           data={renderItems()}
@@ -204,16 +189,16 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
           keyExtractor={(item, index) => index.toString()}
           removeClippedSubviews={false}
           maxToRenderPerBatch={10}
-  
+
         />
-        <View style={{ 
-            flexDirection: 'row', 
+        <View style={{
+            flexDirection: 'row',
             justifyContent: 'center',
             alignItems:'center',
              gap:5,
              paddingTop:20,
              }}>
-          <TouchableOpacity 
+          <TouchableOpacity
            onPress={handlePreviousPage}
            disabled={currentPage === 1}
            style={{
@@ -225,7 +210,7 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
             backgroundColor:'coral',
             width:70,
             opacity:currentPage === 1? 0.5 : 0.8
-        }}   
+        }}
         >
             <Text style={{
                 color:'white',
@@ -242,8 +227,7 @@ const Modals = ({handleBack,type,alldata, setData, setUrl, setNextEp, setClick, 
             {currentPage}/{totalPages}
           </Text>
 
-
-         <TouchableOpacity 
+         <TouchableOpacity
           onPress={handleNextPage}
           disabled={currentPage === totalPages}
            style={{

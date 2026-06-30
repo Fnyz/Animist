@@ -15,10 +15,8 @@ import { animedata } from '../animeData';
 import { Image } from 'expo-image';
 import AnimistLoading from './AnimistLoading';
 
-
 const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handleCloseModal, pickImage, handlePickImage, click, handleSave}) => {
-  
-  
+
   return (
     <View style={{
       backgroundColor:'rgba(0,0,0,0.8)',
@@ -49,9 +47,9 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
         }}>SAVE</Text>
         </TouchableOpacity>
       )}
-  
+
       </View>
-    
+
       <View style={{
         marginTop:15,
       }}>
@@ -79,9 +77,9 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
         transition={1000}
       />
           </View>
-         
+
              </TouchableOpacity>
-             
+
             )
           })}
         </ScrollView>
@@ -95,7 +93,7 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
         <ScrollView horizontal={true}>
           {OnePiece.map((item, i)=> {
             return (
-             
+
              <TouchableOpacity key={item.id} style={{
               marginRight:10,
              }} onPress={()=> handlePickImage(item.image)} >
@@ -113,7 +111,7 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
       />
         </View>
              </TouchableOpacity>
-           
+
             )
           })}
         </ScrollView>
@@ -127,7 +125,7 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
         <ScrollView horizontal={true}>
           {blackClover.map((item, i)=> {
             return (
-              
+
              <TouchableOpacity key={item.id} style={{
               marginRight:10,
              }} onPress={()=> handlePickImage(item.image)}>
@@ -145,7 +143,7 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
       />
       </View>
              </TouchableOpacity>
-             
+
             )
           })}
         </ScrollView>
@@ -176,7 +174,7 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
       />
       </View>
              </TouchableOpacity>
-             
+
             )
           })}
         </ScrollView>
@@ -207,7 +205,6 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
   )
 })
 
-
 export class Settingss extends Component {
   static contextType = myContext;
 
@@ -229,7 +226,6 @@ export class Settingss extends Component {
         click:false,
         loading:true,
     }
-   
 
   }
 
@@ -250,9 +246,6 @@ export class Settingss extends Component {
     this.setState({click:false, visible:false})
   }
 
- 
-
-
   handleUpdateAcount = async () => {
     this.setState({isclick:true, startCount:false});
     const {profile} = this.context;
@@ -263,7 +256,7 @@ export class Settingss extends Component {
           username: this.state.username,
           image: this.state.image,
      }).then(()=>{
-      
+
         this.setState({isclick:false});
         this.props.navigation.goBack();
      })
@@ -276,7 +269,7 @@ export class Settingss extends Component {
         aspect: [4, 3],
         quality: 1,
       });
-  
+
       if(result.canceled){
         return null;
       }
@@ -285,13 +278,7 @@ export class Settingss extends Component {
       }
 };
 
-
-
-  
-
   componentDidMount(){
-
-    
 
     const spyFamily = animedata.filter(item => item.category === 'spyFamily');
     const OnePiece = animedata.filter(item => item.category === 'OnePiece');
@@ -310,19 +297,13 @@ export class Settingss extends Component {
         blackClover,
      })
 
-
      setTimeout(() => {
       this.setState({loading:false})
      },3000);
 
-
-   
   }
 
-
   render() {
-
-
 
     if(this.state.loading){
       return (
@@ -337,10 +318,8 @@ export class Settingss extends Component {
       )
     }
 
-   
-
     return (
-      
+
       <SafeAreaView style={{
         flex:1,
         backgroundColor:'rgba(0,0,0,0.8)',
@@ -364,7 +343,7 @@ export class Settingss extends Component {
              flexDirection:'row',
              justifyContent:'center',
              alignItems:'center',
-             gap:5, 
+             gap:5,
              marginTop:15,
         }}>
 
@@ -376,7 +355,7 @@ export class Settingss extends Component {
            fontWeight:'bold',
            color:'white',
            opacity:0.8,
-          
+
           }}>
             Ani<Text style={{
               color:'coral',
@@ -398,7 +377,6 @@ export class Settingss extends Component {
 
         </View>
 
-
         <View style={{
             marginTop:30,
             justifyContent:'center',
@@ -412,8 +390,8 @@ export class Settingss extends Component {
           borderRadius:100,
           borderColor:'coral',
           }}>
-       {!this.state.image ? <Avatar.Text size={100} label={`${this.state.firstname.charAt(0)}${this.state.lastname.charAt(0)}`} /> :  
-        <Avatar.Image size={100} source={{uri: this.state.image}} />}  
+       {!this.state.image ? <Avatar.Text size={100} label={`${this.state.firstname.charAt(0)}${this.state.lastname.charAt(0)}`} /> :
+        <Avatar.Image size={100} source={{uri: this.state.image}} />}
          </View>
         <TouchableOpacity style={{
             borderRadius:10,
@@ -430,8 +408,7 @@ export class Settingss extends Component {
         </View>
         </TouchableOpacity>
         </View>
-       
-    
+
     <View style={{
         marginHorizontal:10,
     }}>
@@ -503,13 +480,12 @@ export class Settingss extends Component {
   }}>Click here.</Text>
   </TouchableOpacity>
   </View>
- 
-   
+
     <View style={{
         marginTop:20,
         flexDirection:'row',
         gap:10,
-    }}> 
+    }}>
        <TouchableOpacity onPress={this.handleUpdateAcount}>
        <View style={{
             borderWidth:1,
@@ -533,7 +509,7 @@ export class Settingss extends Component {
                     fontWeight:'bold',
                 }}>UPDATING...</Text>
                 </View>
-             
+
             ): (
                 <Text style={{
                     color:'white',
@@ -543,7 +519,7 @@ export class Settingss extends Component {
         </View>
 
        </TouchableOpacity>
-      
+
       <TouchableOpacity onPress={()=> this.props.navigation.goBack()}>
       <View style={{
             borderWidth:1,
@@ -562,12 +538,12 @@ export class Settingss extends Component {
         </View>
 
       </TouchableOpacity>
-      
+
     </View>
         </View>
 
         <Modal isVisible={this.state.visible} animationIn='slideInLeft' animationOut='fadeOut'>
-        <Box 
+        <Box
         image={this.state.image}
         handleCloseModal={this.handleCloseModal}
         handlePickImage={this.handlePickImage}
@@ -580,7 +556,7 @@ export class Settingss extends Component {
         click={this.state.click}
          />
        </Modal>
-      
+
       </SafeAreaView>
     )
   }

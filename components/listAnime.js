@@ -32,7 +32,7 @@ data = async () => {
       this.setState({
           animeData: newData
       })
-       
+
     } catch (err) {
         throw new Error(err.message);
     }
@@ -44,12 +44,9 @@ this.data();
 
 }
 
-
-
   render() {
 
     const  {title, image, tEpisodes, subOrDub} = this.state.animeData;
-
 
     if(!image){
         return (
@@ -64,12 +61,10 @@ this.data();
         )
     }
 
-  
-
     return (
- 
+
          <View>
-        
+
         <View style={{
            width: '100%',
            position:'relative',
@@ -98,7 +93,7 @@ this.data();
             <View style={{
                 flexDirection:'row',
                 justifyContent:'space-between',
-                         
+
             }}>
             <View style={{
                 backgroundColor:'coral',
@@ -128,13 +123,12 @@ this.data();
                     fontWeight:'bold'
                 }}>{subOrDub}</Text>
             </View>
-              
+
             )}
             </View>
-       
-           
+
         </View>
-        
+
         <Image
         style={{ width: 175, height: 175,borderRadius:5}}
         source= {{ uri: image }}
@@ -142,13 +136,12 @@ this.data();
         transition={1000}
       />
         </View>
-        <View style={{width:150, flexDirection:'row', alignSelf:'center', marginVertical:15,}}> 
+        <View style={{width:150, flexDirection:'row', alignSelf:'center', marginVertical:15,}}>
           <Text style={{flex: 1, flexWrap: 'wrap', color:'white', textAlign:'center',fontWeight:'bold', opacity:0.7}}> {title}
           </Text>
         </View>
       </View>
 
-   
     )
   }
 }

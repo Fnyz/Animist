@@ -6,7 +6,6 @@ import { MotiView } from 'moti'
 
 export class TopAnime extends Component {
 
-
   GotoDetails = ( id, navigation ) => {
     navigation.navigate('AnimeDetail', {
       animeId:id
@@ -20,12 +19,10 @@ export class TopAnime extends Component {
       kindData:true,
     })
   }
-  
 
   render() {
 
     const {topAnime} = this.props;
-
 
     return (
        <View style={{
@@ -41,7 +38,7 @@ export class TopAnime extends Component {
           opacity:0.5,
           fontSize:15,
           marginTop:10,
-         
+
         }}>Top animes</Text>
         <TouchableOpacity onPress={this.seeAll}>
         <Text style={{
@@ -55,7 +52,7 @@ export class TopAnime extends Component {
         </TouchableOpacity>
         </View>
         {this.props.error === 1 ? (
-        
+
             <View style={{
               height:270,
               justifyContent:'center',
@@ -76,7 +73,7 @@ export class TopAnime extends Component {
                 )}
               </TouchableOpacity>
             </View>
-         
+
         ):(
         <ScrollView horizontal>
         {topAnime.map((itm, index) => {
@@ -91,10 +88,9 @@ export class TopAnime extends Component {
         })}
         </ScrollView>
         )}
-  
-          
+
        </View>
-            
+
     )
   }
 }

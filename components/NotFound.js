@@ -1,9 +1,9 @@
 import { View, Text} from 'react-native'
 import React from 'react'
-import LottieView from 'lottie-react-native'; 
+import LottieView from 'lottie-react-native';
 
 const NotFound = ({message}) => {
-    
+
   return (
     <View style={{
         marginTop:60,
@@ -21,8 +21,7 @@ const NotFound = ({message}) => {
         marginTop:10,
         fontWeight:'bold'
      }}>{message}</Text>
-   
-    
+
     </View>
   )
 }

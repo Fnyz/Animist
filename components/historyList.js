@@ -10,8 +10,6 @@ import { db } from '../firebase';
 import { Checkbox } from 'react-native-paper';
 import { useCallback } from 'react';
 
-
-
 const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choose, handlechange, historyRecords, select, handleItemSelection, selectedItems, id}) => {
 
     const [img, setImage] = useState(null)
@@ -19,19 +17,12 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
     const [status, setStatus] = useState(null);
     const [isClick, setisClick] = useState(false);
     const [change, setChange] = useState(true);
-  
-   
-   
-  
-  
-
 
     const handeRewatch = useCallback(async (titlePage,titleId, episodeNumber, episodeId, status) => {
 
-    
      setisClick(true);
       try {
-    
+
         const url = `https://consumet-api-funk.onrender.com/anime/gogoanime/info/${list[i].data.titleId}`;
         const dt = await axios.get(url, {
             headers:{
@@ -40,7 +31,6 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             }
         });
 
-      
         if(dt){
           setisClick(false);
           navigation.navigate('View', {
@@ -55,21 +45,14 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             current:episodeId,
          })
 
-
         }
 
-      
-     
-       
-        
-       
     } catch (err) {
         throw new Error(err.message);
     }
 
-       
     },[isClick])
-  
+
     const handlegotoAnimed = (tId) => {
       navigation.navigate('AnimeDetail', {
         animeId:tId
@@ -84,8 +67,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
     let h = historyRecords.find(e=> e.data?.animeId === id && e.data.titleId === tId);
     let prev = historyRecords.filter(e=> e.data?.titleId === tId)
     .find(e => e?.data.epiNumber > h.data?.epiNumber || e.data.epiNumber < h.data?.epiNumber);
- 
-  
+
     if(h){
       await deleteDoc(doc(db, 'history', h.id))
       .then(()=>{
@@ -99,7 +81,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
           return;
         }else{
           const r3 = doc(db, "history", prev.id);
-          updateDoc(r3, {  
+          updateDoc(r3, {
           count:1,
           })
         }
@@ -109,7 +91,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
 
    const datas = async () => {
         try {
-    
+
             const url = `https://consumet-api-funk.onrender.com/anime/gogoanime/info/${list[i].data.titleId}`;
             const dt = await axios.get(url, {
                 headers:{
@@ -117,33 +99,20 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
                     "Accept":'application/json',
                 }
             });
-        
+
             setImage(dt.data.image);
             setAnimeTitle(dt.data.title);
             setStatus(dt.data.status);
-           
-            
-           
+
         } catch (err) {
            console.log('please try again', err);
         }
     };
 
- 
-
-   
-   
-    
-   
-
  useEffect(()=>{
-   
+
    datas();
  },[i, makechange])
-
-
- 
-
 
      const {epiNumber, titleId, createdAt, animeId} = list[i].data;
 
@@ -152,9 +121,6 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
     const minutesLeft = duration.minutes();
     const secondsLeft = duration.seconds();
     const formattedDuration = moment.utc().minutes(minutesLeft).seconds(secondsLeft).format('mm:ss');
-
-
-
 
   return (
     <>
@@ -175,7 +141,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
        }}
      />
       )}
-      
+
       </View>
     <View  style={{
       flexDirection:'row',
@@ -187,7 +153,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
         borderTopRightRadius:10,
         opacity: select ? 0.4 :1,
     }}>
-      
+
       <View >
         {!img ? (
             <View style={{
@@ -198,17 +164,17 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             }}>
   <ActivityIndicator size="large" color="coral" />
             </View>
-           
+
         ): (
             <Image
             style={{ width: 100, height: 100, resizeMode:'cover',
-            borderBottomLeftRadius:10, 
+            borderBottomLeftRadius:10,
             borderTopRightRadius:10,
         position:'absolute',
         top:-15,
         left:-2,
         zIndex:1,
-    
+
         }}
             source= {{ uri: img }}
             contentFit="cover"
@@ -217,12 +183,12 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
 
         )}
       </View>
-    
+
       <View style={{
         position:'absolute',
         left:117,
         top:10,
-      
+
       }}>
         <View style={{
             flexDirection:'row',
@@ -240,7 +206,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             opacity:0.8,
         }}>{animeTitle} </Text>
         </View>
-     
+
         <View style={{
           justifyContent:'center',
           alignItems:'center',
@@ -257,9 +223,9 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             opacity:0.5,
          }}>{moment(createdAt?.toDate()).calendar()}</Text>
         </View>
-       
+
         </View>
-       
+
         <Text style={{
             color:'coral',
             paddingTop:5,
@@ -295,7 +261,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
             }}>{isClick ? 'Please wait...': 'Watched'}</Text>
             </TouchableOpacity>
             </View>
-          
+
             <Menu
             visible={animeId === choose? true:false}
             onDismiss={()=>handlechange(null)}
@@ -306,7 +272,7 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
               width:200,
               zIndex:10,
               height:50,
-             
+
             }}
             anchor={
               <TouchableOpacity disabled={!img ? true: false} onPress={()=>handlechange(animeId)}>
@@ -317,21 +283,18 @@ const HistoryList = ({makechange,setLoadMore,setMessage, list,i, navigation,choo
               </TouchableOpacity>
               }
             >
-            
+
             <Menu.Item  onPress={() => handlegotoAnimed(titleId)} title="Anime details" leadingIcon='information-outline' />
             <Menu.Item onPress={() => handleremovefromhistory(animeId, titleId)} title="Remove from history" leadingIcon='trash-can-outline' titleStyle={{
               color:'red'
             }} />
           </Menu>
 
-         
-            
           </View>
-      </View>   
+      </View>
     </View>
-    
-   
-      </> 
+
+      </>
   )
 }
 

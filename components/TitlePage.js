@@ -20,7 +20,7 @@ export class TitlePage extends Component {
       }).catch((error) => {
        // An error happened.
       });
-      
+
     }
     handleHistory = () => {
       this.props.navigation.navigate('History');
@@ -40,14 +40,10 @@ export class TitlePage extends Component {
 
   closeMenu = () => this.setState({visible: false});
 
-  
-
   render() {
 
-    
-
     return (
-      
+
         <View style={{
             flexDirection:'row',
             justifyContent:'center',
@@ -56,7 +52,6 @@ export class TitlePage extends Component {
             marginTop:25,
             position:'relative',
           }}>
-       
 
           <View style={{
             flexDirection:'row',
@@ -72,7 +67,7 @@ export class TitlePage extends Component {
              fontWeight:'bold',
              color:'white',
              opacity:0.8,
-            
+
             }}>
               Ani<Text style={{
                 color:'coral',
@@ -81,11 +76,7 @@ export class TitlePage extends Component {
               }}>mist</Text>
             </Text>
           </View>
-         
-          
-  
-        
-  
+
           <Menu
             visible={this.state.visible}
             onDismiss={this.closeMenu}
@@ -94,7 +85,7 @@ export class TitlePage extends Component {
               left:223,
               top:50,
               width:130,
-             
+
             }}
             anchor={
               <TouchableOpacity onPress={this.openMenu}>
@@ -112,8 +103,7 @@ export class TitlePage extends Component {
             <Menu.Item onPress={this.handleWatchList} title="Watchlist" leadingIcon='playlist-play' />
             <Menu.Item onPress={this.handleSettings} title="Account" leadingIcon='account' />
           </Menu>
-     
-         
+
               </View>
     )
   }

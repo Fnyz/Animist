@@ -23,23 +23,12 @@ import { useMemo } from 'react';
 import { AppState } from 'react-native';
 import { MotiView } from 'moti';
 
-
-
-
-
-
-
-
-
 const recentEp = "  https://consumet-api-funk.onrender.com/anime/gogoanime/recent-episodes";
-
 
 const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navigation, animeStatus,titleId, current}) => {
 
-
   const contextValue = useContext(myContext);
   const {userData, getAllComments,  historyRecords,getEpisodeIdbyDefault, allLikeData,  likesData, getUserlikes, allComments} =  contextValue;
-
 
   const videoRef = useRef(null);
   const [duration, setDuration] = useState(0);
@@ -49,10 +38,10 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
   const [status, setStatus] = React.useState({});
   const [isVideoLoading, setIsVideoLoading] = useState(true);
   const [isVideoPaused, setIsVideoPaused] = useState(false);
-  const [showControls, setShowControls] = useState(true); 
+  const [showControls, setShowControls] = useState(true);
   const [EpisodeData, setData] = useState([]);
   const [quality, setQuality] = useState(null);
-  const [url, setUrl] = useState(null); 
+  const [url, setUrl] = useState(null);
   const [choose, setChoose] = useState(null);
   const [number,setEpNum] = useState(null);
   const [clicking, setClick] = useState(false);
@@ -76,22 +65,16 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
   const [animeStats, setAnimeStats] = useState(null);
   const source = axios.CancelToken.source();
 
-
- 
-  
-
-  
-
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   let hideControlsTimeout;
   let timer;
-  
+
   useEffect(() => {
     if (isFullscreen) {
       enableFullScreen();
       return;
-    } 
-    disableFullScreen();  
+    }
+    disableFullScreen();
   }, [isFullscreen]);
 
   useEffect(() => {
@@ -124,9 +107,9 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
           }).then(()=> console.log('Some updates in databse')).catch((err)=> console.log('went wrong!', err));
           return;
         }else{
-   
+
          const r3 = doc(db, "history", r1.id);
-         updateDoc(r3, {  
+         updateDoc(r3, {
            positionMillis:currentTime,
            quality:quality,
            url:url,
@@ -136,7 +119,7 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
         }).catch((error)=>{
           console.log('went wrong in update databse');
         });
-          
+
           return;
         }
         return;
@@ -150,7 +133,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     };
   }, [appState]);
 
-  
   const handleDebounceStart = useCallback(() => {
     setIsDebouncing(true);
   }, []);
@@ -159,13 +141,9 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     setIsDebouncing(false);
   }, []);
 
-
-  
   const handleVideoError = () => {
-    setError(true); 
+    setError(true);
   };
-
-  
 
   const hideControls = useCallback(() => {
     Animated.timing(controlsOpacity, {
@@ -174,7 +152,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
       useNativeDriver: true,
     }).start(() => setShowControls(false));
   },[showControls]);
-
 
   const handleTouch = useCallback(() => {
     setShowControls(true);
@@ -187,7 +164,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     timer = setTimeout(hideControls, 3000);
   };
 
-  
   const enableFullScreen = async () => {
     await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
   };
@@ -196,17 +172,11 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     await ScreenOrientation.unlockAsync();
   };
 
-
   const handleVideoLoad = useCallback(async () => {
-   
+
     const { durationMillis } = await videoRef.current.getStatusAsync();
-    setDuration(durationMillis);    
+    setDuration(durationMillis);
   }, [duration]);
-
-  
-
- 
-
 
   const handlePlaybackStatusUpdate = useCallback((status) => {
 
@@ -232,7 +202,7 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
      }else{
 
       const r3 = doc(db, "history", r1.id);
-      updateDoc(r3, {  
+      updateDoc(r3, {
         positionMillis:currentTime,
         quality:quality,
         url:url,
@@ -240,20 +210,15 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
        }).then(()=>{
         console.log('update successfully');
        }).catch((error)=> console.log('there was an error!'));
-       
+
        return;
      }
-   
 
      }
 
-    
-    
-
-   
     if (status.isBuffering && !status.isPlaying) {
       setIsVideoLoading(true);
-      setIsVideoPaused(true);    
+      setIsVideoPaused(true);
     } else {
       setIsVideoLoading(false);
       setIsVideoPaused(false);
@@ -271,7 +236,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
       return;
     }
 
-    
     if (type === "episode" && status.didJustFinish) {
 
       if(number < epData.length) {
@@ -297,7 +261,7 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
           getAllComments(nextEp.id);
           let datEp = fetchingPlayVideo(nextEp.id)
           datEp.then(data => {
-          const qualy = data.sources?.filter(item => item.quality.match(/\d+/g));        
+          const qualy = data.sources?.filter(item => item.quality.match(/\d+/g));
             setData(data.sources);
             setUrl(qualy[3].url);
             setQuality(qualy[3].quality || qualy[0].quality);
@@ -306,23 +270,22 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
         }
 
         return
-        
+
       }
-    }  
-  
- 
+    }
+
   },[position, number , url, titleIds]);
 
   const handleBackward = useCallback(() => {
-    const newTime = Math.max(0, currentTime - 100000); 
+    const newTime = Math.max(0, currentTime - 100000);
     videoRef.current.setPositionAsync(newTime);
-    setCurrentTime(newTime); 
+    setCurrentTime(newTime);
     setPosition(newTime);
     console.log('effect');
   }, [currentTime])
 
   const handleForward = useCallback(() => {
-    const newTime = Math.min(duration, currentTime + 100000); 
+    const newTime = Math.min(duration, currentTime + 100000);
     videoRef.current.setPositionAsync(newTime);
     setCurrentTime(newTime);
     setPosition(newTime);
@@ -343,7 +306,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
   const curr = useMemo(()=> formatTime(currentTime),[currentTime])
   const durr =  useMemo(()=> formatTime(duration),[duration])
 
-
   const togglePlayPause = useCallback (() => {
     if (status.isPlaying) {
       videoRef.current.pauseAsync();
@@ -351,7 +313,6 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
       videoRef.current.playAsync();
     }
   },[status.isPlaying]);
-
 
   const handleSliderValueChange = useCallback((value) => {
     setCurrentTime(value);
@@ -371,22 +332,18 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     let {url} =  EpisodeData.find(item => item.quality === quality);
     setQuality(quality);
     setNextEp(true);
-    setNVloading(true); 
+    setNVloading(true);
     setUrl(url);
     setTimeout(() => {
      setPosition(currentTime);
      setNVloading(false);
      setNextEp(false);
     }, 2000);
-   
+
  },[quality, url, position, EpisodeData])
 
+  const fetchingPlayVideo = useCallback(async (ep) => {
 
-
-
-
-  const fetchingPlayVideo = useCallback(async (ep) => { 
-    
     try {
       const url = `https://consumet-api-funk.onrender.com/anime/gogoanime/watch/${ep}`;
       const { data } = await axios.get(url, { params: { server: "vidstreaming" } });
@@ -394,7 +351,7 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     } catch (error) {
       console.log('theres an error here', error);
     }
- 
+
   },[epId])
 
   const handleReset = useCallback(() => {
@@ -403,13 +360,10 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
     }
   },[position])
 
-
-
-
   const getPlayEpisode = useCallback((source) => {
       try {
         const data2  = axios.get(recentEp, { params: { page: 1, type: 1 }, cancelToken: source.token});
-        Promise.all([fetchingPlayVideo(epId), data2]).then(response => { 
+        Promise.all([fetchingPlayVideo(epId), data2]).then(response => {
           let h = historyRecords.find(e=> e.data.animeId === epId);
           if(!h){
            setPosition(null);
@@ -428,20 +382,15 @@ const CustomVideoPlayer = ({epId, epNumber, title, type, epData, subOrDub, navig
             setAllQuality(response[0].sources.filter(item => item.quality.match(/\d+/g)))
             setTitle(title);
 
-          }  
+          }
         }).catch((error)=>{
           console.log('there was an error', error);
         })
-        
-  
-     
-      
+
     } catch (err) {
-        
-    }  
+
+    }
   },[epId])
-
-
 
 const handleBack = (type) => {
 
@@ -451,9 +400,7 @@ const handleBack = (type) => {
   }
   navigation.navigate('Home');
 
-  
 }
-
 
  const nextEpisodes = useCallback((epN) => {
   if (type === "episode") {
@@ -464,14 +411,12 @@ const handleBack = (type) => {
     }
     if(epN < epData.length) {
       let nextEp = epData.find(e => e.number > epN);
-      setNextEpisodes(nextEp); 
+      setNextEpisodes(nextEp);
       return;
     }
-  }  
+  }
 
  },[nexToPlayEp])
-
- 
 
  const butangPosition = (ee) => {
    let h = historyRecords.find(e=> e.data.animeId === ee);
@@ -484,23 +429,22 @@ const handleBack = (type) => {
     setCollectionId(h.id);
     setUrl(h.data.url);
     setQuality(h.data.quality);
-   
+
     return;
    }
  }
 
   const updateHistoryss = () => {
     try {
-      let v5 = historyRecords.find(e=> e?.data.count === 1 && e?.data.animeId === current && e?.data.titleId === titleId);  
+      let v5 = historyRecords.find(e=> e?.data.count === 1 && e?.data.animeId === current && e?.data.titleId === titleId);
       if(!v5){
         return;
       }
       const r3 = doc(db, "history", v5.id);
-      updateDoc(r3, {  
+      updateDoc(r3, {
       count:0,
      })
- 
-      
+
     } catch (error) {
       console.log(error)
     }
@@ -516,11 +460,11 @@ const handleBack = (type) => {
         await videoRef.current.playAsync(); // Play the video
       }
     }, 3000);
- 
+
   },[spin]);
 
   const records = (choose) => {
-    let v6 = historyRecords.find(e=> e?.data.animeId === choose);     
+    let v6 = historyRecords.find(e=> e?.data.animeId === choose);
     return v6;
   }
 
@@ -531,18 +475,15 @@ const handleBack = (type) => {
   const hAllepi = (allQuality) => {
     return allQuality
   }
- 
+
   const alldata = useMemo(()=> data5(epData), [epData])
   const v6 = useMemo(()=> records(choose),[choose])
   const qualities = useMemo(()=> hAllepi(allQuality),[allQuality]);
 
-  
-
-
   useEffect(()=>{
     setTitleIds(titleId)
     setChoose(epId);
-    setEpNum(epNumber);   
+    setEpNum(epNumber);
     setVLoading(true);
     getPlayEpisode(source);
     getUserlikes(epId);
@@ -553,11 +494,10 @@ const handleBack = (type) => {
     updateHistoryss();
     setNVloading(true);
     setAnimeStats(animeStatus)
-  
-   
+
    setTimeout(() => {
       setNVloading(false);
-    
+
     }, 5000);
 
     setTimeout(() => {
@@ -569,12 +509,7 @@ const handleBack = (type) => {
     }
 
   }, [])
-   
-  
-    
-    
-   
- 
+
     if(!EpisodeData.length) {
       return (
         <SafeAreaView style={{
@@ -590,9 +525,8 @@ const handleBack = (type) => {
 
   return (
 
- 
     <>
-    
+
     <TouchableWithoutFeedback  onPress={handleTouch} >
     <View style={isFullscreen ? styles.container1: styles.container}>
     <StatusBar hidden={isFullscreen} />
@@ -612,7 +546,7 @@ const handleBack = (type) => {
           ): (
             <TouchableOpacity onPress={reloadVideo}>
                  <Ionicons name="reload" size={24} color="coral" />
-            </TouchableOpacity> 
+            </TouchableOpacity>
           )}
         </View>
       ):nVloading ? (
@@ -638,10 +572,8 @@ const handleBack = (type) => {
         onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
         useNativeControls={false}
       />
-     
 
       )}
-     
 
      {(isVideoLoading || isVideoPaused) && (
         <View style={styles.loadingContainer}>
@@ -649,15 +581,11 @@ const handleBack = (type) => {
         </View>
       )}
 
-
      {type === 'episode' && status.didJustFinish && playNext && (
         <View style={styles.loadingContainer}>
            <VideoLoad nextEp = {nextEp} message={`Playing next episode ${number}.`} />
         </View>
       )}
-
-     
-
 
       {type !== 'episode' && status.didJustFinish && (
         <View style={styles.loadingContainer}>
@@ -666,10 +594,6 @@ const handleBack = (type) => {
            </TouchableOpacity>
         </View>
       )}
-
-     
-
-  
 
   {!error && showControls && (
 
@@ -684,15 +608,13 @@ const handleBack = (type) => {
         }}>
           {isFullscreen && (
  <Text style={{
-  color:'white', 
+  color:'white',
   position:'absolute',
   top:-140,
-  left:-275,         
+  left:-275,
   fontWeight:'bold',
 }}>You are watching episode {number}.</Text>
           )}
-         
-
 
         <TouchableOpacity onPress={handleBackward}>
         <MaterialCommunityIcons name="fast-forward-10" size={50} color="white" style={{ transform: [{ scaleX: -1 }] }} />
@@ -707,8 +629,6 @@ const handleBack = (type) => {
         </TouchableOpacity>
 
         </View>
-
-        
 
         <Slider
           style={styles.slider}
@@ -731,7 +651,6 @@ const handleBack = (type) => {
         }}>
         <Text style={styles.time}>{curr} / {durr}</Text>
         </View>
-      
 
         <TouchableOpacity onPress={toggleFullscreen}>
         <Ionicons
@@ -761,18 +680,17 @@ const handleBack = (type) => {
         gap:10,
         marginHorizontal:13,
         marginTop:10,
-      }}> 
+      }}>
         <View>
         <Text style={{
         color:'white',
-        opacity:0.7,  
+        opacity:0.7,
         fontSize:10,
         fontStyle:'italic',
       }}>You are watching:</Text>
 
-    
-      <View  style={{width:230, flexDirection:'row', marginBottom:2}}> 
-          <Text style={{flex: 1, flexWrap: 'wrap', 
+      <View  style={{width:230, flexDirection:'row', marginBottom:2}}>
+          <Text style={{flex: 1, flexWrap: 'wrap',
           fontSize:istitle?.length > 20? 15:20,
           fontWeight:'bold',
           color:'coral',
@@ -781,7 +699,6 @@ const handleBack = (type) => {
           </Text>
       </View>
 
-
      <Text style={{
         color:'white',
         opacity:0.7
@@ -789,7 +706,7 @@ const handleBack = (type) => {
         color:'white',
         opacity:1,
         textTransform:'capitalize'
-      }}>{!subOrDub ? 'Sub': subOrDub} / Episode {number}</Text> 
+      }}>{!subOrDub ? 'Sub': subOrDub} / Episode {number}</Text>
       </Text>
       <Text style={{
         color:'white',
@@ -801,24 +718,20 @@ const handleBack = (type) => {
       }}>{animeStats}.</Text></Text>
         </View>
         <View>
-         <LikesComp 
+         <LikesComp
         choose={choose}
         allLikeData={allLikeData}
-        likesData={likesData} 
+        likesData={likesData}
         setDisAbled={setDisAbled}
         userData={userData}
         isDebouncing={isDebouncing}
         onDebounceStart={handleDebounceStart}
         onDebounceEnd={handleDebounceEnd}
-        />   
+        />
         </View>
-        
+
       </View>
 
-     
-       
-    
-      
       <Text style={{
       marginLeft:15,
       opacity:0.5,
@@ -830,7 +743,6 @@ const handleBack = (type) => {
       color:'coral',
       fontWeight:'bold',
      }}>/</Text> Choose quality</Text>
-
 
       <View style={{
         flexDirection:'row',
@@ -853,7 +765,7 @@ const handleBack = (type) => {
         initialNumToRender={4}
         renderItem={({item, index}) => (
 <TouchableOpacity  onPress={()=> vidQuality(item.quality)}>
-            <MotiView  
+            <MotiView
             from={{
               opacity:0,
               translateX:-500,
@@ -894,10 +806,9 @@ const handleBack = (type) => {
         keyExtractor={(item, index) => index.toString()}
       />
         )
-        
-       }
-      </View>      
 
+       }
+      </View>
 
       <View style={{
         marginVertical:15,
@@ -905,13 +816,11 @@ const handleBack = (type) => {
         flex:1,
       }}>
 
-
 {type !== 'episode' && (
 
 <View style={{
-  
+
   gap:10,
-  
 
 }}>
   <View style={{
@@ -936,7 +845,7 @@ const handleBack = (type) => {
   </View>
 
        {resentRelease?.length > 0 && (
-        <MostRecentRelease 
+        <MostRecentRelease
         setData={setData}
         setUrl={setUrl}
         setClick={setClick}
@@ -955,26 +864,20 @@ const handleBack = (type) => {
         setAnimeStats={setAnimeStats}
         status={status}
         nextEp={nextEp}
-        
 
   />
 
        )}
 
-       
-
- 
- 
 </View>
-)}  
+)}
 
      {nextEp && (
-      
-   
+
       <View style={{
         width:'100%',
         height:'100%',
-        justifyContent:'center', 
+        justifyContent:'center',
         alignItems:'center',
         zIndex:100,
         position:'absolute',
@@ -983,14 +886,10 @@ const handleBack = (type) => {
 
         <VideoLoad nextEp = {nextEp} message='Please wait...'/>
 
-        
-       
       </View>
-
 
       )}
 
-    
       {type === 'episode' && (
         <>
 
@@ -1003,7 +902,7 @@ const handleBack = (type) => {
             flex:1,
             gap:10,
           }}>
-         
+
             <ActivityIndicator size="large" color="coral" />
             <Text style={{
               color:'white',
@@ -1011,12 +910,12 @@ const handleBack = (type) => {
               fontWeight:'bold',
 
             }}>Please wait...</Text>
-       
+
         </View>
          ): (
           <>
 
-<Comments 
+<Comments
        choose={choose} userData={userData} disAbled = {disAbled} setDisAbled={setDisAbled}
        allComments={allComments}
        isDebouncing={isDebouncing}
@@ -1039,19 +938,19 @@ const handleBack = (type) => {
             setQuality={setQuality}
             navigation={navigation}
             handleBack={handleBack}
-            userId = {userId}  
+            userId = {userId}
             number={number}
             status={status}
             butangPosition={butangPosition}
             setVLoading={setVLoading}
             setNVloading={setNVloading}
             setAllQuality={setAllQuality}
-            
+
             />
             </>
 
          )}
-  
+
          <TouchableOpacity style={{
           justifyContent:'center',
           alignItems:'center',
@@ -1061,7 +960,7 @@ const handleBack = (type) => {
           paddingTop:10,
          }}
          onPress={()=> navigation.replace('AnimeDetail', {
-          animeId:titleId,  
+          animeId:titleId,
         })}
          >
             <AntDesign name="arrowleft" size={22} color="coral" />
@@ -1071,15 +970,15 @@ const handleBack = (type) => {
               fontWeight:'bold',
               opacity:0.8,
             }}>See more episodes </Text>
-          </TouchableOpacity>  
+          </TouchableOpacity>
       </>
       )}
-    
+
       </View>
       </View>
 
     )}
-   
+
 </>
   );
 };
@@ -1090,7 +989,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000',
-    
+
   },
 
   fullscreenVideo: {

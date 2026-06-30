@@ -8,8 +8,6 @@ import { db } from '../firebase';
 import { Checkbox } from 'react-native-paper';
 import { EvilIcons } from '@expo/vector-icons';
 
-
-
 const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,choose, handlechange, userWatchList, select, handleItemSelection, selectedItems, id}) => {
 
     const [img, setImage] = useState(null)
@@ -17,9 +15,7 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
     const [status, setStatus] = useState(null);
     const [isClick, setisClick] = useState(false);
     const [epiNumber, setEpiNumber] = useState(null);
-   
-   
-  
+
     const handlegotoAnimed = (tId) => {
       setisClick(true);
 
@@ -29,7 +25,7 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
           })
           setisClick(false);
       }, 1000);
-      
+
     }
 
   const handleremovefromhistory = (id) => {
@@ -44,14 +40,14 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
           setMessage('');
           setLoadMore(false);
         }, 2000);
- 
+
       });
     }
   }
 
    const datas = async () => {
         try {
-    
+
             const url = `https://consumet-api-funk.onrender.com/anime/gogoanime/info/${list[i].data.titleId}`;
             const dt = await axios.get(url, {
                 headers:{
@@ -59,37 +55,26 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
                     "Accept":'application/json',
                 }
             });
-        
+
             setImage(dt.data.image);
             setAnimeTitle(dt.data.title);
             setStatus(dt.data.status);
             setEpiNumber(dt.data.totalEpisodes);
-           
+
         } catch (err) {
            console.log('error please try again', err);
         }
     };
 
- 
-
-   
-   
-    
-   
-
  useEffect(()=>{
    datas();
  },[i, makechange])
 
-
-
-
      const {titleId, createdAt} = list[i].data;
-
 
   return (
     <>
-   
+
     <View style={{
         position:'absolute',
         top:12,
@@ -107,7 +92,7 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
        }}
      />
       )}
-      
+
       </View>
     <View  style={{
       flexDirection:'row',
@@ -119,7 +104,7 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
         borderTopRightRadius:10,
         opacity: select ? 0.4 :1,
     }}>
-      
+
       <View >
         {!img ? (
             <View style={{
@@ -130,17 +115,17 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
             }}>
   <ActivityIndicator size="large" color="coral" />
             </View>
-           
+
         ): (
             <Image
             style={{ width: 100, height: 100, resizeMode:'cover',
-            borderBottomLeftRadius:10, 
+            borderBottomLeftRadius:10,
             borderTopRightRadius:10,
         position:'absolute',
         top:-15,
         left:-2,
         zIndex:1,
-    
+
         }}
             source= {{ uri: img }}
             contentFit="cover"
@@ -149,18 +134,18 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
 
         )}
       </View>
-    
+
       <View style={{
         position:'absolute',
         left:117,
         top:10,
-      
+
       }}>
         <View style={{
             flexDirection:'row',
             gap:5,
             position:'relative',
-           
+
         }}>
         <View style={{
             overflow: 'hidden',
@@ -187,7 +172,7 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
          }}>{moment(createdAt?.toDate()).calendar()}</Text>
         </View>
         </View>
-       
+
         <Text style={{
             color:'coral',
             paddingTop:5,
@@ -229,19 +214,18 @@ const WatchListList = ({makechange,setLoadMore,setMessage,list, i, navigation,ch
                 fontSize:12,
             }}>{isClick ? 'Please wait...': 'See more'}</Text>
             </TouchableOpacity>
-            </View> 
+            </View>
           </View>
           <TouchableOpacity disabled={!img ? true : false} onPress={()=>handleremovefromhistory(titleId)}>
             <EvilIcons name="close-o" size={30} color="coral" style={{
                 top:-105,
                 left:220,
-            }}/>    
+            }}/>
             </TouchableOpacity>
-      </View>   
+      </View>
     </View>
-    
-   
-      </> 
+
+      </>
   )
 }
 

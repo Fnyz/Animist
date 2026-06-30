@@ -24,21 +24,9 @@ import { FontAwesome5 } from '@expo/vector-icons';
 import { AntDesign } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 
-
-
-
-
-
-
-
-
 export class HomePage extends Component {
 
-
-
   static contextType = myContext;
-
- 
 
   state = {
     releaseAnime: [],
@@ -61,7 +49,7 @@ export class HomePage extends Component {
     isclick:false,
     isclick1:false,
     isclick2:false,
-    
+
     spin:false,
   }
 
@@ -75,7 +63,7 @@ export class HomePage extends Component {
       ]
 
       const requests = endpoint.map(url => axios.get(url));
-  
+
       Promise.all(requests)
       .then(response => {
         let cleanStorage = {
@@ -85,12 +73,9 @@ export class HomePage extends Component {
           mAnime: response[3].data.slice(0,10)
          }
 
-       
-
         if(!cleanStorage.tAnime.length){
           this.setState({errorTrap:1})
         }
-
 
         AsyncStorage.setItem('serverData', JSON.stringify(cleanStorage))
         .then(()=> {
@@ -103,21 +88,15 @@ export class HomePage extends Component {
             });
 
         })
-         
-      
+
       }).catch(error => {
-        
-       if(error.response.data.status === 404){
-        this.setState({refresh: true});
-       };
+        this.setState({ refresh: true, spin: false });
       })
 
-    
   };
 
-
   handleSendMessage = async () => {
-    const pageId = '100053584361127'; 
+    const pageId = '100053584361127';
 
     const url = Platform.select({
       ios: `fb-messenger://user-thread/${pageId}`,
@@ -133,7 +112,6 @@ export class HomePage extends Component {
     }
   };
 
-
   fetchEndpoint2 = () => {
     this.setState({isclick:true})
     axios.get('https://consumet-api-funk.onrender.com/anime/gogoanime/top-airing')
@@ -143,25 +121,26 @@ export class HomePage extends Component {
     .catch(error => {
       this.setState({errorTrap:1})
     });
-   
-  }
 
+  }
 
   updateInterval = () => {
-    setInterval(() => {
+    this.intervalId = setInterval(() => {
       this.fetchAndUpdateData();
-  }, 60000);
+    }, 60000);
   }
 
-
+  handleFetchReload = () => {
+    this.setState({ spin: true, refresh: false });
+    this.fetchAndUpdateData();
+  }
 
   componentDidMount(){
-   
+
     this.fetchAndUpdateData();
     const dts = this.context;
     this.fetchData();
     this.updateInterval();
-   
 
     const deviceId = this.props.route.params.deviceId;
     const userId = this.props.route.params.id;
@@ -169,30 +148,29 @@ export class HomePage extends Component {
 
     try {
 
-      onSnapshot(docRef, (doc) => {
+      this.unsubscribeUser = onSnapshot(docRef, (doc) => {
 
         if(doc.data().score === 1){
-  
+
           if(doc.data().deviceId === deviceId && doc.data().registered){
             dts.setUserIdhere(doc.data().userId, doc.data().username);
             this.setState({
-              visible: false, 
+              visible: false,
               username: doc.data().username,
               firstname: doc.data().firstname,
               lastname: doc.data().lastname,
               image: doc.data().image,
             });
          }else{
-            this.setState({visible: true,  
+            this.setState({visible: true,
               username: doc.data().username,
               firstname: doc.data().firstname,
               lastname: doc.data().lastname,
               image: doc.data().image,
             });
-              
+
           }
-  
-  
+
         }else{
           setTimeout(() => {
             signOut(Auth).then(() => {
@@ -202,30 +180,22 @@ export class HomePage extends Component {
              });
           }, 3000);
         }
-       
-        
-        
+
       })
-      
+
     } catch (error) {
       console.log('there was an error!', error)
     }
- 
-   
-    
+
   }
 
-
-
-
-
-
   componentWillUnmount() {
-    clearInterval(this.updateInterval); 
+    clearInterval(this.intervalId);
+    if (this.unsubscribeUser) this.unsubscribeUser();
   }
 
   fetchData = () => {
-   
+
     AsyncStorage.getItem('serverData').then((cachedData)=>{
       if (cachedData) {
         const resData = JSON.parse(cachedData);
@@ -235,19 +205,13 @@ export class HomePage extends Component {
           popAnime: resData.pAnime,
           movieAnime: resData.mAnime,
          })
-      } 
+      }
     }).catch((error)=>{
       console.log('there was an error', error)
     })
 
-  
-        
   };
 
-
-
-
-  
   render() {
     return (
       <>
@@ -255,15 +219,14 @@ export class HomePage extends Component {
 
       <SafeAreaView style={{
         flex:1,
-        
+
       }}>
         <StatusBar backgroundColor="rgba(0, 0, 0, .8)" style="dark-content" />
 
-   
           <View style={{
             flex:1,
             backgroundColor: 'rgba(0, 0, 0, .8)',
-        
+
           }}>
             <TitlePage navigation = {this.props.navigation} />
           <Profile navigation={this.props.navigation} usersData = {this.state}/>
@@ -310,14 +273,13 @@ export class HomePage extends Component {
           marginHorizontal:15,
           marginVertical:10,
         }}>
-      
+
         <Text style={{
           color:'white',
           opacity:0.5,
           fontSize:15,
-         
+
         }}>New episodes</Text>
-        
 
         </View>
 
@@ -360,17 +322,16 @@ export class HomePage extends Component {
         >
         {this.state?.releaseAnime.map((anime, i) => {
           return (
-          
+
             <View key={i}>
               <RecentRelease {...anime} navigation = {this.props.navigation} />
             </View>
           )
         })}
         </Swiper>
-     
-      
+
         </View>
-       
+
           <TopAnime navigation = {this.props.navigation} topAnime = {this.state.topAnime} isclick={this.state.isclick} error={this.state.errorTrap} fetchEndpoint2={this.fetchEndpoint2}/>
           <Popular navigation = {this.props.navigation} popAnime = {this.state.popAnime}/>
           <TopMovies navigation = {this.props.navigation} movieAnime = {this.state.movieAnime}/>
@@ -378,9 +339,8 @@ export class HomePage extends Component {
 
         </View>
           )}
-        </View> 
+        </View>
 
-        
         <Portal>
         <Modal visible={this.state?.visible}  contentContainerStyle={containerStyle} >
             <Image source={require('../assets/icons8-sharingan-48.png')} style={{
@@ -405,7 +365,7 @@ export class HomePage extends Component {
               opacity:0.8,
             }}>Sorry, you are not a registered person, please contact the administrator. Thank you!</Text>
             <TouchableOpacity onPress={this.handleSendMessage} style={{
-                            
+
               borderWidth:1,
               borderColor:'coral',
               alignSelf:'center',
@@ -426,7 +386,7 @@ export class HomePage extends Component {
                 color:'coral',
               }}>Send message</Text>
               </View>
-              
+
             </TouchableOpacity>
             <TouchableOpacity style={{
               backgroundColor:'coral',
@@ -449,13 +409,13 @@ export class HomePage extends Component {
                 fontSize:15,
               }}><AntDesign name="login" size={17} color="white" /> LOG-OUT</Text>
             </TouchableOpacity>
-          
+
         </Modal>
 
       </Portal>
 
       </SafeAreaView>
- 
+
         </PaperProvider>
   </>
     )

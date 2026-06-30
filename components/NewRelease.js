@@ -12,10 +12,9 @@ const width = (Dimensions.get('window').width - 4 * 10) / 2;
 
 export class NewReleaseAnime extends Component {
 
-
     constructor(props) {
         super(props);
-    
+
         this.state = {
           currentPage: 1,
           listRelease: [],
@@ -25,12 +24,11 @@ export class NewReleaseAnime extends Component {
           error:false,
           spin:false,
         };
-    
+
       }
 
     QuaryMoviesAnime = async () => {
-       
-        
+
         try {
             const {data} = await axios.get(`https://api.consumet.org/anime/gogoanime/recent-episodes?page=${this.state.currentPage}`,{
                 method: 'GET',
@@ -40,15 +38,12 @@ export class NewReleaseAnime extends Component {
                 }
             })
              this.setState({listRelease:data.results, click1:false, click2:false,error:false, spin:false});
-          
-            
+
         } catch (error) {
             this.setState({error:true});
         }
-       
-        
-    }
 
+    }
 
     handlePreviousPage = () => {
         if (this.state.currentPage > 1) {
@@ -61,9 +56,9 @@ export class NewReleaseAnime extends Component {
           );
         }
       };
-    
+
       handleNextPage = () => {
-        
+
         this.setState(
           (prevState) => ({
             currentPage: prevState.currentPage + 1,
@@ -71,7 +66,7 @@ export class NewReleaseAnime extends Component {
           }),
           this.QuaryMoviesAnime
         );
-      
+
     };
 
     handleViewEP = (id, title, epN, episodeId) => {
@@ -89,12 +84,7 @@ export class NewReleaseAnime extends Component {
         this.QuaryMoviesAnime();
     }
 
-   
-
-
-  
   render() {
-
 
     if(!this.state.listRelease.length){
 
@@ -109,21 +99,19 @@ export class NewReleaseAnime extends Component {
           </View>
        )
     }
-    
+
     return (
       <SafeAreaView style={{
         flex:1,
         backgroundColor:'rgba(0, 0, 0,.8)',
-      }}> 
-      
+      }}>
 
             <View style={{
             flexDirection:'row',
             justifyContent:'space-between',
             alignItems:'center',
             marginHorizontal:20,
-       
-         
+
           }}>
 
           <View style={{
@@ -151,11 +139,11 @@ export class NewReleaseAnime extends Component {
             opacity:0.8,
             marginBottom:15,
             marginTop:15,
-            
+
           }}>New release.</Text>
 
           </View>
-          
+
           <TouchableOpacity onPress={()=> this.props.navigation.goBack()}>
         <AntDesign name="back" size={24} color="white" style={{
             opacity:0.7,
@@ -199,7 +187,7 @@ export class NewReleaseAnime extends Component {
           data={this.state.listRelease}
           renderItem={({item}) => (
             <TouchableOpacity onPress={()=> this.handleViewEP(item.id, item.title, item.episodeNumber,item.episodeId)} style={{
- 
+
               margin:5,
               width:width,
             }}>
@@ -212,28 +200,25 @@ export class NewReleaseAnime extends Component {
               justifyContent: 'space-between',
               alignItems:'center',
             gap:5,
-      
+
           }}
-          
+
           columnWrapperStyle={{
               flexShrink:1,
             }}
             />
 
-
-
         </View>
 )}
 
-        
-       <View style={{ 
-           flexDirection: 'row', 
+       <View style={{
+           flexDirection: 'row',
            justifyContent: 'center',
         padding:15,
         gap:5,
         }}>
-        
-          <TouchableOpacity 
+
+          <TouchableOpacity
            onPress={this.handlePreviousPage}
            disabled={this.state.currentPage === 1}
            style={{
@@ -277,7 +262,7 @@ export class NewReleaseAnime extends Component {
            }}
           >
             <Text style={{
-              color:'white', 
+              color:'white',
             }}>
               {this.state.click1 ? <ActivityIndicator size="small" color="white" />: 'Next'}
             </Text>

@@ -4,13 +4,12 @@ import CustomVideoPlayer from './CustomVideoPlayer'
 
 const VideoPlayer = ({route, navigation}) => {
 
-    
   return (
     <View style={{
         flex:1,
     }}>
       <CustomVideoPlayer
-      epNumber ={route.params.epNumber} 
+      epNumber ={route.params.epNumber}
       epId = {route.params.episodeId}
       title = {route.params.titlePage}
       type = {route.params.type}

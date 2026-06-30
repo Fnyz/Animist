@@ -19,13 +19,7 @@ import MessageModal from './MessageModal'
 import { Ionicons } from '@expo/vector-icons';
 import { MotiView } from 'moti'
 
-
-
-
 const HistoryPage = ({navigation}) => {
-  
-
-
 
    const [isLoading, setIsLoading] = useState(true);
    const ls = useContext(myContext);
@@ -36,7 +30,7 @@ const HistoryPage = ({navigation}) => {
    const [select, setSelect] = useState(false);
    const [selectedItems, setSelectedItems] = useState([]);
    const [message, setMessage] = useState('');
-   const [currentPage, setCurrentPage] = useState(1); 
+   const [currentPage, setCurrentPage] = useState(1);
    const [loadMore, setLoadMore] = useState(false);
    const [visible2, setVisible2] = useState(false);
    const [loadNow, setLoadNow] = useState(false);
@@ -44,8 +38,6 @@ const HistoryPage = ({navigation}) => {
    const totalItems = historyRecords.length;
    const itemsPerPage = 10;
    const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-
 
    useEffect(()=>{
     setTimeout(() => {
@@ -123,7 +115,7 @@ const HistoryPage = ({navigation}) => {
     setMakechange(true);
     setMessage('Please wait selected item will be deleted.')
     try {
-    
+
       selectedItems.forEach(async (i) => {
         const q = query(collection(db, "history"), and(where("userId", "==", userData.id), where("animeId", "==", i)));
         const batch = [];
@@ -147,11 +139,9 @@ const HistoryPage = ({navigation}) => {
 
   },[visible2])
 
-
   const handleSeletectItemDelete = useCallback(() => {
     setVisible2(true);
   },[visible2])
-
 
   const clearAllHistory = async () => {
   setVisible(false);
@@ -169,14 +159,11 @@ const HistoryPage = ({navigation}) => {
         setloading(false)
         setMessage('');
       });
-  
+
     } catch (error) {
       console.error('An error occurred while deleting documents:', error);
     }
   }
-
-
-
 
   renderItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -184,13 +171,11 @@ const HistoryPage = ({navigation}) => {
 
     const list = historyRecords.sort((a, b) => b.data.createdAt - a.data.createdAt);;
 
-
     const items = [];
     for (let i = startIndex; i < endIndex; i++) {
 
-      
       items.push(
-        <MotiView 
+        <MotiView
         from={{
           opacity:0,
           translateY:20,
@@ -207,16 +192,11 @@ const HistoryPage = ({navigation}) => {
           <HistoryList selectedItems={selectedItems}  handleItemSelection={handleItemSelection} select={select} list={list} i={i} navigation={navigation} historyRecords={historyRecords} choose={choose} handlechange={handlechange} setloading={setloading} setLoadMore={setLoadMore} setMessage={setMessage} makechange={makechange}/>
         </MotiView>
       );
-    
+
     }
-    
-   
+
     return items.map((item, index) => <View key={index}>{item}</View>);
   };
-
-
-
-
 
    if(isLoading) {
     return (
@@ -231,13 +211,10 @@ const HistoryPage = ({navigation}) => {
     )
   }
 
-  
-
   let history  = historyRecords.sort((a, b) => b.data.createdAt - a.data.createdAt);
 
-  
   return (
-  
+
     <PaperProvider>
 
     <SafeAreaView
@@ -272,7 +249,7 @@ const HistoryPage = ({navigation}) => {
              flexDirection:'row',
              justifyContent:'center',
              alignItems:'center',
-             gap:5, 
+             gap:5,
         }}>
 
         <MaterialIcons name="live-tv" size={25} color="coral" style={{
@@ -283,7 +260,7 @@ const HistoryPage = ({navigation}) => {
            fontWeight:'bold',
            color:'white',
            opacity:0.8,
-          
+
           }}>
             Ani<Text style={{
               color:'coral',
@@ -321,20 +298,20 @@ const HistoryPage = ({navigation}) => {
               width:160,
               zIndex:10,
               height:50,
-             
+
             }}
             anchor={
               history.length > 1 && (
                 <TouchableOpacity onPress={openMenu} disabled={select ? true:false}>
                 <Entypo name="dots-three-vertical" size={20} color="coral" style={{
                  paddingTop:2,
-                 
+
              }} />
                </TouchableOpacity>
-              ) 
+              )
               }
             >
-            
+
             <Menu.Item  onPress={() => handleSelected()} title="Select" leadingIcon='information-outline' />
             <Menu.Item onPress={() => clearAllHistory()} title="Clear history" leadingIcon='trash-can-outline' titleStyle={{
               color:'red'
@@ -345,13 +322,12 @@ const HistoryPage = ({navigation}) => {
         <FontAwesome name="home" size={24} color="coral" style={{
             opacity:0.8,
         }}/>
-       
+
         </TouchableOpacity>
 
          </View>
-        
-        </View>
 
+        </View>
 
         {loadMore ? (
         <View style={{
@@ -374,12 +350,12 @@ const HistoryPage = ({navigation}) => {
           <NotFound message='No history found.'/>
         </View>
       ): (
-      
+
         <View style={{
          flex:1,
          marginTop:10,
         }}>
-        <FlatList 
+        <FlatList
         data={renderItems()}
         renderItem = {({item})=> (
           <Pressable onPress={()=> handlechange(null)}>
@@ -387,7 +363,7 @@ const HistoryPage = ({navigation}) => {
               {item}
           </PaperProvider>
           </Pressable>
-         
+
         )}
         keyExtractor={(item, index) => index.toString()}
         style={{
@@ -400,10 +376,10 @@ const HistoryPage = ({navigation}) => {
         }}
         />
         </View>
-  
+
       )}
  </View>
-  
+
       )}
       {select && (
         <View style={{
@@ -445,23 +421,21 @@ const HistoryPage = ({navigation}) => {
          </TouchableOpacity>
 
         </View>
-      
+
       )}
 
-        {!select && (<View style={{ 
-            flexDirection: 'row', 
+        {!select && (<View style={{
+            flexDirection: 'row',
             justifyContent: 'center',
             alignItems:'center',
              gap:5,
              paddingBottom:15,
              }}>
-        
 
-
-          <TouchableOpacity 
+          <TouchableOpacity
            onPress={handlePreviousPage}
            disabled={currentPage === 1}
-           style={{  
+           style={{
             padding:10,
             borderBottomLeftRadius:15,
             borderTopLeftRadius:15,
@@ -470,7 +444,7 @@ const HistoryPage = ({navigation}) => {
             backgroundColor:'coral',
             width:70,
             opacity:currentPage === 1? 0.5 : 0.8
-           }}   
+           }}
           >
             <Text style={{
                 color:'white',
@@ -487,10 +461,9 @@ const HistoryPage = ({navigation}) => {
             {currentPage}/{totalPages}
           </Text>
 
-
-         <TouchableOpacity 
+         <TouchableOpacity
           onPress={handleNextPage}
-          disabled={currentPage === totalPages || !history.length} 
+          disabled={currentPage === totalPages || !history.length}
            style={{
             padding:10,
             borderBottomRightRadius:15,
@@ -518,11 +491,10 @@ const HistoryPage = ({navigation}) => {
          }}>
       <MessageModal message={`Are you sure you to delete these ${selectedItems.length} selected items?`} visible={visible2} hideModal ={hideModal2} deletDocss={deletDocss} loadNow={loadNow} />
        </View>
-      
-      
+
     </SafeAreaView>
   </PaperProvider>
-  
+
   )
 }
 

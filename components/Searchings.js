@@ -1,10 +1,9 @@
 import { View, Text} from 'react-native'
 import React from 'react'
-import LottieView from 'lottie-react-native'; 
-
+import LottieView from 'lottie-react-native';
 
 const Searching = () => {
-    
+
   return (
     <View style={{
         marginTop:50,
@@ -20,9 +19,9 @@ const Searching = () => {
         fontSize:20,
         opacity:0.8,
         fontWeight:'bold'
-     }}>Please wait... 
+     }}>Please wait...
      </Text>
-    
+
     </View>
   )
 }

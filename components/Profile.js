@@ -9,10 +9,10 @@ import { myContext } from '../context';
 export class Profile extends Component {
   static contextType = myContext;
   render() {
- 
+
     const {username, firstname, lastname, image } = this.props.usersData;
     const avatarName = `${firstname.charAt(0).trim()} ${lastname.charAt(0).trim()}`;
-    
+
     return (
         <View style={{
             marginBottom:20,
@@ -85,7 +85,7 @@ export class Profile extends Component {
         }}/>
         </TouchableOpacity>
         </View>
-    
+
       </View>
 
     )

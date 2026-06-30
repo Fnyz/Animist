@@ -13,8 +13,6 @@ import { ALERT_TYPE, Dialog, AlertNotificationRoot } from 'react-native-alert-no
 import Modalism from './Modalism';
 import Modal from 'react-native-modal'
 
-
-
 export class LoginAndSignUp extends Component {
     state ={
         IsSignUp:false,
@@ -30,33 +28,28 @@ export class LoginAndSignUp extends Component {
         status: {},
         visible1:false,
         image:null,
-        
+
     }
 
-    
     getPhoneId = async () => {
-      
+
       if (Platform.OS === 'android') {
       const AndriodId =  Device.deviceName.split(' ').join('').toLowerCase().trim() + Application.androidId.trim();
       this.setState({ DeviceId: AndriodId});
       } else if (Platform.OS === 'ios') {
-        const iosId = await Application.getIosIdForVendorAsync()
-        iosId.then(id => {
-          const iosId = Device.deviceName.split(' ').join('').toLowerCase().trim() + id.trim();
-          this.setState({ DeviceId: iosId });
-        })
+        const id = await Application.getIosIdForVendorAsync();
+        const iosId = Device.deviceName.split(' ').join('').toLowerCase().trim() + id.trim();
+        this.setState({ DeviceId: iosId });
       }
-      
+
     }
 
-    
-     
     handlecloseModalism = () => {
       signOut(Auth).
       then(()=> {
         this.setState({visible1:false, email:'', password:''});
       });
-      
+
     }
     handleVerifyModalism =() => {
       const user = Auth.currentUser;
@@ -79,10 +72,8 @@ export class LoginAndSignUp extends Component {
      }).catch((err) => {
       console.log('error');
      })
-    
-    }
 
- 
+    }
 
     handleChange = () => {
         this.setState({IsSignUp:!this.state.IsSignUp});
@@ -101,7 +92,6 @@ export class LoginAndSignUp extends Component {
         })
         return;
       }
-    
 
       this.setState({visible:true});
 
@@ -118,9 +108,6 @@ export class LoginAndSignUp extends Component {
             })
             return;
           }
-
-
-       
 
           createUserWithEmailAndPassword(Auth,
             this.state.email,
@@ -142,7 +129,7 @@ export class LoginAndSignUp extends Component {
                 isSignUpTime: Date.now(),
                 score:1,
             })
-      
+
             this.setState({email:'', firstName:'', lastName: '', password:'', username:'', visible: false, DeviceId:''});
             Dialog.show({
               type: ALERT_TYPE.SUCCESS,
@@ -153,7 +140,7 @@ export class LoginAndSignUp extends Component {
                 Dialog.hide();
                 setTimeout(() => {
                   this.setState({IsSignUp:false});
-                }, 2000);   
+                }, 2000);
               }
 
             })
@@ -162,16 +149,11 @@ export class LoginAndSignUp extends Component {
   .catch((error) => {
     console.log('network error', error);
   });
-            
-      
-           
-          
-       
-      
+
         }).catch((error) => {
 
           let errorMessage = null;
-      
+
             switch(error.code) {
               case "auth/missing-password":
                 errorMessage = "Password is missing, please try again!";
@@ -197,17 +179,12 @@ export class LoginAndSignUp extends Component {
                 button: 'close',
               })
             }
-      
-       
-            
+
         })
 
         return;
 
         }
-
-
-
 
         signInWithEmailAndPassword(Auth,
           this.state.email,
@@ -219,7 +196,6 @@ export class LoginAndSignUp extends Component {
             return;
           }
 
-      
           const data = doc(db, "users", users.user.uid);
           updateDoc(data, {
           score:1,
@@ -229,7 +205,7 @@ export class LoginAndSignUp extends Component {
               id: users.user.uid,
               deviceId: this.state.DeviceId,
             }
-  
+
             this.setState({email:'',password:''});
             this.props.navigation.replace('Home', profile);
 
@@ -237,12 +213,11 @@ export class LoginAndSignUp extends Component {
             console.log('Newtwork is not stable');
             this.setState({visible:false, email:'', password:''})
           });
-         
 
         }).catch((error) => {
           let errorMessage = null;
           this.setState({visible:false});
-    
+
           switch(error.code) {
             case "auth/missing-password":
               errorMessage = "Password is missing, please try again!";
@@ -263,9 +238,9 @@ export class LoginAndSignUp extends Component {
               errorMessage = "Access to this account is temporarily disabled due to many failed login attemps. You can immediately restore it by resetting your password or you can try again later.";
             break;
             default:
-             
+
           }
-     
+
           if(errorMessage){
             Dialog.show({
               type: ALERT_TYPE.DANGER,
@@ -275,22 +250,13 @@ export class LoginAndSignUp extends Component {
             })
 
           }
-        
+
         })
 
-
-        
-      
-
-
-        
-      
-        
     }
     handleShowPassword = () => {
         this.setState({secureEntry:!this.state.secureEntry});
     }
-
 
   componentDidMount(){
     this.getPhoneId();
@@ -298,14 +264,11 @@ export class LoginAndSignUp extends Component {
 
   render() {
 
- 
-   
     return (
       <>
 
-      
 <PaperProvider>
-  
+
    <AlertNotificationRoot theme='dark'>
 
      <TouchableWithoutFeedback onPress={()=>Keyboard.dismiss()}>
@@ -314,10 +277,9 @@ export class LoginAndSignUp extends Component {
         flex: 1,
         position:'relative',
         backgroundColor: 'rgba(0, 0, 0, .8)',
-      
+
       }}>
 
-       
         <Image source={require('../assets/loginPage.png')}
          style={{
           position:'absolute',
@@ -336,17 +298,13 @@ export class LoginAndSignUp extends Component {
             padding:15,
          }}>
 
-
-      
-    
-            
       <Text>
         {this.state.IsSignUp ? (
             <View style={{
                 justifyContent:'center',
                 alignItems: 'center',
                 width:360,
-                
+
             }}>
                 <Text style={{
                     fontSize:45,
@@ -363,7 +321,7 @@ export class LoginAndSignUp extends Component {
                     opacity:0.6,
                     color:'white',
                     textAlign:'center',
-                  
+
                     marginTop:5,
                 }}>Fill out the form.</Text>
             </View>
@@ -381,7 +339,7 @@ export class LoginAndSignUp extends Component {
                     opacity:0.8,
                     color:'white',
                     textAlign:'center',
-                    
+
                 }}>Hello there,</Text>
                 <Text style={{
                     fontSize:30,
@@ -401,7 +359,7 @@ export class LoginAndSignUp extends Component {
         <View style={{
             gap:10,
         }}>
-            <TextInput 
+            <TextInput
                   mode='outlined'
                   activeOutlineColor='coral'
                   outlineColor='white'
@@ -428,7 +386,7 @@ export class LoginAndSignUp extends Component {
               opacity:0.9,
       }}
             />
-            <TextInput 
+            <TextInput
             mode='outlined'
             activeOutlineColor='coral'
             outlineColor='white'
@@ -486,8 +444,7 @@ export class LoginAndSignUp extends Component {
         }}>Forget Password.</Text>
          </TouchableOpacity>
       )}
-     
-     
+
       <Button icon={this.state.IsSignUp? "account-plus": "key-variant"} loading={this.state.isLogin} textColor='white' labelStyle={{
         fontSize:20,
         marginTop:13,
@@ -505,7 +462,7 @@ export class LoginAndSignUp extends Component {
         flexDirection:'row',
         gap:2,
         alignSelf:'center',
-      
+
         marginVertical:5,
       }}>
       <Text style={{
@@ -522,7 +479,6 @@ export class LoginAndSignUp extends Component {
       </TouchableOpacity>
       </View>
         </View>
-
 
       <View>
       <Modal isVisible={this.state.visible} animationIn='slideInLeft'>
@@ -562,16 +518,12 @@ export class LoginAndSignUp extends Component {
         </View>
       </Modal>
     </View>
-     
 
-  
-      
-       
       </SafeAreaView>
         </TouchableWithoutFeedback>
         </AlertNotificationRoot>
     </PaperProvider>
-    
+
       </>
     )
   }

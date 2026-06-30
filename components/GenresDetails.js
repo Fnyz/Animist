@@ -10,8 +10,6 @@ import { Ionicons } from '@expo/vector-icons';
 const width = (Dimensions.get('window').width - 4 * 10) / 2;
 const height = Dimensions.get('window').height;
 
-
-
 export class GenresDetails extends Component {
 
    state = {
@@ -21,10 +19,8 @@ export class GenresDetails extends Component {
     error:false
    }
 
-
     getAllDetailsGenre = async () => {
 
-     
       try {
 
         const gn = this.props.route.params.genres.trim().toLowerCase();
@@ -35,25 +31,20 @@ export class GenresDetails extends Component {
             'Content-Type': 'application/json',
           }
         })
-       
+
         this.setState({
           data: genre.data,
           spin:false,
           error:false,
         })
-        
+
       } catch (error) {
         if(error.response.data.status === 404){
           this.setState({error:true})
         }
       }
 
-       
-      
-     
-      
     }
-
 
   componentDidMount(){
     this.getAllDetailsGenre();
@@ -65,11 +56,9 @@ export class GenresDetails extends Component {
      })
      this.props.navigation.navigate('AnimeDetail', {
       animeId:id,
-   
+
     })
   }
-
-  
 
   render() {
 
@@ -82,16 +71,15 @@ export class GenresDetails extends Component {
           backgroundColor: 'rgba(0, 0, 0, .8)',
         }}>
            <AnimistLoading />
-          
+
         </SafeAreaView>
       )
     }
     return (
-      
+
       <SafeAreaView style={{
         backgroundColor: 'rgba(0, 0, 0, .8)',
       }}>
-       
 
         <View style={{
           height:height,
@@ -130,11 +118,11 @@ export class GenresDetails extends Component {
             opacity:0.8,
             marginBottom:15,
             marginTop:15,
-            
+
           }}>{this.props.route.params.genres}.</Text>
 
           </View>
-          
+
           <TouchableOpacity onPress={()=> this.props.navigation.navigate('Genres')}>
         <AntDesign name="back" size={24} color="white" style={{
             opacity:0.7,
@@ -143,7 +131,7 @@ export class GenresDetails extends Component {
 
         </TouchableOpacity>
           </View>
-           
+
           {this.state.error ? (
               <View style={{
                 height:'100%',
@@ -182,7 +170,7 @@ export class GenresDetails extends Component {
               No genres found.
             </Text>
             </View>
-           
+
           ): (
 
             <View style={{
@@ -192,7 +180,7 @@ export class GenresDetails extends Component {
             renderItem={({item}) => (
              <TouchableOpacity onPress={()=> this.handleDetails(item.animeImg, item.animeId)} style={{
               margin:5,
-              width:width,   
+              width:width,
              }}>
                <ListAnime {...item}/>
              </TouchableOpacity>
@@ -203,7 +191,7 @@ export class GenresDetails extends Component {
               justifyContent: 'space-between',
               alignItems:'center',
               gap:5,
-          
+
             }}
             style={{
               marginBottom:35,
@@ -211,14 +199,13 @@ export class GenresDetails extends Component {
             columnWrapperStyle={{
               flexShrink:1,
             }}
-         
+
             />
             </View>
 
-
           )}
         </View>
-      
+
       </SafeAreaView>
     )
   }

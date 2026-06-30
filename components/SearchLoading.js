@@ -1,9 +1,9 @@
 import { View, Text} from 'react-native'
 import React from 'react'
-import LottieView from 'lottie-react-native'; 
+import LottieView from 'lottie-react-native';
 
 const SearchLoading = ({typing}) => {
-    
+
   return (
     <View style={{
         marginTop:80,
@@ -18,7 +18,7 @@ const SearchLoading = ({typing}) => {
         fontSize:typing ? 15: 20,
         opacity:0.8,
      }}>{typing ? 'Please press the search button after inputting. ': 'Search your favorite anime now. '}</Text>
-    
+
     </View>
   )
 }

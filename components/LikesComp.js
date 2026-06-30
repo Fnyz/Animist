@@ -5,13 +5,10 @@ import { db } from '../firebase';
 import { myContext } from '../context';
 import { Octicons } from '@expo/vector-icons';
 
-
-
 export class LikesComp extends Component {
- 
+
     static contextType = myContext;
     contextValue = this.context;
-
 
     constructor(props) {
       super(props);
@@ -21,22 +18,17 @@ export class LikesComp extends Component {
         userProf:null,
         shouldPerformUpdateLogic: true,
       }
-     
+
       this.memoizedValue = this.calculateMemoizedValue();
     }
 
     debounceTimer = null;
-  
-
-   
-     
-
 
   handleLike = () => {
-    
+
      const epId = this.props.choose;
-     const exist =  this.state.allLikeData.find(l => l.data.userId === this.state.userProf.id && 
-      l.data.animeId === epId);    
+     const exist =  this.state.allLikeData.find(l => l.data.userId === this.state.userProf.id &&
+      l.data.animeId === epId);
      if(!exist){
       clearTimeout(this.debounceTimer);
       this.props.onDebounceStart();
@@ -49,12 +41,11 @@ export class LikesComp extends Component {
           createdAt: serverTimestamp(),
       }).then(()=>{
         this.setState((prev) => ({isClick: !prev.isClick, shouldPerformUpdateLogic:!prev.shouldPerformUpdateLog}));
-       
+
       })
       this.props.onDebounceEnd();
       }, 300);
-     
-  
+
      }else{
       clearTimeout(this.debounceTimer);
       this.props.onDebounceStart();
@@ -66,9 +57,9 @@ export class LikesComp extends Component {
         });
         this.props.onDebounceEnd();
       }, 300);
-       
+
      }
-   
+
   }
 
   componentDidMount(){
@@ -82,7 +73,7 @@ export class LikesComp extends Component {
   componentDidUpdate(prevProps, prevState){
     if(this.state.shouldPerformUpdateLogic && prevProps.likesData.length !== this.state.allLikeData.length){
       this.memoizedValue = this.calculateMemoizedValue();
-      this.setState({allLikeData:prevProps.likesData});    
+      this.setState({allLikeData:prevProps.likesData});
     }
   }
 
@@ -90,22 +81,16 @@ export class LikesComp extends Component {
     clearTimeout(this.debounceTimer);
   }
 
-  
   calculateMemoizedValue() {
     const isheart = this.props.likesData.find(l => l.data.userId === this.props.userData.id && l.data.animeId === this.props.choose)
     return isheart;
   }
 
-
   render() {
 
-    
-    
-   
-    
     return (
-      
-        <View style={{ 
+
+        <View style={{
             flexDirection:'row',
             gap:10,
             height:50,
@@ -122,13 +107,13 @@ export class LikesComp extends Component {
             justifyContent:'center',
           }}>
           {this.state.isClick ? (
-            <ActivityIndicator size="small" color="coral" />  
+            <ActivityIndicator size="small" color="coral" />
           ):(
             <TouchableOpacity onPress={()=>this.handleLike()}>
             {this.memoizedValue ? <Octicons name="heart-fill" size={24} color="coral" /> : <Octicons name="heart" size={24} color="coral" />}
           </TouchableOpacity>
-          )} 
-        
+          )}
+
           <Text style={{
             color:'white',
             opacity:0.7,
@@ -138,7 +123,7 @@ export class LikesComp extends Component {
           }}><Text style={{
             fontSize:20,
           }}>| </Text> {this.state.allLikeData?.length ? this.state.allLikeData?.length : 0}{this.state.allLikeData.length > 999 ? 'k': ''}</Text>
-          </View>      
+          </View>
           </View>
     )
   }

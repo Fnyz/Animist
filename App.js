@@ -18,13 +18,6 @@ import Toast from 'react-native-toast-message';
 import ResetPassword from './components/ResetPassword';
 import UpdatePassword from './components/UpdatePassword';
 
-
-
-
-
-
-
-
 const Stack = createNativeStackNavigator();
 
 function App() {
@@ -34,7 +27,7 @@ function App() {
       <Stack.Navigator  screenOptions={{
       headerShown: false, gestureEnabled: false,
     }}>
-       <Stack.Screen name="SignUpAndSignIn" component={LoginAndSignUp} /> 
+       <Stack.Screen name="SignUpAndSignIn" component={LoginAndSignUp} />
         <Stack.Screen name="Home" component={HomePage} />
         <Stack.Screen name="Genres" component={Genres} />
         <Stack.Screen name="GenresDetails" component={GenresDetails} />

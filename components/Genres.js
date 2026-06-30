@@ -8,8 +8,6 @@ import { genres } from '../genre';
 import AnimistLoading from './AnimistLoading';
 import { MotiView } from 'moti';
 
-
-
 export class Genres extends Component {
 
     state = {
@@ -17,22 +15,16 @@ export class Genres extends Component {
         selected: 0,
         load:true,
     }
- 
 
   componentDidMount () {
-  
+
     setTimeout(()=> {
       this.setState({load:false});
     },2000)
   }
 
-
-
-
-
-
   render() {
-    
+
     if(this.state.load) {
         return (
           <SafeAreaView style={{
@@ -46,7 +38,6 @@ export class Genres extends Component {
         )
     }
 
-  
     return (
       <SafeAreaView style={{
         flex:1,
@@ -66,7 +57,7 @@ export class Genres extends Component {
              flexDirection:'row',
              justifyContent:'center',
              alignItems:'center',
-             gap:5, 
+             gap:5,
         }}>
 
         <MaterialIcons name="live-tv" size={25} color="coral" style={{
@@ -77,7 +68,7 @@ export class Genres extends Component {
            fontWeight:'bold',
            color:'white',
            opacity:0.8,
-          
+
           }}>
             Ani<Text style={{
               color:'coral',
@@ -104,9 +95,9 @@ export class Genres extends Component {
         <FontAwesome name="home" size={24} color="coral" style={{
             opacity:0.8,
         }}/>
-       
+
         </TouchableOpacity>
-         
+
         </View>
 
           <View>
@@ -131,7 +122,7 @@ export class Genres extends Component {
               type:'timing',
               delay:300,
             }}
-         
+
             style={{
                 width:180,
                 margin:5,
@@ -152,7 +143,7 @@ export class Genres extends Component {
                     fontSize:20,
                     opacity:0.9,
                 }}>{item.genre}</Text>
-              
+
                 <View style={{
                     position:'absolute',
                     width:'100%',
@@ -161,7 +152,7 @@ export class Genres extends Component {
                     zIndex:1,
                 }}>
                 </View>
-                
+
                 <Image
         style={{
           width:'100%',
@@ -170,14 +161,11 @@ export class Genres extends Component {
       }}
         source= {{ uri: item.img }}
         contentFit="cover"
-        
+
       />
 
-
-
-                
             </MotiView>
-            
+
            </TouchableOpacity>
           )}
           numColumns={2}
@@ -186,7 +174,7 @@ export class Genres extends Component {
             justifyContent: 'space-between',
             alignItems:'center',
             gap:5,
-      
+
           }}
           style={{
             marginBottom:70,
@@ -194,12 +182,11 @@ export class Genres extends Component {
           columnWrapperStyle={{
             flexShrink:1,
           }}
-       
+
           />
 
-
           </View>
-           
+
       </SafeAreaView>
     )
   }

@@ -5,7 +5,6 @@ import { Image } from 'expo-image';
 import ListLoading from './listLoading';
 import { MotiView } from 'moti';
 
-
 export class TopAnimeInfo extends Component {
 
     state = {
@@ -13,7 +12,6 @@ export class TopAnimeInfo extends Component {
         error:null,
     }
 
-    
     data = async () => {
         try {
 
@@ -27,8 +25,6 @@ export class TopAnimeInfo extends Component {
                 tEpisodes: data.totalEpisodes,
             }
 
-
-            
             this.setState({
                 animeData: newData
             })
@@ -36,17 +32,16 @@ export class TopAnimeInfo extends Component {
             this.setState({ error: err});
         }
     };
-  
+
   componentDidMount(){
     this.data();
   }
-  
+
   render() {
 
     const  {title, image, subOrdub, tEpisodes} = this.state.animeData;
     const {index} = this.props;
 
-   
     if(!image){
         return (
             <View style={{
@@ -60,10 +55,8 @@ export class TopAnimeInfo extends Component {
         )
     }
 
-    
-    
     return (
-      <MotiView  
+      <MotiView
       from={{
         translateY:100,
         opacity:0,
@@ -77,11 +70,11 @@ export class TopAnimeInfo extends Component {
         delay:index * 100,
       }}
       >
-        
+
         <View style={{
            width: 200, height: 200, margin:10,
            position:'relative',
-          
+
         }}>
         <View style={{
 
@@ -106,7 +99,7 @@ export class TopAnimeInfo extends Component {
             <View style={{
                 flexDirection:'row',
                 justifyContent:'space-between',
-                         
+
             }}>
             <View style={{
                 backgroundColor:'coral',
@@ -135,8 +128,7 @@ export class TopAnimeInfo extends Component {
                 }}>{subOrdub}</Text>
             </View>
             </View>
-       
-           
+
         </View>
         <Image
         style={{ width: 200, height: 200, resizeMode:'cover',borderRadius:5, }}
@@ -145,7 +137,7 @@ export class TopAnimeInfo extends Component {
         transition={1000}
       />
         </View>
-        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}> 
+        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}>
           <Text style={{flex: 1, flexWrap: 'wrap', color:'white', textAlign:'center',fontWeight:'bold', opacity:0.7}}> {title}
           </Text>
         </View>

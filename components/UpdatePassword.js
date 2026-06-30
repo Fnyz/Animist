@@ -7,7 +7,6 @@ import { Auth } from '../firebase';
 import { reauthenticateWithCredential, updatePassword, EmailAuthProvider} from 'firebase/auth';
 import { ALERT_TYPE, Dialog, AlertNotificationRoot } from 'react-native-alert-notification';
 
-
 const UpdatePassword = ({navigation}) => {
   const [secureEntry, setSecurityEntry] = useState(true);
   const [secureEntry1, setSecurityEntry1] = useState(true);
@@ -16,9 +15,9 @@ const UpdatePassword = ({navigation}) => {
 
   const updatePasswordInFirebase = async (currentPassword, newPassword) => {
     try {
-      
+
       const user = Auth.currentUser;
-  
+
       if (user) {
         const credential = EmailAuthProvider.credential(user.email, currentPassword);
         await reauthenticateWithCredential(user, credential);
@@ -60,9 +59,9 @@ const UpdatePassword = ({navigation}) => {
             errorMessage = "Access to this account is temporarily disabled due to many failed login attemps. You can immediately restore it by resetting your password or you can try again later.";
           break;
           default:
-           
+
         }
-   
+
         if(errorMessage){
           setCurrentpass('');
           Dialog.show({
@@ -81,7 +80,7 @@ const UpdatePassword = ({navigation}) => {
   const handleShowPassword1 = () => {
     setSecurityEntry1(prev => !prev);
   }
-  
+
   const handlePasswordUpdate = () => {
     updatePasswordInFirebase(currentpass, newPass);
   };
@@ -188,7 +187,6 @@ const UpdatePassword = ({navigation}) => {
         </TouchableOpacity>
       </View>
 
-      
     </SafeAreaView>
         </AlertNotificationRoot>
   )

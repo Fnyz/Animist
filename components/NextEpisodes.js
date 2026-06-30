@@ -28,7 +28,7 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
   const {getAllComments, getEpisodeIdbyDefault, getUserlikes} = contextVal;
 
   const handleClicking = async (id,i) => {
-    
+
     setClick(true);
     setNextEp(true);
     setNVloading(true);
@@ -36,7 +36,7 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
       const url = `https://consumet-api-funk.onrender.com/anime/gogoanime/watch/${id}`;
       const { data } = await axios.get(url, { params: { server: "vidstreaming" } });
       if(data){
-        
+
         setData(data.sources);
         setUrl(data.sources[0].url);
         setQuality(data.sources[0].quality);
@@ -52,13 +52,12 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
           setNextEp(false);
           setClick(false);
           setNVloading(false);
-        }, 2000);     
+        }, 2000);
       }
-    
+
   } catch (err) {
       throw new Error(err.message);
-  }  
-
+  }
 
   }
   return (
@@ -77,7 +76,7 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
             type:'timing'
            }}
            style={{
-       
+
        padding:13,
        backgroundColor:'coral',
        marginHorizontal:5,
@@ -85,13 +84,13 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
        opacity:0.8,
        marginBottom:10,
        marginTop:15,
-       
+
       }}>
        <View style={{
          flexDirection:'row',
          justifyContent:'space-between',
          alignItems:'center',
-         
+
        }}>
        <Text style={{
          fontSize:15,
@@ -112,12 +111,11 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
         paddingRight:2,
        }}>{status.isPlaying? <Entypo name="controller-paus" size={24} color="white" />:<FontAwesome name="play" size={24} color="white" />}</Text>
        </View>
-       </View> 
+       </View>
      </MotiView>
      {nexToPlayEp && (
       <TouchableOpacity onPress={()=> handleClicking(nexToPlayEp.id, nexToPlayEp.number)}>
 
-   
       <MotiView
        from={{
         translateY:500,
@@ -138,13 +136,13 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
        marginHorizontal:5,
        borderRadius:5,
        opacity:0.8,
-       
+
       }}>
        <View style={{
          flexDirection:'row',
          justifyContent:'space-between',
          alignItems:'center',
-         
+
        }}>
        <Text style={{
          fontSize:15,
@@ -163,7 +161,7 @@ const NextEpisods = ({nexToPlayEp, subOrDub, nextEpisodes,
        }}>{subOrDub} / </Text>
        <AntDesign name="playcircleo" size={20} color="coral" />
        </View>
-       </View> 
+       </View>
      </MotiView>
      </TouchableOpacity>
      )}

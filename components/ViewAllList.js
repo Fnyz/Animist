@@ -12,10 +12,9 @@ const width = (Dimensions.get('window').width - 4 * 10) / 2;
 
 export class ViewAllList extends Component {
 
-
     constructor(props) {
         super(props);
-    
+
         this.state = {
           currentPage: 1,
           listMovies: [],
@@ -25,12 +24,11 @@ export class ViewAllList extends Component {
           error:false,
           spin:false
         };
-    
+
       }
 
     QuaryMoviesAnime = async () => {
-       
-        
+
         try {
             const {data} = await axios.get(`${this.props.route.params.url}?page=${this.state.currentPage}`,{
                 method: 'GET',
@@ -40,17 +38,14 @@ export class ViewAllList extends Component {
                 }
             })
              this.setState({listMovies:this.props.route.params.kindData ? data.results: data, click1:false, click2:false, spin:false, error:false});
-          
-            
+
         } catch (error) {
           if(error.response.data.status === 404){
             this.setState({error: true});
           };
         }
-       
-        
-    }
 
+    }
 
     handlePreviousPage = () => {
         if (this.state.currentPage > 1) {
@@ -63,9 +58,9 @@ export class ViewAllList extends Component {
           );
         }
       };
-    
+
       handleNextPage = () => {
-        
+
         this.setState(
           (prevState) => ({
             currentPage: prevState.currentPage + 1,
@@ -73,7 +68,7 @@ export class ViewAllList extends Component {
           }),
           this.QuaryMoviesAnime
         );
-      
+
     };
 
     handleDetails = (image, id) => {
@@ -82,7 +77,7 @@ export class ViewAllList extends Component {
          })
          this.props.navigation.navigate('AnimeDetail', {
           animeId:id,
-       
+
         })
       }
 
@@ -90,12 +85,7 @@ export class ViewAllList extends Component {
         this.QuaryMoviesAnime();
     }
 
-   
-
-
-  
   render() {
-
 
     const {kindData} = this.props.route.params;
 
@@ -112,20 +102,19 @@ export class ViewAllList extends Component {
           </View>
        )
     }
-    
+
     return (
       <SafeAreaView style={{
         flex:1,
         backgroundColor:'rgba(0, 0, 0,.8)',
-      }}> 
+      }}>
 
             <View style={{
             flexDirection:'row',
             justifyContent:'space-between',
             alignItems:'center',
             marginHorizontal:20,
-       
-         
+
           }}>
 
           <View style={{
@@ -153,11 +142,11 @@ export class ViewAllList extends Component {
             opacity:0.8,
             marginBottom:15,
             marginTop:15,
-            
+
           }}>{this.props.route.params.type}.</Text>
 
           </View>
-          
+
           <TouchableOpacity onPress={()=> this.props.navigation.goBack()}>
         <AntDesign name="back" size={24} color="white" style={{
             opacity:0.7,
@@ -213,28 +202,25 @@ export class ViewAllList extends Component {
               justifyContent: 'space-between',
               alignItems:'center',
             gap:5,
-      
+
           }}
-          
+
           columnWrapperStyle={{
               flexShrink:1,
             }}
             />
 
-
-
         </View>
 )}
 
-        
-       <View style={{ 
-           flexDirection: 'row', 
+       <View style={{
+           flexDirection: 'row',
            justifyContent: 'center',
         padding:15,
         gap:5,
         }}>
-        
-          <TouchableOpacity 
+
+          <TouchableOpacity
            onPress={this.handlePreviousPage}
            disabled={this.state.currentPage === 1}
            style={{

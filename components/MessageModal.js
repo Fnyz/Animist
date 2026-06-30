@@ -6,7 +6,6 @@ import { TouchableOpacity } from 'react-native';
 import { Modal, Portal, Text} from 'react-native-paper';
 import { Image } from 'react-native';
 
-
 const MessageModal = ({message, hideModal, visible, deletDocss, idToDelete, loadNow}) => {
     const containerStyle = {backgroundColor: 'rgba(0,0,0,0.9)', padding: 20, marginHorizontal:19, position:'relative',
     borderColor:'coral',
@@ -75,9 +74,9 @@ const MessageModal = ({message, hideModal, visible, deletDocss, idToDelete, load
           </TouchableOpacity>
 
           </View>
-         
+
         </Modal>
-        
+
       </Portal>
     </PaperProvider>
   )

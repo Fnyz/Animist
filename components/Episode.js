@@ -8,37 +8,26 @@ import { myContext } from '../context';
 import AnimistLoading from './AnimistLoading';
 import { MotiView, MotiText } from 'moti';
 
-
-
-
-
- 
-
 export class Episode extends Component {
 
   static contextType = myContext;
 
-  
-
-
     constructor(props) {
         super(props);
-    
+
         this.state = {
           currentPage: 1,
           selected:0,
           loading:true,
           currentId:null,
         };
-    
+
         this.totalItems = this.props.route.params.epData.length;
         this.itemsPerPage = 10;
         this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
-   
-    
-       
+
       }
-    
+
       handlePreviousPage = () => {
         if (this.state.currentPage > 1) {
           this.setState((prevState) => ({
@@ -46,7 +35,7 @@ export class Episode extends Component {
           }));
         }
       };
-    
+
       handleNextPage = () => {
         if (this.state.currentPage < this.totalPages) {
           this.setState((prevState) => ({
@@ -54,9 +43,7 @@ export class Episode extends Component {
           }));
         }
       };
-      
 
-      
       renderItems = () => {
         const ls = this.context;
         const { currentPage } = this.state;
@@ -64,17 +51,12 @@ export class Episode extends Component {
         const endIndex = Math.min(startIndex + this.itemsPerPage, this.totalItems);
         const titleId = this.props.route.params.titleId
         let dt = ls.historyRecords.find(r => r?.data.count === 1 && r.data.titleId === titleId);
-        
-  
-        
 
         let data = this.props.route.params.epData;
-    
+
         const items = [];
         for (let i = startIndex; i < endIndex; i++) {
 
-       
-          
           items.push(
 
             <TouchableOpacity  onPress={()=> this.handleViewEpisodes(data[i]?.id, this.props.route.params.title, data[i]?.number, data, this.props.route.params.subOrDub,this.props.route.params.status, dt?.data.animeId)}>
@@ -97,14 +79,14 @@ export class Episode extends Component {
                 margin:10,
                 flexDirection:'row',
                 justifyContent:'space-between',
-                padding:15, 
+                padding:15,
                 borderRadius:10,
                 fontsize:30,
                 borderColor:dt?.data.animeId === data[i]?.id? null : 'coral',
                 backgroundColor:dt?.data.animeId === data[i]?.id? 'coral' : null,
                 position:'relative',
                 overflow:'hidden'
-            }}> 
+            }}>
             <Text style={{
                 color:dt?.data.animeId === data[i]?.id? 'white' : 'coral',
             }}>Episode {data[i]?.number}</Text>
@@ -121,22 +103,17 @@ export class Episode extends Component {
 
             </TouchableOpacity>
 
-
           );
-        
+
         }
-        
-       
+
         return items.map((item, index) => <View key={index}>{item}</View>);
       };
 
-
     handleViewEpisodes = (id, title, number, alleposodes, subOrDub, status, current) => {
-    
-      
 
       const titleId = this.props.route.params.titleId
-   
+
         this.props.navigation.replace('View', {
           episodeId:id,
           titlePage:title,
@@ -148,8 +125,7 @@ export class Episode extends Component {
           titleId,
           current,
        })
-   
-     
+
     }
 
     handleAutoPages =() => {
@@ -159,7 +135,7 @@ export class Episode extends Component {
       if(!dt){
         return null;
       }
-      
+
       if(dt?.data.epiNumber > 0){
         let pushPage = Math.ceil( dt?.data.epiNumber / this.itemsPerPage );
         this.setState({currentPage:pushPage});
@@ -167,29 +143,22 @@ export class Episode extends Component {
       }else{
         this.setState({currentPage:1});
       }
-      
+
     }
-  
+
     componentDidMount(){
       this.handleAutoPages();
       setTimeout(()=>{
         this.setState({
           loading:false,
         })
-      },3000) 
+      },3000)
     }
 
-    
-  
-   
-
-    
   render() {
-
 
     const title = this.props.route.params.title
 
-    
     if(this.state.loading){
       return (
         <View style={{
@@ -203,15 +172,13 @@ export class Episode extends Component {
       )
     }
 
-   
-  
     return (
-      
+
       <SafeAreaView style={{
         flex:1,
         backgroundColor: 'rgba(0, 0, 0, .8)',
       }}>
-  
+
         <View style={{
           flexDirection:'row',
           justifyContent:'space-between',
@@ -254,7 +221,7 @@ export class Episode extends Component {
         }}>
 
           {!this.props.route.params.epData.length ? (
-            
+
             <View style={{
               marginTop:100,
               justifyContent:'center',
@@ -265,7 +232,6 @@ export class Episode extends Component {
             </View>
           ): (
 
-            
 <View>
         <FlatList
           data={this.renderItems()}
@@ -276,20 +242,18 @@ export class Episode extends Component {
           removeClippedSubviews={true}
           initialNumToRender={10}
           />
-        <View style={{ 
-            flexDirection: 'row', 
+        <View style={{
+            flexDirection: 'row',
             justifyContent: 'center',
             alignItems:'center',
              gap:5,
              paddingBottom:15,
              }}>
-        
 
-
-          <TouchableOpacity 
+          <TouchableOpacity
            onPress={this.handlePreviousPage}
            disabled={this.state.currentPage === 1}
-           style={{  
+           style={{
             padding:10,
             borderBottomLeftRadius:15,
             borderTopLeftRadius:15,
@@ -298,7 +262,7 @@ export class Episode extends Component {
             backgroundColor:'coral',
             width:70,
             opacity:this.state.currentPage === 1? 0.5 : 0.8
-           }}   
+           }}
           >
             <Text style={{
                 color:'white',
@@ -315,8 +279,7 @@ export class Episode extends Component {
             {this.state.currentPage}/{this.totalPages}
           </Text>
 
-
-         <TouchableOpacity 
+         <TouchableOpacity
           onPress={this.handleNextPage}
           disabled={this.state.currentPage === this.totalPages}
            style={{
@@ -338,11 +301,7 @@ export class Episode extends Component {
         </View>
       </View>
 
-
-
           )}
-
-
 
         </View>
 

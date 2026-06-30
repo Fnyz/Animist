@@ -3,21 +3,16 @@ import React, { Component } from 'react'
 import { Image } from 'expo-image';
 export class RecentRelease extends Component {
 
-  
   render() {
     const {image, title, id, episodeId, episodeNumber} = this.props;
 
-  
-   
     return (
        <>
-       
-      
+
        <View style={{
         height:250,
         borderColor:'red'
        }}>
-      
 
         <Image
         style={{ width:400,
@@ -46,7 +41,7 @@ export class RecentRelease extends Component {
           overflow: 'hidden',
         }}>{!title ? id: title}</Text>
         </View>
-       
+
         <Text style={{
           color:'white'
         }}><Text style={{
@@ -64,8 +59,6 @@ export class RecentRelease extends Component {
           type:'release'
         })}>
 
-      
-     
         <View style={{
           paddingHorizontal:15,
           paddingVertical:5,
@@ -73,7 +66,7 @@ export class RecentRelease extends Component {
           backgroundColor:'coral',
           opacity:0.9
         }}>
-         
+
           <Text style={{
             color:'white',
             fontWeight:'bold'

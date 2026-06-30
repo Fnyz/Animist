@@ -15,12 +15,10 @@ import { Image } from 'expo-image';
 import { MotiView, MotiText } from 'moti';
 import { Ionicons } from '@expo/vector-icons';
 
-
 export class DetailsPage extends Component {
 
   static contextType = myContext;
   dt = this.static;
-
 
   constructor(props) {
     super(props);
@@ -49,12 +47,12 @@ export class DetailsPage extends Component {
   handleWatchlist = async (titleId) => {
     this.setState({isWatchList:true});
     const ls = this.context;
-    
+
     const ext  = ls.userWatchList.find(w => w.data.titleId === titleId)
 
     if(ext){
       this.setState({visible:true, idToDelete:ext.id});
-    
+
       return;
     }else{
       await addDoc(collection(db, 'watchList'), {
@@ -68,27 +66,23 @@ export class DetailsPage extends Component {
         this.setState({visible1:false});
       }, 2000);
     });
- 
+
     }
 
-    
   }
-
 
   handleEpisode =(epData, animeTitle, subOrDub,status, image) => {
 
- 
     this.props.navigation.navigate('Episodes',{
       epData,
       title:animeTitle,
-      subOrDub, 
+      subOrDub,
       status,
       image,
       titleId:this.state.animeIds,
       watchListData:[],
     });
-    
-    
+
   }
 
   handleGobacktoHome = async () => {
@@ -103,7 +97,7 @@ export class DetailsPage extends Component {
       this.setState({
               singleAnime: data,
               animeIds:title,
-              
+
       });
   } catch (err) {
       console.log('this an error in details page', err) ;
@@ -114,8 +108,6 @@ export class DetailsPage extends Component {
   this.getSingleAnime();
  }
 
- 
-
 handleFocus = () => {
   this.setState({loadings:true})
   setTimeout(() => {
@@ -123,14 +115,7 @@ handleFocus = () => {
   },3000);
 };
 
-
-
-
   render() {
-
-
-
-   
 
     const {title, type, releaseDate, status, genres, description, image, subOrDub, episodes, otherName} = this.state.singleAnime;
     const dt = this.context;
@@ -138,18 +123,15 @@ handleFocus = () => {
     const {historyRecords, userWatchList} = dt;
     let res = historyRecords.find(a => a?.data.count === 1 && a?.data.titleId === titleId);
     let res1 = userWatchList.find(a => a?.data.titleId === titleId);
-    
-    
+
     return (
-     
 
       <SafeAreaView style={{
         backgroundColor: 'rgba(0, 0, 0, .8)',
         flex:1,
         alignItems:'center',
       }} >
-  
-          
+
         {!image ? (
           <View style={{
             justifyContent:'center',
@@ -161,8 +143,7 @@ handleFocus = () => {
         ): (
 
           <>
-            
- 
+
           <View style={{
             margin:10,
             height:730,
@@ -200,10 +181,8 @@ handleFocus = () => {
       />
 
             </MotiView>
-       
-          
-         
-         <MotiText 
+
+         <MotiText
          from={{
           opacity:0,
           top:20,
@@ -250,7 +229,6 @@ handleFocus = () => {
           fontWeight:'bold',
          }}>{otherName}.</Text>
          </MotiView>
-         
 
          <MotiView
          from={{
@@ -280,8 +258,8 @@ handleFocus = () => {
          }}>{type}.</Text>
 
          </MotiView>
-        
-         <MotiView 
+
+         <MotiView
          from={{
           opacity:0,
           top:20,
@@ -309,7 +287,6 @@ handleFocus = () => {
           }}>{genres.join(', ')}.</Text>
           </MotiView>
 
-         
          <MotiView
          from={{
           opacity:0,
@@ -339,7 +316,7 @@ handleFocus = () => {
          }}>{releaseDate}.</Text>
 
          </MotiView>
-        
+
         <MotiView
         from={{
           opacity:0,
@@ -357,7 +334,7 @@ handleFocus = () => {
           flexDirection:'row',
                     marginTop:5,
                     alignItems:'center',
- 
+
         }}>
 
         <Text style={{opacity:0.5, color:'white'}}>Status: </Text>
@@ -370,8 +347,8 @@ handleFocus = () => {
         }}>{status}.</Text>
 
         </MotiView>
-        
-        <MotiView 
+
+        <MotiView
         from={{
           opacity:0,
           top:20,
@@ -395,7 +372,7 @@ handleFocus = () => {
           }}>{description}.</Text>
         </MotiView>
         </ScrollView>
-          </View> 
+          </View>
 
           <View style={{
           flexDirection:'row',
@@ -404,8 +381,8 @@ handleFocus = () => {
           paddingTop:10,
           gap:10,
          }}>
-          <TouchableOpacity disabled={this.state.loadings} onPress={()=>this.handleEpisode(episodes, title, subOrDub, status, image)}>         
-          <MotiView 
+          <TouchableOpacity disabled={this.state.loadings} onPress={()=>this.handleEpisode(episodes, title, subOrDub, status, image)}>
+          <MotiView
           from={{
             scale:0.5,
             translateY:300,
@@ -438,13 +415,11 @@ handleFocus = () => {
               gap:10,
             }}>{this.state.loadings ?(
               <Text>Please wait..</Text>
-            ) :res?.data.titleId === titleId ? `/ CURRENT EP | ${res?.data.epiNumber}`: `VIEW EPISODE${episodes.length > 1 ? 'S': ''}`}</Text>  
-         
-         
+            ) :res?.data.titleId === titleId ? `/ CURRENT EP | ${res?.data.epiNumber}`: `VIEW EPISODE${episodes.length > 1 ? 'S': ''}`}</Text>
+
           </MotiView>
 
           </TouchableOpacity>
-
 
           <TouchableOpacity onPress={this.handleGobacktoHome}>
 
@@ -467,13 +442,13 @@ handleFocus = () => {
             width:100,
             justifyContent:'center',
             alignItems:'center',
-            borderColor:'coral',       
+            borderColor:'coral',
           }}>
             <Text style={{
               color:'white',
               fontSize:15,
               fontWeight:'bold',
-             
+
             }}>
               <Ionicons name="arrow-back-outline" size={24} color="coral" style={{
 opacity:0.7,
@@ -502,7 +477,7 @@ fontWeight:'bold'
             width:40,
             justifyContent:'center',
             alignItems:'center',
-            backgroundColor:'coral', 
+            backgroundColor:'coral',
             position:'relative',
           }}>
         {this.state.isWatchList && <ActivityIndicator size="small" color="white" style={{
@@ -511,7 +486,7 @@ fontWeight:'bold'
         <View style={{
           opacity:this.state.isWatchList ? 0 : 1,
         }}>
-        {res1 ? <MaterialCommunityIcons name="playlist-remove" size={24} color="white" />: <MaterialCommunityIcons name="playlist-plus" size={24} color="white" /> } 
+        {res1 ? <MaterialCommunityIcons name="playlist-remove" size={24} color="white" />: <MaterialCommunityIcons name="playlist-plus" size={24} color="white" /> }
         </View>
          </MotiView>
 
@@ -550,10 +525,9 @@ fontWeight:'bold'
           <AddedToList message='Successfully added to WatchList' visible={this.state.visible1}/>
          </MotiView>
           </>
-        )} 
-        
+        )}
+
       </SafeAreaView>
-       
 
     )
   }

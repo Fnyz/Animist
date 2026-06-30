@@ -10,7 +10,7 @@ export class GotoTopMovie extends Component {
     state = {
         animeData: {}
     }
-    
+
     data = async () => {
         try {
 
@@ -35,13 +35,13 @@ export class GotoTopMovie extends Component {
             console.log('there was an error', err);
         }
     };
-  
+
   componentDidMount(){
 
     this.data();
 
   }
-  
+
   render() {
 
     const  {title, image, tEpisodes, subOrDub} = this.state.animeData;
@@ -59,8 +59,7 @@ export class GotoTopMovie extends Component {
             </View>
         )
     }
-    
-    
+
     return (
       <MotiView
       from={{
@@ -76,11 +75,11 @@ export class GotoTopMovie extends Component {
         delay:index * 100,
       }}
       >
-        
+
         <View style={{
            width: 200, height: 200, margin:10,
            position:'relative',
-          
+
         }}>
         <View style={{
 
@@ -105,7 +104,7 @@ export class GotoTopMovie extends Component {
             <View style={{
                 flexDirection:'row',
                 justifyContent:'space-between',
-                         
+
             }}>
             <View style={{
                 backgroundColor:'coral',
@@ -137,8 +136,7 @@ export class GotoTopMovie extends Component {
             </View>
             )}
             </View>
-       
-           
+
         </View>
 
         <Image
@@ -148,7 +146,7 @@ export class GotoTopMovie extends Component {
         transition={1000}
       />
         </View>
-        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}> 
+        <View style={{width:150, flexDirection:'row', alignSelf:'center'}}>
           <Text style={{flex: 1, flexWrap: 'wrap', color:'white', textAlign:'center',fontWeight:'bold', opacity:0.7}}> {title}
           </Text>
         </View>

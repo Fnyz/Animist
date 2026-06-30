@@ -1,15 +1,13 @@
 import { View, Text} from 'react-native'
 import React from 'react'
-import LottieView from 'lottie-react-native'; 
-
+import LottieView from 'lottie-react-native';
 
 const AnimistLoading = () => {
-    
+
   return (
-    
-     
+
      <View style={{
-      
+
      }}>
      <LottieView style={{
         width:1200,
@@ -26,7 +24,7 @@ const AnimistLoading = () => {
       bottom:20,
      }}>Please wait...</Text>
      </View>
- 
+
   )
 }
 

@@ -20,13 +20,9 @@ import { useCallback } from 'react'
 import MessageModal from './MessageModal'
 import { MotiView } from 'moti'
 
-
-
 const WatchListHistory = ({navigation}) => {
-  
 
-
-  const [currentPage, setCurrentPage] = useState(1); 
+  const [currentPage, setCurrentPage] = useState(1);
    const [isLoading, setIsLoading] = useState(true);
    const ls = useContext(myContext);
    const {userWatchList, userData} = ls;
@@ -55,7 +51,7 @@ const WatchListHistory = ({navigation}) => {
       ? selectedItems.filter((id) => id !== titleId)
       : [...selectedItems, titleId];
     setSelectedItems(updatedSelection);
-    
+
   },[selectedItems.length]);
 
    const handlechange = useCallback((id) => {
@@ -99,7 +95,7 @@ const WatchListHistory = ({navigation}) => {
     setMakechange(true);
     setMessage('Please wait selected item will be deleted.')
     try {
-    
+
       selectedItems.forEach(async (i) => {
          const q = query(collection(db, "watchList"), and(where("userId", "==", userData.id), where("titleId", "==", i)));
          const batch = [];
@@ -107,7 +103,7 @@ const WatchListHistory = ({navigation}) => {
           querySnapshot.forEach((doc) => {
        batch.push(deleteDoc(doc.ref));
         });
-      
+
           await Promise.all(batch).then(()=>{
            setloading(false);
            setVisible(false);
@@ -138,7 +134,6 @@ const WatchListHistory = ({navigation}) => {
 
   };
 
- 
   const handleSeletectItemDelete = useCallback(() => {
     setVisible2(true);
   },[visible2])
@@ -153,13 +148,12 @@ const WatchListHistory = ({navigation}) => {
 
   }
 
-
   const clearAllHistory = async () => {
     setloading(true);
     setVisible(false);
     setMessage('Please wait all items in history is deleted.');
     try {
-    
+
       const q = query(collection(db, "watchList"), where("userId", "==", userData.id));
       const batch = [];
       const querySnapshot = await getDocs(q);
@@ -171,13 +165,12 @@ const WatchListHistory = ({navigation}) => {
         setloading(false)
         setMessage('');
       });
-  
+
     } catch (error) {
       console.error('An error occurred while deleting documents:', error);
     }
   }
 
-  
   renderItems = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
@@ -187,7 +180,6 @@ const WatchListHistory = ({navigation}) => {
     const items = [];
     for (let i = startIndex; i < endIndex; i++) {
 
-      
       items.push(
         <MotiView
         from={{
@@ -206,14 +198,11 @@ const WatchListHistory = ({navigation}) => {
         <WatchListList selectedItems={selectedItems}  handleItemSelection={handleItemSelection} select={select} list={list} i = {i} userWatchList={userWatchList} navigation={navigation} choose={choose} handlechange={handlechange} setLoadMore={setLoadMore} setMessage={setMessage} makechange={makechange}/>
         </MotiView>
       );
-    
+
     }
-    
-   
+
     return items.map((item, index) => <View key={index}>{item}</View>);
   };
-
-
 
    if(isLoading) {
     return (
@@ -228,15 +217,11 @@ const WatchListHistory = ({navigation}) => {
     )
   }
 
-  
-
   let watchListHistory  = userWatchList.sort((a, b) => b.data.createdAt - a.data.createdAt);
-
-
 
   return (
     <>
-    
+
     <PaperProvider>
 
     <SafeAreaView
@@ -271,7 +256,7 @@ const WatchListHistory = ({navigation}) => {
              flexDirection:'row',
              justifyContent:'center',
              alignItems:'center',
-             gap:5, 
+             gap:5,
         }}>
 
         <MaterialIcons name="live-tv" size={25} color="coral" style={{
@@ -282,7 +267,7 @@ const WatchListHistory = ({navigation}) => {
            fontWeight:'bold',
            color:'white',
            opacity:0.8,
-          
+
           }}>
             Ani<Text style={{
               color:'coral',
@@ -309,7 +294,7 @@ const WatchListHistory = ({navigation}) => {
           alignItems:'center',
           gap:5,
          }}>
-      
+
          <Menu
             visible={visible}
             onDismiss={closeMenu}
@@ -320,20 +305,20 @@ const WatchListHistory = ({navigation}) => {
               width:160,
               zIndex:10,
               height:50,
-             
+
             }}
             anchor={
                  watchListHistory.length > 1 && (
                   <TouchableOpacity disabled={!select ?  false: true} onPress={openMenu}>
                   <Entypo name="dots-three-vertical" size={20} color="coral" style={{
                    paddingTop:2,
-                   
+
                }} />
                  </TouchableOpacity>
                  )
               }
             >
-            
+
             <Menu.Item  onPress={() => handleSelected()} title="Select" leadingIcon='information-outline' />
             <Menu.Item onPress={() => clearAllHistory()} title="Clear history" leadingIcon='trash-can-outline' titleStyle={{
               color:'red'
@@ -344,11 +329,11 @@ const WatchListHistory = ({navigation}) => {
         <FontAwesome name="home" size={24} color="coral" style={{
             opacity:0.8,
         }}/>
-       
+
         </TouchableOpacity>
 
          </View>
-        
+
         </View>
 
       {loadMore ? (
@@ -362,7 +347,6 @@ const WatchListHistory = ({navigation}) => {
         flex:1,
       }}>
 
-
       {!watchListHistory.length ? (
         <View style={{
             justifyContent: 'center',
@@ -373,12 +357,12 @@ const WatchListHistory = ({navigation}) => {
            <NotFound message='No watchlist found.'/>
         </View>
       ): (
-      
+
         <View style={{
          flex:1,
          marginTop:10,
         }}>
-        <FlatList 
+        <FlatList
         data={renderItems()}
         renderItem = {({item})=> (
           <Pressable onPress={()=> handlechange(null)}>
@@ -386,7 +370,7 @@ const WatchListHistory = ({navigation}) => {
               {item}
           </PaperProvider>
           </Pressable>
-         
+
         )}
         keyExtractor={(item, index) => index.toString()}
         style={{
@@ -395,11 +379,11 @@ const WatchListHistory = ({navigation}) => {
         }}
         contentContainerStyle={{
           paddingTop:25,
-        
+
         }}
         />
         </View>
-  
+
       )}
 
       {select && (
@@ -443,7 +427,7 @@ const WatchListHistory = ({navigation}) => {
          </TouchableOpacity>
 
         </View>
-       
+
       )}
 </View>
 
@@ -451,9 +435,8 @@ const WatchListHistory = ({navigation}) => {
 
       {!select && (
 
-
-<View style={{ 
-  flexDirection: 'row', 
+<View style={{
+  flexDirection: 'row',
   justifyContent: 'center',
   alignItems:'center',
    gap:5,
@@ -461,12 +444,10 @@ const WatchListHistory = ({navigation}) => {
    paddingTop:15,
    }}>
 
-
-
-<TouchableOpacity 
+<TouchableOpacity
  onPress={handlePreviousPage}
  disabled={currentPage === 1}
- style={{  
+ style={{
   padding:10,
   borderBottomLeftRadius:15,
   borderTopLeftRadius:15,
@@ -475,7 +456,7 @@ const WatchListHistory = ({navigation}) => {
   backgroundColor:'coral',
   width:70,
   opacity:currentPage === 1? 0.5 : 0.8
- }}   
+ }}
 >
   <Text style={{
       color:'white',
@@ -492,8 +473,7 @@ const WatchListHistory = ({navigation}) => {
   {currentPage}/{totalPages}
 </Text>
 
-
-<TouchableOpacity 
+<TouchableOpacity
 onPress={handleNextPage}
 disabled={currentPage === totalPages ? false: true}
  style={{
