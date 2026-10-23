@@ -1,25 +1,31 @@
-import { View, Text } from 'react-native'
+import { View, Text, TouchableOpacity } from 'react-native'
 import React from 'react'
-import CustomVideoPlayer from './CustomVideoPlayer'
+import { Ionicons } from '@expo/vector-icons';
 
-const VideoPlayer = ({route, navigation}) => {
+// Temporary screen: the old player streamed from GogoAnime, which shut down.
+// Episodes come back in v1.1 with official YouTube playlists and Crunchyroll links.
+const VideoPlayer = ({ navigation }) => {
 
   return (
     <View style={{
         flex:1,
+        backgroundColor:'black',
+        alignItems:'center',
+        justifyContent:'center',
+        padding:24,
+        gap:12,
     }}>
-      <CustomVideoPlayer
-      epNumber ={route.params.epNumber}
-      epId = {route.params.episodeId}
-      title = {route.params.titlePage}
-      type = {route.params.type}
-      epData = {route.params.allepp}
-      subOrDub = {route.params.sOrD}
-      navigation = {navigation}
-      animeStatus={route.params.status}
-      titleId = {route.params.titleId}
-      current={route.params.current}
-      />
+      <Ionicons name="film-outline" size={48} color="coral" />
+      <Text style={{color:'white', fontSize:20, fontWeight:'bold', textAlign:'center'}}>Episodes are coming back</Text>
+      <Text style={{color:'#bbb', fontSize:14, textAlign:'center', lineHeight:20}}>
+        We're moving to official sources. In the next update, episodes play from official YouTube channels or open on Crunchyroll.
+      </Text>
+      <TouchableOpacity
+        onPress={() => navigation.goBack()}
+        style={{marginTop:12, backgroundColor:'coral', paddingVertical:12, paddingHorizontal:28, borderRadius:10}}
+      >
+        <Text style={{color:'black', fontWeight:'bold'}}>Go back</Text>
+      </TouchableOpacity>
     </View>
   )
 }

@@ -1,0 +1,144 @@
+import React, { useCallback, useContext, useEffect, useState } from 'react';
+import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { getHomeData } from '../api';
+import { myContext } from '../context';
+import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui';
+import HeroCarousel from '../components/HeroCarousel';
+import { avatarFor } from '../avatars';
+import TrailerModal from '../components/TrailerModal';
+import { colors, fonts, radius, space } from '../theme';
+
+export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
+
+const HomeScreen = ({ navigation }) => {
+  const { profile, userData } = useContext(myContext);
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [trailerOf, setTrailerOf] = useState(null);
+
+  const load = useCallback(async () => {
+    try {
+      setError(null);
+      setData(await getHomeData());
+    } catch (e) {
+      setError(e.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const refresh = async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  };
+
+  const openAnime = (anime) => navigation.navigate('AnimeDetail', { animeId: anime.id });
+  const seeAll = (kind, title) => navigation.navigate('List', { kind, title });
+  const avatar = profile?.[0]?.data.image || avatarFor(userData?.id);
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <View style={styles.header}>
+        <Wordmark />
+        <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Profile" style={styles.avatar}>
+          <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        </Pressable>
+      </View>
+
+      {!data && !error && <Loading />}
+      {error && !data && <ErrorState message={error} onRetry={load} />}
+
+      {data && (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: space.xxl, gap: space.xxl }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} colors={[colors.accent]} />}
+          showsVerticalScrollIndicator={false}
+        >
+          {data.trending.length > 0 && (
+            <HeroCarousel items={data.trending.slice(0, 5)} onOpen={openAnime} onTrailer={setTrailerOf} paused={!!trailerOf} />
+          )}
+
+          <FlatList
+            horizontal
+            data={HOME_GENRES}
+            keyExtractor={(g) => g}
+            renderItem={({ item }) => (
+              <Chip label={item} onPress={() => navigation.navigate('List', { kind: 'genre', genre: item, title: item })} />
+            )}
+            contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.sm }}
+            showsHorizontalScrollIndicator={false}
+            style={{ marginTop: -space.sm }}
+          />
+
+          <PosterRow
+            title="New episodes"
+            items={data.recent}
+            onPressItem={openAnime}
+            onSeeAll={() => seeAll('recent', 'New episodes')}
+            badgeFor={(a) => `EP ${a.episodeNumber}`}
+          />
+          <PosterRow
+            title="Trending now"
+            items={data.trending}
+            onPressItem={openAnime}
+            onSeeAll={() => seeAll('trending', 'Trending now')}
+            badgeFor={(_, i) => `#${i + 1}`}
+          />
+          <PosterRow
+            title="Airing this season"
+            items={data.airing}
+            onPressItem={openAnime}
+            onSeeAll={() => seeAll('airing', 'Airing this season')}
+            badgeFor={(a) => (a.nextEpisode ? `EP ${a.nextEpisode.episode - 1}` : null)}
+          />
+          <PosterRow
+            title="All-time popular"
+            items={data.popular}
+            onPressItem={openAnime}
+            onSeeAll={() => seeAll('popular', 'All-time popular')}
+          />
+          <PosterRow
+            title="Top movies"
+            items={data.movies}
+            onPressItem={openAnime}
+            onSeeAll={() => seeAll('movies', 'Top movies')}
+            badgeFor={() => 'Movie'}
+          />
+        </ScrollView>
+      )}
+
+      <TrailerModal videoId={trailerOf?.trailer} title={trailerOf?.title} onClose={() => setTrailerOf(null)} />
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: space.xl,
+    paddingTop: space.sm,
+    paddingBottom: space.md,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: colors.accent,
+    backgroundColor: '#2E4A7A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+});
+
+export default HomeScreen;

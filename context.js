@@ -1,8 +1,9 @@
 
 import { createContext, useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from './firebase';
-import { where, query, and, onSnapshot, collection, addDoc, doc ,orderBy, serverTimestamp, updateDoc} from 'firebase/firestore';
+import { db, Auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
+import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const myContext = createContext();
 
@@ -16,6 +17,10 @@ const GlobalProvider = ({children}) => {
     const [allComments, setAllComments] = useState([]);
     const [historyRecords , setHistoryRecords] = useState([]);
     const [profile, setProfile] = useState(null);
+    // Firebase sign-in state: the app shows the login screens until a verified user is signed in.
+    const [authUser, setAuthUser] = useState(null);
+    const [verified, setVerified] = useState(false);
+    const [authReady, setAuthReady] = useState(false);
 
     const likesUnsubRef = useRef(null);
     const allLikesUnsubRef = useRef(null);
@@ -24,14 +29,32 @@ const GlobalProvider = ({children}) => {
     const historyUnsubRef = useRef(null);
     const profileUnsubRef = useRef(null);
 
+    const stopListeners = () => {
+      for (const ref of [likesUnsubRef, allLikesUnsubRef, watchListUnsubRef, commentsUnsubRef, historyUnsubRef, profileUnsubRef]) {
+        if (ref.current) ref.current();
+        ref.current = null;
+      }
+    };
+
     useEffect(() => {
+      // Stop listening as soon as the user signs out; signed-out reads are denied by the rules.
+      const unsubscribeAuth = onAuthStateChanged(Auth, (user) => {
+        setAuthUser(user);
+        setVerified(!!user?.emailVerified);
+        setAuthReady(true);
+        if (user?.emailVerified) {
+          startUserListeners(user);
+          return;
+        }
+        stopListeners();
+        setUserData(null);
+        setUserWatch([]);
+        setHistoryRecords([]);
+        setProfile(null);
+      });
       return () => {
-        if (likesUnsubRef.current) likesUnsubRef.current();
-        if (allLikesUnsubRef.current) allLikesUnsubRef.current();
-        if (watchListUnsubRef.current) watchListUnsubRef.current();
-        if (commentsUnsubRef.current) commentsUnsubRef.current();
-        if (historyUnsubRef.current) historyUnsubRef.current();
-        if (profileUnsubRef.current) profileUnsubRef.current();
+        unsubscribeAuth();
+        stopListeners();
       };
     }, []);
 
@@ -50,6 +73,43 @@ const GlobalProvider = ({children}) => {
        console.log('error fetching user')
       }
 };
+
+// Loads everything that belongs to a signed-in, verified user.
+const startUserListeners = (user) => {
+  setUserData({ id: user.uid, user: user.email?.split('@')[0] });
+  fetchHistory(user.uid);
+  getUserWatchList(user.uid);
+  getUserProfile(user.uid);
+};
+
+// Re-checks the signed-in user, e.g. after they click the verification link in their email.
+const refreshUser = async () => {
+  const user = Auth.currentUser;
+  if (!user) return false;
+  await user.reload();
+  const fresh = Auth.currentUser;
+  setAuthUser(fresh);
+  setVerified(!!fresh?.emailVerified);
+  if (fresh?.emailVerified) startUserListeners(fresh);
+  return !!fresh?.emailVerified;
+};
+
+const findInWatchList = (animeId) =>
+  userWatchList.find((w) => String(w.data.titleId) === String(animeId));
+
+// Stores the title and poster too, so My List can show items without extra API requests.
+const addToWatchList = (anime) =>
+  addDoc(collection(db, 'watchList'), {
+    name: userData?.user ?? '',
+    userId: userData.id,
+    titleId: anime.id,
+    title: anime.title,
+    image: anime.image,
+    type: anime.type ?? null,
+    createdAt: serverTimestamp(),
+  });
+
+const removeFromWatchList = (docId) => deleteDoc(doc(db, 'watchList', docId));
 
 const getEpisodeIdbyDefault = (id, num) => {
    let dt = {
@@ -149,6 +209,8 @@ const getUserProfile = (id) => {
       value.push({ data: element.data(), id: element.id });
     });
     setProfile(value);
+    const username = value[0]?.data.username;
+    if (username) setUserData((prev) => (prev ? { ...prev, user: username } : prev));
   });
 }
 
@@ -169,6 +231,13 @@ const getUserProfile = (id) => {
      getEpisodeIdbyDefault,
      fetchHistory,
      profile,
+     authUser,
+     verified,
+     authReady,
+     refreshUser,
+     findInWatchList,
+     addToWatchList,
+     removeFromWatchList,
     }}>
     {children}
   </myContext.Provider>

@@ -10,8 +10,9 @@ import { db } from '../firebase';
 import { MaterialIcons } from '@expo/vector-icons';
 import VideoLoad from './VideoLoading';
 import { Entypo } from '@expo/vector-icons';
-import Modal from 'react-native-modal';
+import Modal from './AppModal'
 import { animedata } from '../animeData';
+import { DEFAULT_AVATARS, avatarFor } from '../avatars';
 import { Image } from 'expo-image';
 import AnimistLoading from './AnimistLoading';
 
@@ -48,6 +49,30 @@ const Box = React.memo(({spyFamily, OnePiece, comedy, blackClover, image, handle
         </TouchableOpacity>
       )}
 
+      </View>
+
+      <View style={{
+        marginTop:15,
+      }}>
+        <Text style={{
+          color:'white',
+          opacity:0.8,
+          marginBottom:10,
+        }}>Cute avatars</Text>
+        <ScrollView horizontal={true}>
+          {DEFAULT_AVATARS.map((uri)=> (
+            <TouchableOpacity key={uri} style={{ marginRight:10 }} onPress={()=> handlePickImage(uri)}>
+              <View style={{
+                borderWidth:image === uri ? 1 : null,
+                borderColor:image === uri ? 'coral': null,
+                padding:2,
+                borderRadius:50,
+              }}>
+                <Image style={{ width: 70, height: 70, borderRadius:50 }} source={{uri}} contentFit="cover" transition={300} />
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       <View style={{
@@ -390,8 +415,7 @@ export class Settingss extends Component {
           borderRadius:100,
           borderColor:'coral',
           }}>
-       {!this.state.image ? <Avatar.Text size={100} label={`${this.state.firstname.charAt(0)}${this.state.lastname.charAt(0)}`} /> :
-        <Avatar.Image size={100} source={{uri: this.state.image}} />}
+       <Avatar.Image size={100} source={{uri: this.state.image || avatarFor(this.context.profile?.[0]?.data.userId)}} />
          </View>
         <TouchableOpacity style={{
             borderRadius:10,
