@@ -10,7 +10,7 @@ import moment from 'moment';
 import { Avatar } from 'react-native-paper';
 import { MotiView } from 'moti';
 import { Octicons } from '@expo/vector-icons';
-import Modal from "react-native-modal";
+import Modal from './AppModal'
 import { Image } from 'expo-image';
 import { Feather } from '@expo/vector-icons';
 

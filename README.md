@@ -1,21 +1,56 @@
 # Animist 🎌
 
-> A mobile anime streaming app built with React Native (Expo) and Firebase.
+> An anime discovery and community app for Android, built with React Native (Expo) and Firebase.
 
-Browse anime, watch episodes with quality switching, track your watchlist and history, and interact with the community through likes and comments — all in one place.
+Browse trending and airing anime, watch official episodes and trailers, keep a watchlist, get notified when new episodes air, and talk about each episode with other fans.
+
+> **Status: v1.1 rebuild in progress.** Version 1.0 streamed from the GogoAnime source through the Consumet API, which has since shut down. Version 1.1 moves the app to legal, stable data sources (AniList, Jikan and official YouTube channels), adds a new design, and ships through an automated CI/CD pipeline. See the [roadmap](#roadmap).
+
+---
+
+## Screenshots
+
+Screenshots of the rebuilt app will be added here when v1.1 is released. They are captured from a real device with [`scripts/capture-screenshots.sh`](scripts/capture-screenshots.sh).
+
+<!--
+| Home | Details | Episodes | Search | My List |
+|---|---|---|---|---|
+| ![Home](docs/screenshots/home.png) | ![Details](docs/screenshots/details.png) | ![Episodes](docs/screenshots/episodes.png) | ![Search](docs/screenshots/search.png) | ![My List](docs/screenshots/my-list.png) |
+-->
 
 ---
 
 ## Features
 
-- 🔐 **Authentication** — Email/password sign-up & sign-in with Firebase Auth and email verification
-- 🏠 **Home Feed** — Browse new releases, top airing, popular anime, and movies
-- 🎬 **Video Player** — Custom player with quality switching, fullscreen, seek controls, and resume playback
-- 📋 **Watchlist & History** — Save anime to your list and track what you've watched
-- ❤️ **Likes & Comments** — Engage with other users on each episode
-- 🔍 **Search** — Find any anime with paginated results
-- 👤 **Profile** — Customize your avatar and account details
-- 🔑 **Password Recovery** — Reset or update your password via email
+**Available in v1.0**
+- 🔐 **Accounts**: email and password sign-up with email verification, password reset and update
+- 📋 **Watchlist and history** synced to Firestore
+- ❤️ **Likes and comments** on each episode, updated in real time
+- 👤 **Profile** with custom avatars
+
+**Coming in v1.1**
+- 🏠 **New home feed** with trending, airing this season, popular and top movies from AniList
+- 🎬 **Episodes from three legal sources**: full episodes from official YouTube channels, episode lists that open Crunchyroll, and official trailers
+- 🔍 **Search with filters** for genre, year, format and status
+- 🔔 **New-episode notifications** for shows on your list
+- 👀 **Browse without an account**. Sign-in is only needed to like, comment or save.
+- 🔑 **Google Sign-In** and **AniList list import**
+- 📶 **Offline cache** so the app opens instantly
+- 🌙 **New dark design** with bottom tabs
+
+---
+
+## How episodes work
+
+Animist does not host or scrape video. For each anime it picks the best legal source available:
+
+| If the anime has… | Animist shows… |
+|---|---|
+| An official YouTube playlist (for example Muse Asia, Ani-One Asia) | Full episodes playing inside the app |
+| Episode links on AniList | The episode list, with each episode opening on Crunchyroll |
+| Neither | The official trailer and "Where to watch" links |
+
+Official YouTube uploads can be region-locked. When an episode is blocked in your country, that episode falls back to its Crunchyroll link.
 
 ---
 
@@ -23,38 +58,71 @@ Browse anime, watch episodes with quality switching, track your watchlist and hi
 
 | Layer | Technology |
 |---|---|
-| Framework | React Native + Expo SDK 48 |
-| Navigation | React Navigation (Native Stack) |
+| Framework | React Native + Expo |
+| Navigation | React Navigation (native stack, bottom tabs) |
+| Anime data | [AniList GraphQL API](https://docs.anilist.co), [Jikan API](https://jikan.moe) |
+| Episodes | YouTube Data API v3, `react-native-youtube-iframe` |
+| Data fetching | TanStack Query + Axios |
 | Backend | Firebase Auth + Firestore |
-| API | Consumet API (GogoAnime) |
-| HTTP Client | Axios |
-| Media Playback | expo-av |
-| Local Storage | AsyncStorage |
-| UI Components | react-native-paper, moti, lottie-react-native |
+| Notifications | `expo-notifications` |
+| Builds and updates | EAS Build, EAS Update |
+| CI/CD | GitHub Actions |
+| Monitoring | Sentry |
+| Testing | Jest |
+
+---
+
+## Install the app
+
+Android builds are published on the [Releases page](https://github.com/Fnyz/Animist/releases). Scan the QR code on the download page with your Android phone, or download `animist.apk` from the latest release and open it. Android asks you to allow installs from your browser the first time.
+
+*The download page and QR code go live with the first v1.1 release.*
+
+---
+
+## CI/CD
+
+| Trigger | Workflow | What it does |
+|---|---|---|
+| Pull request | `ci.yml` | Installs dependencies, runs `expo-doctor` and Jest, and bundles the app to catch broken imports |
+| Push to `main` | `update.yml` | Publishes an over-the-air update to installed apps with EAS Update |
+| Tag `v*` | `release.yml` | Builds a signed APK on the GitHub runner and attaches it to a GitHub Release |
+
+The QR code points to `releases/latest/download/animist.apk`, so it always downloads the newest build.
+
+---
+
+## Roadmap
+
+- [ ] **1. Clean up and upgrade Expo**: remove unused packages, move to the current Expo SDK, keep users signed in, tighten Firestore rules
+- [ ] **2. New data layer**: one `api.js` on AniList and Jikan, TanStack Query caching, offline cache, Jest tests
+- [ ] **3. Rewire the screens**: new design, AniList IDs for watchlist and history, cheaper like counting
+- [ ] **4. Episodes**: YouTube playlists, Crunchyroll episode links and trailers
+- [ ] **5. User experience**: browse without login, Google Sign-In, new-episode notifications, AniList import
+- [ ] **6. CI/CD and distribution**: GitHub Actions, APK releases, QR download page, Sentry
+- [ ] **7. Portfolio polish**: screenshots, demo video, architecture diagram
+- [ ] **Later**: Google Play release, comment reporting and spoiler tags, in-app account deletion, web version
 
 ---
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 16+
-- Expo CLI (`npm install -g expo-cli`)
-- A Firebase project with Auth and Firestore enabled
+- Node.js 20+
+- An Android phone with Expo Go, or an Android emulator
+- A Firebase project with Authentication and Firestore enabled
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone https://github.com/Fnyz/Animist.git
 cd Animist
-
-# Install dependencies
 npm install
 ```
 
-### Firebase Setup
+### Firebase setup
 
-Create a `firebase.js` file in the root directory with your Firebase config:
+`firebase.js` initializes Firebase. To use your own project, replace the config values in it:
 
 ```js
 import { initializeApp } from 'firebase/app';
@@ -75,17 +143,11 @@ export const Auth = getAuth(app);
 export const db = getFirestore(app);
 ```
 
-### Running the App
+### Run the app
 
 ```bash
-# Start Expo development server
-npx expo start
-
-# Run on Android
-npx expo start --android
-
-# Run on iOS
-npx expo start --ios
+npx expo start            # then scan the QR code with Expo Go
+npx expo start --android  # open on a connected device or emulator
 ```
 
 ---
@@ -99,18 +161,23 @@ Animist/
 ├── firebase.js         # Firebase initialization
 ├── animeData.js        # Static avatar and theme data
 ├── genre.js            # Genre category definitions
+├── scripts/
+│   └── capture-screenshots.sh  # Captures README screenshots from a device
 └── components/
     ├── HomePage.js     # Main feed screen
-    ├── DetailsPage.js  # Anime detail and episode list
+    ├── DetailsPage.js  # Anime details and episode list
     ├── WatchAnime.js   # Episode watch screen
-    ├── CustomVideoPlayer.js  # Video player controls
     ├── SearchAnime.js  # Search screen
     ├── Profile.js      # User profile
-    ├── LoginAndSignUp.js     # Auth screens
-    └── ...             # Additional components
+    ├── LoginAndSignUp.js  # Sign-in and sign-up
+    └── ...             # Other components
 ```
 
 ---
+
+## Disclaimer
+
+Animist does not host, store or scrape any video. Anime information comes from AniList and Jikan, and episodes play from official YouTube channels or open on licensed services. All anime titles and artwork belong to their respective owners.
 
 ## License
 

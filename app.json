@@ -5,12 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/animistIcon.png",
-    "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/FinalSplash.png",
-      "resizeMode": "cover",
-      "backgroundColor": "#ffffff"
-    },
+    "userInterfaceStyle": "dark",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -20,11 +15,21 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0E0F14"
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/FinalSplash.png",
+          "resizeMode": "cover",
+          "backgroundColor": "#0E0F14"
+        }
+      ]
+    ]
   }
 }

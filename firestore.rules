@@ -1,0 +1,58 @@
+rules_version = '2';
+
+// Every document stores the owner's uid in `userId` (users are keyed by uid).
+// Users can read and change only their own data; likes and comments are readable
+// by any signed-in user so episode pages can show them.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // The existing document belongs to the caller.
+    function ownsDoc() {
+      return isUser(resource.data.userId);
+    }
+
+    // The document being written belongs to the caller.
+    function writesOwn() {
+      return isUser(request.resource.data.userId);
+    }
+
+    match /users/{userId} {
+      // Second check lets the app query its own profile with where('userId', '==', uid).
+      allow read: if isUser(userId) || ownsDoc();
+      allow write: if isUser(userId);
+    }
+
+    match /watchList/{id} {
+      allow read, delete: if ownsDoc();
+      allow create: if writesOwn();
+      allow update: if ownsDoc() && writesOwn();
+    }
+
+    match /history/{id} {
+      allow read, delete: if ownsDoc();
+      allow create: if writesOwn();
+      allow update: if ownsDoc() && writesOwn();
+    }
+
+    match /likes/{id} {
+      allow read: if signedIn();
+      allow create: if writesOwn();
+      allow delete: if ownsDoc();
+    }
+
+    match /comments/{id} {
+      allow read: if signedIn();
+      allow create: if writesOwn();
+      allow update: if ownsDoc() && writesOwn();
+      allow delete: if ownsDoc();
+    }
+  }
+}

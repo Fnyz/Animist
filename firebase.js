@@ -1,19 +1,23 @@
 
 import { initializeApp } from "firebase/app";
-import {getAuth} from 'firebase/auth'
-import {getFirestore} from 'firebase/firestore'
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth'
+import { getFirestore } from 'firebase/firestore'
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyBGLik5JJRI6r97mCwNSu9lmGWeSwhla78",
-    authDomain: "animist-f6538.firebaseapp.com",
-    projectId: "animist-f6538",
-    storageBucket: "animist-f6538.appspot.com",
-    messagingSenderId: "747175310220",
-    appId: "1:747175310220:web:6088a3be39f93e6789dca9"
-  };
+  apiKey: "AIzaSyCmvFx8bIAEpu2IBRoHn-NO4X14ZnDEq7E",
+  authDomain: "animist-67715.firebaseapp.com",
+  projectId: "animist-67715",
+  storageBucket: "animist-67715.firebasestorage.app",
+  messagingSenderId: "140996729252",
+  appId: "1:140996729252:web:e74f2922bf00b95aabc931",
+  measurementId: "G-54T475KZGP"
+};
 
 const app = initializeApp(firebaseConfig);
 
-export const Auth = getAuth(app);
+// Persist the session in AsyncStorage so users stay signed in between launches.
+export const Auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage),
+});
 export const db = getFirestore(app)
-

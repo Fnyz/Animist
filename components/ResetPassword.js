@@ -8,7 +8,7 @@ import { Auth } from '../firebase'
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native'
 import { AlertNotificationRoot} from 'react-native-alert-notification';
-import Modal from 'react-native-modal'
+import Modal from './AppModal'
 import { MaterialIcons } from '@expo/vector-icons';
 import { Linking } from 'react-native'
 import { ALERT_TYPE, Dialog } from 'react-native-alert-notification';
