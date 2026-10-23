@@ -16,7 +16,7 @@ jobs:
         if: env.EXPO_TOKEN == ''
         run: echo "::notice::EXPO_TOKEN isn't set yet, so no update was published."
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.EXPO_TOKEN != ''
 
       - uses: actions/setup-node@v4
