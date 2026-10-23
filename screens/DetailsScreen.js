@@ -24,12 +24,16 @@ const DetailsScreen = ({ route, navigation }) => {
 
   const load = useCallback(async () => {
     try {
-      setError(null);
       setAnime(await getAnimeInfo(animeId));
     } catch (e) {
       setError(e.message);
     }
   }, [animeId]);
+
+  const retry = () => {
+    setError(null);
+    load();
+  };
 
   useEffect(() => {
     load();
@@ -43,7 +47,7 @@ const DetailsScreen = ({ route, navigation }) => {
     return (
       <View style={styles.screen}>
         {back}
-        <ErrorState message={error} onRetry={load} />
+        <ErrorState message={error} onRetry={retry} />
       </View>
     );
   }

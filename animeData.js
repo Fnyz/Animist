@@ -21,11 +21,6 @@ export const animedata = [
         category:'spyFamily',
     },
     {
-        id:5,
-        image:'https://www.anmosugoi.com/wp-content/uploads/2023/02/yor-forger-spy-x-family-figura-1200x675.jpg',
-        category:'spyFamily',
-    },
-    {
         id:6,
         image:'https://i.pinimg.com/736x/4c/3b/c0/4c3bc0e3c153c797d2a2b31d9b59f732.jpg',
         category:'OnePiece',
@@ -51,11 +46,6 @@ export const animedata = [
         category:'OnePiece',
     },
     {
-        id:11,
-        image:'https://ecdn.game4v.com/g4v-content/uploads/2019/12/asobi-asobase_2.jpg',
-        category:'funny',
-    },
-    {
         id:12,
         image:'https://i.redd.it/137ope6w2xo51.png',
         category:'funny',
@@ -76,11 +66,6 @@ export const animedata = [
         category:'funny',
     },
     {
-        id:16,
-        image:'https://pm1.aminoapps.com/7600/9e990fe626ff1a72332f5f4fdd08fb10f88a42bbr1-1200-1200v2_hq.jpg',
-        category:'blackClover',
-    },
-    {
         id:17,
         image:'https://i1.sndcdn.com/avatars-INMb6cGe1YQ2R53I-rcMQbQ-t500x500.jpg',
         category:'blackClover',
@@ -93,11 +78,6 @@ export const animedata = [
     {
         id:19,
         image:'https://thicc.mywaifulist.moe/waifus/4214/b3f720d3800c6c1ddecbc1f37e31f8768392f441988a88c842cb65ff5620494c_thumb.jpg',
-        category:'blackClover',
-    },
-    {
-        id:20,
-        image:'https://w0.peakpx.com/wallpaper/277/398/HD-wallpaper-nero-black-clover.jpg',
         category:'blackClover',
     },
 

@@ -1,6 +1,6 @@
 // Shared building blocks for the redesigned screens.
-import React from 'react';
-import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet, TextInput } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, space } from '../theme';
@@ -123,6 +123,51 @@ export const PosterRow = ({ title, items, onSeeAll, onPressItem, badgeFor }) => 
   </View>
 );
 
+// A labeled text input with an icon; `secure` adds a show/hide password toggle.
+export const Field = ({ id, label, icon, secure, error, ...input }) => {
+  const [hidden, setHidden] = useState(true);
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ gap: 6 }}>
+      <Text nativeID={id} style={styles.fieldLabel}>{label}</Text>
+      <View style={[styles.field, focused && { borderColor: colors.accent }, error && { borderColor: colors.danger }]}>
+        <Ionicons name={icon} size={18} color={focused ? colors.accent : colors.muted} />
+        <TextInput
+          accessibilityLabelledBy={id}
+          placeholderTextColor="#6B6F80"
+          selectionColor={colors.accent}
+          style={styles.input}
+          secureTextEntry={secure && hidden}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          {...input}
+        />
+        {secure && (
+          <Pressable onPress={() => setHidden(!hidden)} hitSlop={10} accessibilityLabel={hidden ? 'Show password' : 'Hide password'}>
+            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
+          </Pressable>
+        )}
+      </View>
+    </View>
+  );
+};
+
+export const ErrorBanner = ({ message }) =>
+  message ? (
+    <View style={styles.errorBanner} accessibilityLiveRegion="polite">
+      <Ionicons name="alert-circle" size={18} color={colors.danger} />
+      <Text style={styles.errorText}>{message}</Text>
+    </View>
+  ) : null;
+
+// Back button and title for screens opened on top of the tabs.
+export const ScreenHeader = ({ title, onBack }) => (
+  <View style={styles.screenHeader}>
+    <IconButton icon="chevron-back" label="Back" onPress={onBack} />
+    <Text style={styles.screenTitle} numberOfLines={1}>{title}</Text>
+  </View>
+);
+
 export const Loading = ({ style }) => (
   <View style={[styles.center, style]}>
     <ActivityIndicator size="large" color={colors.accent} />
@@ -217,4 +262,28 @@ const styles = StyleSheet.create({
   rowTitle: { fontFamily: fonts.displaySemi, fontSize: 19, color: colors.text },
   seeAll: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.accent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  fieldLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSoft },
+  field: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    height: 50,
+    paddingHorizontal: 14,
+    borderRadius: radius.md,
+    borderWidth: 1.5,
+    borderColor: colors.line,
+    backgroundColor: colors.bg,
+  },
+  input: { flex: 1, height: '100%', fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
+  errorBanner: {
+    flexDirection: 'row',
+    gap: space.sm,
+    alignItems: 'flex-start',
+    padding: space.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.dangerSoft,
+  },
+  errorText: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 13, color: colors.danger, lineHeight: 19 },
+  screenHeader: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.xl, paddingVertical: space.md },
+  screenTitle: { flex: 1, fontFamily: fonts.display, fontSize: 24, color: colors.text },
 });

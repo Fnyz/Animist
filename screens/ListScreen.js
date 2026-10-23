@@ -20,7 +20,7 @@ const ListScreen = ({ route, navigation }) => {
   const [items, setItems] = useState([]);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const loadNext = useCallback(async () => {
@@ -39,11 +39,22 @@ const ListScreen = ({ route, navigation }) => {
     }
   }, [loading, hasMore, page, route.params]);
 
+  // First page.
   useEffect(() => {
-    loadNext();
-    // Load the first page once.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let alive = true;
+    fetchPage(route.params, 1)
+      .then((res) => {
+        if (!alive) return;
+        setItems(res.results);
+        setPage(1);
+        setHasMore(res.hasNextPage);
+      })
+      .catch((e) => alive && setError(e.message))
+      .finally(() => alive && setLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [route.params]);
 
   const gap = space.md;
   const cardWidth = (width - space.xl * 2 - gap * (COLUMNS - 1)) / COLUMNS;

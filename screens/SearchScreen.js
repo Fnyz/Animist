@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { searchAnime } from '../api';
 import { myContext } from '../context';
 import { Chip, EmptyState, ErrorState } from '../components/ui';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, fonts, space } from '../theme';
 
 // Genres and AniList tags people can browse without typing.
 const BROWSE = [
@@ -70,9 +70,8 @@ const SearchScreen = ({ navigation }) => {
   useEffect(() => {
     const q = query.trim();
     if (q.length < 2) {
+      // Too short to search; the genre grid shows instead of results.
       latest.current = '';
-      setResults([]);
-      setLoading(false);
       return undefined;
     }
     const t = setTimeout(() => run(q), 400);

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Animist",
     "slug": "Animist",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/animistIcon.png",
     "userInterfaceStyle": "dark",
@@ -10,9 +10,11 @@
       "**/*"
     ],
     "ios": {
+      "bundleIdentifier": "com.fnyz.animist",
       "supportsTablet": true
     },
     "android": {
+      "package": "com.fnyz.animist",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0E0F14"
@@ -30,6 +32,9 @@
           "backgroundColor": "#0E0F14"
         }
       ]
-    ]
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    }
   }
 }
