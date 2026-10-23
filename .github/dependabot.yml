@@ -1,0 +1,24 @@
+# Opens pull requests when dependencies have updates or security fixes.
+# CI runs on each one, so a broken update is caught before merging.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Expo and React Native packages must move together; upgrade them with `npx expo install --fix`.
+      expo:
+        patterns: ['expo', 'expo-*', '@expo/*', 'react', 'react-dom', 'react-native', 'react-native-*', 'jest-expo', 'eslint-config-expo']
+      everything-else:
+        patterns: ['*']
+    ignore:
+      # Major versions need a planned upgrade (usually a new Expo SDK).
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { View, Text, ScrollView, RefreshControl, Pressable, StyleSheet, FlatList } from 'react-native';
+import { View, ScrollView, RefreshControl, Pressable, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { getHomeData } from '../api';
@@ -8,7 +8,7 @@ import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui
 import HeroCarousel from '../components/HeroCarousel';
 import { avatarFor } from '../avatars';
 import TrailerModal from '../components/TrailerModal';
-import { colors, fonts, radius, space } from '../theme';
+import { colors, space } from '../theme';
 
 export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
 
@@ -21,12 +21,17 @@ const HomeScreen = ({ navigation }) => {
 
   const load = useCallback(async () => {
     try {
-      setError(null);
       setData(await getHomeData());
+      setError(null);
     } catch (e) {
       setError(e.message);
     }
   }, []);
+
+  const retry = () => {
+    setError(null);
+    load();
+  };
 
   useEffect(() => {
     load();
@@ -52,7 +57,7 @@ const HomeScreen = ({ navigation }) => {
       </View>
 
       {!data && !error && <Loading />}
-      {error && !data && <ErrorState message={error} onRetry={load} />}
+      {error && !data && <ErrorState message={error} onRetry={retry} />}
 
       {data && (
         <ScrollView

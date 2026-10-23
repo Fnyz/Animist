@@ -36,27 +36,6 @@ const GlobalProvider = ({children}) => {
       }
     };
 
-    useEffect(() => {
-      // Stop listening as soon as the user signs out; signed-out reads are denied by the rules.
-      const unsubscribeAuth = onAuthStateChanged(Auth, (user) => {
-        setAuthUser(user);
-        setVerified(!!user?.emailVerified);
-        setAuthReady(true);
-        if (user?.emailVerified) {
-          startUserListeners(user);
-          return;
-        }
-        stopListeners();
-        setUserData(null);
-        setUserWatch([]);
-        setHistoryRecords([]);
-        setProfile(null);
-      });
-      return () => {
-        unsubscribeAuth();
-        stopListeners();
-      };
-    }, []);
 
  const setUserIdhere = async (id, user) => {
       try {
@@ -69,7 +48,7 @@ const GlobalProvider = ({children}) => {
         getUserWatchList(userData.id);
         getUserProfile(userData.id);
         await AsyncStorage.setItem('profile', JSON.stringify(userData));
-      } catch (e) {
+      } catch {
        console.log('error fetching user')
       }
 };
@@ -130,7 +109,7 @@ const getUserlikes = (epID) => {
         });
         setLikesData(value);
       });
-    } catch (error) {
+    } catch {
       console.log('error fetching userlikes')
     }
 }
@@ -147,7 +126,7 @@ const getUserWatchList = (id) => {
       });
       setUserWatch(value);
     });
-  } catch (error) {
+  } catch {
     console.log('error fetching userwatch')
   }
 }
@@ -164,7 +143,7 @@ const getAllLikes = (epID) => {
       });
       setAllLikeData(value);
     });
-  } catch (error) {
+  } catch {
     console.log('error fetching alllikes')
   }
 }
@@ -181,7 +160,7 @@ const getAllComments = (epId) => {
       });
       setAllComments(value);
     });
-  } catch (error) {
+  } catch {
     console.log('error fetching comments')
   }
 }
@@ -213,6 +192,30 @@ const getUserProfile = (id) => {
     if (username) setUserData((prev) => (prev ? { ...prev, user: username } : prev));
   });
 }
+
+    useEffect(() => {
+      // Stop listening as soon as the user signs out; signed-out reads are denied by the rules.
+      const unsubscribeAuth = onAuthStateChanged(Auth, (user) => {
+        setAuthUser(user);
+        setVerified(!!user?.emailVerified);
+        setAuthReady(true);
+        if (user?.emailVerified) {
+          startUserListeners(user);
+          return;
+        }
+        stopListeners();
+        setUserData(null);
+        setUserWatch([]);
+        setHistoryRecords([]);
+        setProfile(null);
+      });
+      return () => {
+        unsubscribeAuth();
+        stopListeners();
+      };
+      // Runs once: the listener functions above only use state setters and refs.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
   return (
     <myContext.Provider value={{

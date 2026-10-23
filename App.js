@@ -5,7 +5,6 @@ import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import Toast from 'react-native-toast-message';
 import {
   useFonts, BricolageGrotesque_600SemiBold, BricolageGrotesque_800ExtraBold,
 } from '@expo-google-fonts/bricolage-grotesque';
@@ -22,9 +21,9 @@ import ProfileScreen from './screens/ProfileScreen';
 import DetailsScreen from './screens/DetailsScreen';
 import ListScreen from './screens/ListScreen';
 import VideoPlayer from './components/WatchAnime';
-import Settingss from './components/Settings';
-import ResetPassword from './components/ResetPassword';
-import UpdatePassword from './components/UpdatePassword';
+import EditProfileScreen from './screens/EditProfileScreen';
+import ChangePasswordScreen from './screens/ChangePasswordScreen';
+import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -88,13 +87,13 @@ const RootNavigator = () => {
           <Stack.Screen name="AnimeDetail" component={DetailsScreen} />
           <Stack.Screen name="List" component={ListScreen} />
           <Stack.Screen name="View" component={VideoPlayer} />
-          <Stack.Screen name="Settings" component={Settingss} />
-          <Stack.Screen name="UpdatePass" component={UpdatePassword} />
+          <Stack.Screen name="Settings" component={EditProfileScreen} />
+          <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
         </>
       ) : (
         <>
           <Stack.Screen name="SignUpAndSignIn" component={AuthScreen} />
-          <Stack.Screen name="ForgetPass" component={ResetPassword} />
+          <Stack.Screen name="ForgetPass" component={ForgotPasswordScreen} />
         </>
       )}
     </Stack.Navigator>
@@ -121,7 +120,6 @@ function App() {
       ) : (
         <Splash />
       )}
-      <Toast />
     </GlobalProvider>
   );
 }

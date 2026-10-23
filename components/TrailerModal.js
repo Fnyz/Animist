@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Modal, View, Text, StyleSheet, ActivityIndicator, Linking, useWindowDimensions, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import YouTubeView from './YouTubeView';
@@ -24,11 +24,14 @@ const TrailerModal = ({ videoId, title, onClose }) => {
   const [barWidth, setBarWidth] = useState(0);
   const [seekTo, setSeekTo] = useState(null);
 
-  useEffect(() => {
+  const [shownId, setShownId] = useState(videoId);
+  if (shownId !== videoId) {
+    // A different trailer opened: start from a clean state.
+    setShownId(videoId);
     setStatus(EMPTY);
     setError(null);
     setSeekTo(null);
-  }, [videoId]);
+  }
 
   const onStatus = (s) => {
     setStatus(s);
@@ -85,7 +88,7 @@ const TrailerModal = ({ videoId, title, onClose }) => {
             {error ? (
               <View style={styles.errorBox}>
                 <Ionicons name="logo-youtube" size={36} color={colors.accent} />
-                <Text style={styles.errorText}>This trailer can't play inside the app.</Text>
+                <Text style={styles.errorText}>This trailer can’t play inside the app.</Text>
                 <Text style={styles.errorDetail} numberOfLines={2}>{error}</Text>
               </View>
             ) : (

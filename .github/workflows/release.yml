@@ -1,0 +1,74 @@
+name: Release APK
+
+# Push a tag like v1.1.0 to build a signed APK and attach it to a GitHub Release.
+# The download page's QR code always points to the newest release.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Require EXPO_TOKEN
+        if: env.EXPO_TOKEN == ''
+        run: |
+          echo "::error::Add an EXPO_TOKEN secret (expo.dev > Account settings > Access tokens) in GitHub > Settings > Secrets and variables > Actions."
+          exit 1
+
+      - uses: actions/checkout@v4
+
+      - name: Check the tag matches the app version
+        run: |
+          APP_VERSION=$(node -p "require('./app.json').expo.version")
+          if [ "$GITHUB_REF_NAME" != "v$APP_VERSION" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match app.json version $APP_VERSION. Update app.json and CHANGELOG.md, then tag again."
+            exit 1
+          fi
+
+      - name: Release notes from CHANGELOG.md
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v v="$VERSION" '/^## \[/ { p = index($0, "[" v "]") > 0; next } p' CHANGELOG.md > release-notes.md
+          if [ ! -s release-notes.md ]; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section. Add release notes for this version."
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Builds on this runner instead of Expo's servers, so it doesn't use the monthly EAS build quota.
+      # The signing key still comes from EAS, so every APK installs as an update over the last one.
+      - name: Build APK
+        run: eas build --platform android --profile preview --local --non-interactive --output animist.apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Animist ${{ github.ref_name }}
+          body_path: release-notes.md
+          files: animist.apk
+          # Adds the list of merged pull requests under the notes.
+          generate_release_notes: true

@@ -114,4 +114,6 @@ const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, 
   );
 });
 
+YouTubeView.displayName = 'YouTubeView';
+
 export default YouTubeView;

@@ -1,0 +1,7 @@
+# Secret scanning rules for CI (https://github.com/gitleaks/gitleaks).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Firebase web config: the API key is public by design and protected by Firestore rules"
+paths = ['''^firebase\.js$''']

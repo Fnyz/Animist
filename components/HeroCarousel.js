@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, Animated, useWindowDimensions, AccessibilityInfo } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Image } from 'expo-image';
@@ -60,7 +60,7 @@ const HeroCarousel = ({ items, onOpen, onTrailer, paused }) => {
   const { width } = useWindowDimensions();
   const focused = useIsFocused();
   const list = useRef(null);
-  const scrollX = useRef(new Animated.Value(0)).current;
+  const [scrollX] = useState(() => new Animated.Value(0));
   const [index, setIndex] = useState(0);
   const [touching, setTouching] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -71,17 +71,20 @@ const HeroCarousel = ({ items, onOpen, onTrailer, paused }) => {
     return () => sub.remove();
   }, []);
 
-  const goTo = (i) => {
-    list.current?.scrollToOffset({ offset: i * width, animated: true });
-    setIndex(i);
-  };
+  const goTo = useCallback(
+    (i) => {
+      list.current?.scrollToOffset({ offset: i * width, animated: true });
+      setIndex(i);
+    },
+    [width]
+  );
 
   // Move to the next banner every few seconds, unless the person is busy with the carousel.
   useEffect(() => {
     if (paused || touching || !focused || reduceMotion || items.length < 2) return undefined;
     const t = setTimeout(() => goTo((index + 1) % items.length), AUTO_ADVANCE_MS);
     return () => clearTimeout(t);
-  }, [index, paused, touching, focused, reduceMotion, items.length, width]);
+  }, [index, paused, touching, focused, reduceMotion, items.length, goTo]);
 
   const onScrollEnd = (e) => {
     setIndex(Math.round(e.nativeEvent.contentOffset.x / width));

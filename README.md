@@ -1,5 +1,7 @@
 # Animist 🎌
 
+[![CI](https://github.com/Fnyz/Animist/actions/workflows/ci.yml/badge.svg)](https://github.com/Fnyz/Animist/actions/workflows/ci.yml)
+
 > An anime discovery and community app for Android, built with React Native (Expo) and Firebase.
 
 Browse trending and airing anime, watch official episodes and trailers, keep a watchlist, get notified when new episodes air, and talk about each episode with other fans.
@@ -74,9 +76,11 @@ Official YouTube uploads can be region-locked. When an episode is blocked in you
 
 ## Install the app
 
+**[Download page with QR code →](https://fnyz.github.io/Animist/)**
+
 Android builds are published on the [Releases page](https://github.com/Fnyz/Animist/releases). Scan the QR code on the download page with your Android phone, or download `animist.apk` from the latest release and open it. Android asks you to allow installs from your browser the first time.
 
-*The download page and QR code go live with the first v1.1 release.*
+*The download works after the first tagged release (see [Releasing](#releasing)).*
 
 ---
 
@@ -84,11 +88,33 @@ Android builds are published on the [Releases page](https://github.com/Fnyz/Anim
 
 | Trigger | Workflow | What it does |
 |---|---|---|
-| Pull request | `ci.yml` | Installs dependencies, runs `expo-doctor` and Jest, and bundles the app to catch broken imports |
+| Every push and pull request | `ci.yml` | **Lint** (ESLint, zero warnings) and **unit tests** (Jest) · **build check** (`expo-doctor`, Expo package versions, Android bundle) · **security** (dependency vulnerabilities with `audit-ci`, secret scanning with Gitleaks) |
+| Push to `main`, pull requests, weekly | `codeql.yml` | GitHub CodeQL scans the code for security bugs |
+| Weekly | `dependabot.yml` | Opens pull requests for dependency updates and security fixes |
 | Push to `main` | `update.yml` | Publishes an over-the-air update to installed apps with EAS Update |
 | Tag `v*` | `release.yml` | Builds a signed APK on the GitHub runner and attaches it to a GitHub Release |
 
 The QR code points to `releases/latest/download/animist.apk`, so it always downloads the newest build.
+
+### Releasing
+
+One-time setup:
+1. Create a free account at [expo.dev](https://expo.dev), then run `npx eas-cli login` and `npx eas-cli init` in the project. This links the project and adds its ID to `app.json`.
+2. Run `npx eas-cli credentials -p android`, choose the **preview** profile, and let EAS generate the Android keystore. Every APK is signed with it.
+3. Run `npx eas-cli update:configure` to turn on over-the-air updates.
+4. Create an access token at expo.dev → Account settings → Access tokens, and add it on GitHub as the repository secret `EXPO_TOKEN` (Settings → Secrets and variables → Actions).
+5. Turn on GitHub Pages: Settings → Pages → Deploy from a branch → `main` / `docs`.
+
+Each release:
+1. Update `version` in `app.json` and add a `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md).
+2. Commit, then tag and push:
+   ```bash
+   git tag v1.1.0
+   git push origin v1.1.0
+   ```
+The `Release APK` workflow checks that the tag matches `app.json`, builds the APK, and publishes a GitHub Release with that version's notes from the changelog.
+
+Run the same checks as CI locally with `npm run lint` and `npm test`.
 
 ---
 

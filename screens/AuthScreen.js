@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from 'react';
 import {
-  View, Text, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, Linking, useWindowDimensions,
+  View, Text, Pressable, ScrollView, KeyboardAvoidingView, StyleSheet, Linking, useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -14,26 +14,9 @@ import { Auth, db } from '../firebase';
 import { myContext } from '../context';
 import { getList } from '../api';
 import { randomAvatar } from '../avatars';
-import { Button, Wordmark } from '../components/ui';
+import { messageFor } from '../authErrors';
+import { Button, Wordmark, Field, ErrorBanner } from '../components/ui';
 import { colors, fonts, radius, space } from '../theme';
-
-const ERROR_MESSAGES = {
-  'auth/missing-password': 'Enter your password.',
-  'auth/invalid-email': "That email address doesn't look right.",
-  'auth/weak-password': 'Use at least 6 characters for your password.',
-  'auth/email-already-in-use': 'This email already has an account. Log in instead.',
-  'auth/invalid-credential': 'Email or password is incorrect.',
-  'auth/wrong-password': 'Email or password is incorrect.',
-  'auth/user-not-found': 'No account uses this email.',
-  'auth/too-many-requests': 'Too many attempts. Wait a minute, or reset your password.',
-  'auth/network-request-failed': "You're offline. Check your connection and try again.",
-  'permission-denied': 'The server refused the request. Try again later.',
-};
-
-const messageFor = (error) => {
-  console.log('auth error', error?.code, error?.message);
-  return ERROR_MESSAGES[error?.code] || `Something went wrong (${error?.code || 'unknown error'}).`;
-};
 
 // Three slowly offset rows of real posters behind the form.
 const PosterWall = () => {
@@ -68,42 +51,6 @@ const PosterWall = () => {
     </View>
   );
 };
-
-const Field = ({ id, label, icon, secure, error, ...input }) => {
-  const [hidden, setHidden] = useState(true);
-  const [focused, setFocused] = useState(false);
-  return (
-    <View style={{ gap: 6 }}>
-      <Text nativeID={id} style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.field, focused && { borderColor: colors.accent }, error && { borderColor: colors.danger }]}>
-        <Ionicons name={icon} size={18} color={focused ? colors.accent : colors.muted} />
-        <TextInput
-          accessibilityLabelledBy={id}
-          placeholderTextColor="#6B6F80"
-          selectionColor={colors.accent}
-          style={styles.input}
-          secureTextEntry={secure && hidden}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          {...input}
-        />
-        {secure && (
-          <Pressable onPress={() => setHidden(!hidden)} hitSlop={10} accessibilityLabel={hidden ? 'Show password' : 'Hide password'}>
-            <Ionicons name={hidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.muted} />
-          </Pressable>
-        )}
-      </View>
-    </View>
-  );
-};
-
-const ErrorBanner = ({ message }) =>
-  message ? (
-    <View style={styles.errorBanner} accessibilityLiveRegion="polite">
-      <Ionicons name="alert-circle" size={18} color={colors.danger} />
-      <Text style={styles.errorText}>{message}</Text>
-    </View>
-  ) : null;
 
 // Shown after sign-up, or when someone logs in before verifying their email.
 const VerifyPanel = ({ email }) => {
@@ -151,7 +98,7 @@ const VerifyPanel = ({ email }) => {
       <Text style={styles.cardTitle}>Check your inbox</Text>
       <Text style={styles.cardText}>
         We sent a verification link to <Text style={{ color: colors.text, fontFamily: fonts.bodyBold }}>{email}</Text>.
-        Open it, then come back here. Check your spam folder if it isn't there.
+        Open it, then come back here. Check your spam folder if it isn’t there.
       </Text>
       <ErrorBanner message={error} />
       {notice && !error ? <Text style={[styles.cardText, { color: colors.success }]}>{notice}</Text> : null}
@@ -354,31 +301,9 @@ const styles = StyleSheet.create({
   segmentItem: { flex: 1, height: 40, borderRadius: radius.md - 2, alignItems: 'center', justifyContent: 'center' },
   segmentActive: { backgroundColor: colors.accent },
   segmentText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.muted },
-  fieldLabel: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.textSoft },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    height: 50,
-    paddingHorizontal: 14,
-    borderRadius: radius.md,
-    borderWidth: 1.5,
-    borderColor: colors.line,
-    backgroundColor: colors.bg,
-  },
-  input: { flex: 1, height: '100%', fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
   link: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
   linkMuted: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
   switchText: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, textAlign: 'center' },
-  errorBanner: {
-    flexDirection: 'row',
-    gap: space.sm,
-    alignItems: 'flex-start',
-    padding: space.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.dangerSoft,
-  },
-  errorText: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 13, color: colors.danger, lineHeight: 19 },
   verifyIcon: {
     width: 56,
     height: 56,

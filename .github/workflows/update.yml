@@ -1,0 +1,40 @@
+name: OTA update
+
+# Sends JavaScript changes on main to installed apps with EAS Update (no new APK needed).
+# Skips itself until the EXPO_TOKEN secret is added.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Skip when EXPO_TOKEN is missing
+        if: env.EXPO_TOKEN == ''
+        run: echo "::notice::EXPO_TOKEN isn't set yet, so no update was published."
+
+      - uses: actions/checkout@v4
+        if: env.EXPO_TOKEN != ''
+
+      - uses: actions/setup-node@v4
+        if: env.EXPO_TOKEN != ''
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: expo/expo-github-action@v8
+        if: env.EXPO_TOKEN != ''
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        if: env.EXPO_TOKEN != ''
+        run: npm ci
+
+      - name: Publish update
+        if: env.EXPO_TOKEN != ''
+        run: eas update --channel preview --auto --non-interactive

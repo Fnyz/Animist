@@ -24,7 +24,7 @@ const MyListScreen = ({ navigation }) => {
   const watchlist = useMemo(
     () =>
       [...userWatchList].sort(
-        (a, b) => (b.data.createdAt?.toMillis?.() ?? Date.now()) - (a.data.createdAt?.toMillis?.() ?? Date.now())
+        (a, b) => (b.data.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER) - (a.data.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER)
       ),
     [userWatchList]
   );

@@ -18,7 +18,7 @@ const VideoPlayer = ({ navigation }) => {
       <Ionicons name="film-outline" size={48} color="coral" />
       <Text style={{color:'white', fontSize:20, fontWeight:'bold', textAlign:'center'}}>Episodes are coming back</Text>
       <Text style={{color:'#bbb', fontSize:14, textAlign:'center', lineHeight:20}}>
-        We're moving to official sources. In the next update, episodes play from official YouTube channels or open on Crunchyroll.
+        We’re moving to official sources. In the next update, episodes play from official YouTube channels or open on Crunchyroll.
       </Text>
       <TouchableOpacity
         onPress={() => navigation.goBack()}
