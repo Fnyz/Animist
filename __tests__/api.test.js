@@ -1,5 +1,5 @@
 import {
-  USE_STATIC_DATA, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
+  USE_STATIC_DATA, hasFreeEpisodes, episodeVideos, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
 } from '../api';
 
 // These tests use the saved snapshot, so they run offline and give the same results every time.
@@ -132,5 +132,47 @@ describe('toAnime', () => {
     expect(anime.type).toBe('TV');
     expect(anime.status).toBe('Ongoing');
     expect(anime.trailer).toBe('abc123');
+  });
+});
+
+describe('free to watch', () => {
+  it('lists only anime with episodes that play in the app', async () => {
+    const { results } = await getList('free', 1, 50);
+    for (const anime of results) {
+      expect(anime.episodes.some((e) => e.source === 'youtube')).toBe(true);
+    }
+  });
+
+  it('is on the Home screen', async () => {
+    const home = await getHomeData();
+    expect(Array.isArray(home.free)).toBe(true);
+  });
+});
+
+describe('hasFreeEpisodes', () => {
+  it('matches the anime in the Free to watch list', async () => {
+    const { results } = await getList('free', 1, 50);
+    for (const anime of results) expect(hasFreeEpisodes(anime.id)).toBe(true);
+  });
+
+  it('is false for unknown ids', () => {
+    expect(hasFreeEpisodes(999999999)).toBe(false);
+  });
+});
+
+describe('episodeVideos', () => {
+  const entry = { channel: 'Muse Asia', episodes: {} };
+
+  it('lists the main video first, then backups from other channels', () => {
+    const ep = { videoId: 'asia1', alts: [{ videoId: 'ph1', channel: 'Muse Philippines' }, { videoId: 'asia2' }] };
+    expect(episodeVideos(entry, ep)).toEqual([
+      { videoId: 'asia1', channel: 'Muse Asia' },
+      { videoId: 'ph1', channel: 'Muse Philippines' },
+      { videoId: 'asia2', channel: 'Muse Asia' },
+    ]);
+  });
+
+  it('is empty when the episode has no video', () => {
+    expect(episodeVideos(entry, undefined)).toEqual([]);
   });
 });

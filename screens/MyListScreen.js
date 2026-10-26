@@ -4,7 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { myContext } from '../context';
-import { EmptyState } from '../components/ui';
+import { EmptyState, WatchBadge } from '../components/ui';
+import { byLatest, historyProgress, progressFraction, progressLabel } from '../progress';
 import { colors, fonts, radius, space } from '../theme';
 
 const timeAgo = (ts) => {
@@ -59,6 +60,7 @@ const MyListScreen = ({ navigation }) => {
             <Pressable onPress={() => open(item.data.titleId)} style={styles.row}>
               <View style={styles.thumb}>
                 {item.data.image ? <Image source={{ uri: item.data.image }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+                <WatchBadge id={item.data.titleId} size={18} style={styles.thumbBadge} />
               </View>
               <View style={{ flex: 1, gap: 5 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{item.data.title || `Anime #${item.data.titleId}`}</Text>
@@ -92,20 +94,41 @@ const MyListScreen = ({ navigation }) => {
         />
       ) : (
         <FlatList
-          data={historyRecords}
+          data={[...historyRecords].sort(byLatest)}
           keyExtractor={(h) => h.id}
           contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: space.xxl }}
-          renderItem={({ item }) => (
-            <Pressable onPress={() => open(item.data.titleId)} style={styles.row}>
+          renderItem={({ item }) => {
+            const { episode: ep, progress, done, continueEp } = historyProgress(item.data);
+            const fraction = progressFraction(progress);
+            const label = progressLabel(progress);
+            return (
+            <Pressable onPress={() => navigation.navigate('View', { animeId: item.data.titleId, episode: ep })} style={styles.row}>
               <View style={[styles.thumb, styles.historyThumb]}>
-                <Ionicons name="play" size={20} color={colors.text} />
+                {item.data.image ? <Image source={{ uri: item.data.image }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+                <View style={styles.playDot}>
+                  <Ionicons name="play" size={14} color={colors.onAccent} />
+                </View>
+                {fraction > 0 && (
+                  <View style={styles.thumbBar}>
+                    <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+                  </View>
+                )}
               </View>
               <View style={{ flex: 1, gap: 5 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{item.data.title || `Anime #${item.data.titleId}`}</Text>
-                <Text style={styles.rowMeta}>Episode {item.data.epiNumber ?? '?'}</Text>
+                <Text style={styles.rowMeta}>Episode {ep}{label ? ` · ${label}` : ''}</Text>
               </View>
+              <Pressable
+                onPress={() => navigation.navigate('View', { animeId: item.data.titleId, episode: continueEp })}
+                style={styles.continue}
+                accessibilityLabel={`${done ? 'Play' : 'Continue'} episode ${continueEp} of ${item.data.title || 'this anime'}`}
+              >
+                <Text style={styles.continueText}>EP {continueEp}</Text>
+                <Ionicons name="play-forward" size={14} color={colors.accent} />
+              </Pressable>
             </Pressable>
-          )}
+            );
+          }}
         />
       )}
     </SafeAreaView>
@@ -128,7 +151,22 @@ const styles = StyleSheet.create({
     borderBottomColor: '#1F2129',
   },
   thumb: { width: 56, height: 80, borderRadius: radius.sm, overflow: 'hidden', backgroundColor: colors.surface2 },
+  thumbBadge: { position: 'absolute', top: 4, right: 4 },
   historyThumb: { alignItems: 'center', justifyContent: 'center' },
+  thumbBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
+  thumbBarFill: { height: 3, backgroundColor: colors.accent },
+  playDot: { width: 28, height: 28, borderRadius: 14, backgroundColor: colors.accent, alignItems: 'center', justifyContent: 'center' },
+  continue: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  continueText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.accent },
   rowTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   rowMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },

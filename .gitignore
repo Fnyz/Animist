@@ -18,3 +18,8 @@ web-build/
 
 # Device error logs from npm run dev
 logs/
+
+# Local secrets (API keys). Never commit these.
+.env
+.env.*
+!.env.example

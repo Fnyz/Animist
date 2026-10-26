@@ -58,8 +58,12 @@ const ListScreen = ({ route, navigation }) => {
 
   const gap = space.md;
   const cardWidth = (width - space.xl * 2 - gap * (COLUMNS - 1)) / COLUMNS;
-  const badgeFor = (a) =>
-    route.params.kind === 'recent' ? `EP ${a.episodeNumber}` : route.params.kind === 'movies' ? 'Movie' : null;
+  const badgeFor = (a) => {
+    if (route.params.kind === 'recent') return `EP ${a.episodeNumber}`;
+    if (route.params.kind === 'movies') return 'Movie';
+    if (route.params.kind === 'free') return `▶ ${a.episodes.filter((e) => e.source === 'youtube').length} eps`;
+    return null;
+  };
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>

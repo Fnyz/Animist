@@ -70,15 +70,69 @@ const releasedEpisodeCount = (media) => {
   return media.episodes ?? 0;
 };
 
+// Official full-episode YouTube playlists, matched to AniList ids by scripts/find-episodes.js.
+// The app reads this file only; the YouTube API key never ships in the app.
+const EPISODE_DATA = require('./data/episodes.json');
+const YOUTUBE_EPISODES = EPISODE_DATA.anime;
+// AniList data for anime found through the YouTube channels that aren't in the snapshot.
+const EPISODE_MEDIA = EPISODE_DATA.media ?? {};
+
+// Every video for an episode, best first: the main one, then backups from other official
+// channels. YouTube blocks some videos in some countries (Philippine channels often play only in
+// the Philippines); the player moves on to the next video when YouTube refuses one.
+export const episodeVideos = (entry, ep) =>
+  ep ? [ep, ...(ep.alts ?? [])].map((v) => ({ videoId: v.videoId, channel: v.channel ?? entry.channel })) : [];
+
+// True when the anime has official episodes that play inside the app. Works with just an id,
+// so places that only store ids (My List, History) can show the badge too.
+export const hasFreeEpisodes = (id) => Boolean(YOUTUBE_EPISODES[String(id)]);
+
+const EPISODE_NUMBER = /\b(?:episode|ep\.?)\s*(\d+)/i;
+
+// "Episode 3 - Killing Magic" -> "Killing Magic"
+const cleanEpisodeTitle = (title = '') =>
+  title.replace(/^\s*(?:episode|ep\.?)\s*\d+\s*[-–:|]?\s*/i, '').trim() || null;
+
+// Every episode with its best source: an official YouTube video (plays in the app),
+// else an official link such as Crunchyroll (opens outside), else nothing yet.
+export const buildEpisodes = (media) => {
+  const official = new Map();
+  for (const ep of media.streamingEpisodes ?? []) {
+    const n = Number(ep.title?.match(EPISODE_NUMBER)?.[1]);
+    if (n && !official.has(n)) official.set(n, ep);
+  }
+  const yt = YOUTUBE_EPISODES[String(media.id)];
+  const ytEpisodes = yt?.episodes ?? {};
+
+  const count = Math.max(
+    releasedEpisodeCount(media),
+    ...official.keys(),
+    ...Object.keys(ytEpisodes).map(Number),
+    0
+  );
+
+  return Array.from({ length: count }, (_, i) => {
+    const number = i + 1;
+    const link = official.get(number);
+    const videos = episodeVideos(yt, ytEpisodes[number]);
+    const video = videos[0] ? { ...videos[0], alternatives: videos.slice(1) } : null;
+    return {
+      id: `${media.id}-episode-${number}`,
+      number,
+      title: cleanEpisodeTitle(link?.title),
+      thumbnail: link?.thumbnail ?? (video ? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg` : null),
+      youtube: video,
+      link: link ? { site: link.site, url: link.url } : null,
+      source: video ? 'youtube' : link ? 'link' : 'none',
+    };
+  });
+};
+
 // One normalized anime, with the field names the existing screens use.
 export const toAnime = (media) => {
   const title = media.title.english || media.title.romaji;
   const image = media.coverImage.extraLarge || media.coverImage.large;
-  const released = releasedEpisodeCount(media);
-  const episodes = Array.from({ length: released }, (_, i) => ({
-    id: `${media.id}-episode-${i + 1}`,
-    number: i + 1,
-  }));
+  const episodes = buildEpisodes(media);
   const { year, month, day } = media.startDate ?? {};
 
   return {
@@ -98,7 +152,7 @@ export const toAnime = (media) => {
     genres: media.genres ?? [],
     description: cleanDescription(media.description) || 'No summary available.',
     score: media.averageScore,
-    totalEpisodes: media.episodes ?? released,
+    totalEpisodes: media.episodes ?? episodes.length,
     episodes,
     episodesList: episodes,
     nextEpisode: media.nextAiringEpisode,
@@ -163,12 +217,34 @@ const LISTS = {
 const nowInSeconds = () => Math.floor(Date.now() / 1000);
 
 // ---- Static snapshot -------------------------------------------------------
-const snapshot = USE_STATIC_DATA ? require('./data/animeSnapshot.json') : null;
-const staticMedia = (id) => snapshot.media[String(id)];
+const snapshot = require('./data/animeSnapshot.json');
+const staticMedia = (id) => snapshot.media[String(id)] ?? EPISODE_MEDIA[String(id)];
+// How many episodes an anime has so far, or null when it isn't in the offline data.
+export const episodeCount = (id) => {
+  const media = staticMedia(id);
+  return media ? buildEpisodes(media).length : null;
+};
+
+// A frame from the episode's YouTube video, for episodes that play in the app; otherwise null.
+export const episodeThumbnail = (id, number) => {
+  const video = YOUTUBE_EPISODES[String(id)]?.episodes[number];
+  return video ? `https://i.ytimg.com/vi/${video.videoId}/mqdefault.jpg` : null;
+};
+
+const byPopularity = (a, b) => (b.popularity ?? 0) - (a.popularity ?? 0);
 const allStaticMedia = () =>
-  Object.values(snapshot.media)
+  Object.values({ ...EPISODE_MEDIA, ...snapshot.media })
     .filter((m) => !m.isAdult)
-    .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0));
+    .sort(byPopularity);
+
+// Anime with episodes that play in the app, most popular first. The list comes from
+// data/episodes.json, so it's the same in static and live mode.
+const freeToWatchIds = () =>
+  Object.keys(YOUTUBE_EPISODES)
+    .map(staticMedia)
+    .filter(Boolean)
+    .sort(byPopularity)
+    .map((m) => m.id);
 
 const staticPage = (items, page, perPage, map) => {
   const start = (page - 1) * perPage;
@@ -193,8 +269,9 @@ export const getRecentEpisodes = async (page = 1, perPage = 20) => {
   return pageOf(data.Page, items);
 };
 
-// A named list: 'trending' | 'airing' | 'popular' | 'movies'.
+// A named list: 'trending' | 'airing' | 'popular' | 'movies' | 'free' (episodes play in the app).
 export const getList = async (kind, page = 1, perPage = 20) => {
+  if (kind === 'free') return mediaPage(freeToWatchIds(), page, perPage);
   if (USE_STATIC_DATA) return mediaPage(snapshot.lists[kind] ?? [], page, perPage);
   const data = await request(LIST_QUERY, { page, perPage, ...LISTS[kind] });
   return pageOf(data.Page, data.Page.media.map(toAnime));
@@ -202,7 +279,8 @@ export const getList = async (kind, page = 1, perPage = 20) => {
 
 // Everything the Home screen shows, in one request.
 export const getHomeData = async () => {
-  const [recent, trending, airing, popular, movies] = await Promise.all([
+  const [free, recent, trending, airing, popular, movies] = await Promise.all([
+    getList('free', 1, 10),
     getRecentEpisodes(1, 10),
     getList('trending', 1, 10),
     getList('airing', 1, 10),
@@ -210,6 +288,7 @@ export const getHomeData = async () => {
     getList('movies', 1, 10),
   ]);
   return {
+    free: free.results,
     recent: recent.results,
     trending: trending.results,
     airing: airing.results,
@@ -277,6 +356,7 @@ const INFO_QUERY = `
     Media(id: $id, type: ANIME) {
       ${MEDIA_FIELDS}
       externalLinks { site url type }
+      streamingEpisodes { title thumbnail url site }
     }
   }
 `;

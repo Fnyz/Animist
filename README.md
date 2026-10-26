@@ -1,76 +1,104 @@
-# Animist 🎌
+# Animist
 
 [![CI](https://github.com/Fnyz/Animist/actions/workflows/ci.yml/badge.svg)](https://github.com/Fnyz/Animist/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/Fnyz/Animist)](https://github.com/Fnyz/Animist/releases/latest)
 
-> An anime discovery and community app for Android, built with React Native (Expo) and Firebase.
+> An anime discovery and streaming app for Android, built with React Native (Expo) and Firebase.
+> Every episode comes from a legal source.
 
-Browse trending and airing anime, watch official episodes and trailers, keep a watchlist, get notified when new episodes air, and talk about each episode with other fans.
+Browse trending and airing anime, watch thousands of free episodes from official YouTube channels inside the app, pick up exactly where you left off, and keep a watchlist synced to your account.
 
-> **Status: v1.1 rebuild in progress.** Version 1.0 streamed from the GogoAnime source through the Consumet API, which has since shut down. Version 1.1 moves the app to legal, stable data sources (AniList, Jikan and official YouTube channels), adds a new design, and ships through an automated CI/CD pipeline. See the [roadmap](#roadmap).
+**[Download the APK (QR code) →](https://fnyz.github.io/Animist/)**
 
 ---
 
 ## Screenshots
 
-Screenshots of the rebuilt app will be added here when v1.1 is released. They are captured from a real device with [`scripts/capture-screenshots.sh`](scripts/capture-screenshots.sh).
+| Home | Continue watching | Details |
+|:---:|:---:|:---:|
+| ![Home with the trending carousel](docs/screenshots/home.jpg) | ![Continue watching and Free to watch rows](docs/screenshots/home-rows.jpg) | ![Anime details with where to watch](docs/screenshots/details.jpg) |
+| **Episodes** | **Player** | **Browse by genre** |
+| ![Episode list with watch progress](docs/screenshots/episodes.jpg) | ![Watch screen resuming an episode](docs/screenshots/watch.jpg) | ![Action genre grid](docs/screenshots/genre.jpg) |
+| **Search** | **History** | |
+| ![Search with genre shortcuts](docs/screenshots/search.jpg) | ![Watch history with continue buttons](docs/screenshots/history.jpg) | |
 
-<!--
-| Home | Details | Episodes | Search | My List |
-|---|---|---|---|---|
-| ![Home](docs/screenshots/home.png) | ![Details](docs/screenshots/details.png) | ![Episodes](docs/screenshots/episodes.png) | ![Search](docs/screenshots/search.png) | ![My List](docs/screenshots/my-list.png) |
--->
+**Fullscreen player**
+
+![Fullscreen landscape playback with the app's own controls](docs/screenshots/fullscreen.jpg)
 
 ---
 
 ## Features
 
-**Available in v1.0**
-- 🔐 **Accounts**: email and password sign-up with email verification, password reset and update
-- 📋 **Watchlist and history** synced to Firestore
-- ❤️ **Likes and comments** on each episode, updated in real time
-- 👤 **Profile** with custom avatars
+**Watch**
+- ▶️ **Free episodes inside the app** from official YouTube channels, with the app's own player: play/pause, a draggable seek bar, mute, a quality picker and true 16:9 fullscreen
+- ⏯️ **Resume where you left off** on any device you sign in to, with a "Start over" option
+- ⏭️ **Up next countdown** at the end of each episode, and fullscreen carries on into the next one
+- 🔁 **Automatic backups**: if YouTube blocks a video in your country, the player switches to the same episode from another official channel
+- 🔗 **Official links** (such as Crunchyroll) for episodes that aren't free on YouTube
 
-**Coming in v1.1**
-- 🏠 **New home feed** with trending, airing this season, popular and top movies from AniList
-- 🎬 **Episodes from three legal sources**: full episodes from official YouTube channels, episode lists that open Crunchyroll, and official trailers
-- 🔍 **Search with filters** for genre, year, format and status
-- 🔔 **New-episode notifications** for shows on your list
-- 👀 **Browse without an account**. Sign-in is only needed to like, comment or save.
-- 🔑 **Google Sign-In** and **AniList list import**
-- 📶 **Offline cache** so the app opens instantly
-- 🌙 **New dark design** with bottom tabs
+**Discover**
+- 🏠 **Home feed**: a trending carousel, Continue watching, Free to watch, new episodes, airing this season, all-time popular and top movies
+- 🔍 **Search as you type** and **browse by genre**
+- 📄 **Details** for every anime: synopsis, genres, score, trailer and where to watch it officially
+- 🎬 **Trailers** play inside the app
+
+**Your account**
+- 🔐 Email sign-up with verification, password reset and password change
+- 📋 **Watchlist** and **watch history** with progress bars, synced with Firestore
+- 👤 Profile with avatars
 
 ---
 
 ## How episodes work
 
-Animist does not host or scrape video. For each anime it picks the best legal source available:
+Animist does not host, download or scrape video. For each episode it picks the best legal source:
 
-| If the anime has… | Animist shows… |
+| If the episode is… | Animist shows… |
 |---|---|
-| An official YouTube playlist (for example Muse Asia, Ani-One Asia) | Full episodes playing inside the app |
-| Episode links on AniList | The episode list, with each episode opening on Crunchyroll |
-| Neither | The official trailer and "Where to watch" links |
+| Uploaded by an official YouTube channel with English subtitles or an English dub | The episode, playing inside the app |
+| On an official streaming service listed by AniList | A link that opens that service (for example Crunchyroll) |
+| Neither | "Not available yet", plus the anime's official "Where to watch" links |
 
-Official YouTube uploads can be region-locked. When an episode is blocked in your country, that episode falls back to its Crunchyroll link.
+The official channels are **Muse Asia, Muse Philippines, Ani-One Philippines, GUNDAM CHANNEL INTL, BEYBLADE and Cardfight!! Vanguard**. One anime can mix channels: when one channel is missing an episode, another fills the gap.
+
+The episode list is built ahead of time by [`scripts/find-episodes.js`](scripts/find-episodes.js), which reads the channels' playlists with the YouTube Data API and matches them to AniList by exact title and season. The app only ships the result ([`data/episodes.json`](data/episodes.json)); the API key never ships in the app.
+
+### New episodes automatically
+
+A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) keeps the list fresh:
+
+1. **Every day at 06:00 Philippine time** it reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Feeds are free and use no API quota.
+2. **Only when there are new episodes**, it runs a quick search (anime the app already has, about 5 minutes).
+3. **On Sundays** it runs the full search, which also finds new shows.
+4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
+
+You can also run it by hand: **Actions → Refresh episodes → Run workflow**, then choose:
+- **mode**: `quick` or `full`
+- **delivery**: `pull-request` (you review and merge) or `commit` (straight to `main`, then published to phones)
+
+To make the daily run commit directly instead of opening pull requests, set the repository variable `EPISODES_DELIVERY` to `commit` (Settings → Secrets and variables → Actions → Variables).
+
+If a run finds over 10% fewer episodes than before, it keeps the old list. That usually means a YouTube or AniList problem, not real removals.
 
 ---
 
-## Tech Stack
+## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Framework | React Native + Expo |
-| Navigation | React Navigation (native stack, bottom tabs) |
-| Anime data | [AniList GraphQL API](https://docs.anilist.co), [Jikan API](https://jikan.moe) |
-| Episodes | YouTube Data API v3, `react-native-youtube-iframe` |
-| Data fetching | TanStack Query + Axios |
-| Backend | Firebase Auth + Firestore |
-| Notifications | `expo-notifications` |
-| Builds and updates | EAS Build, EAS Update |
-| CI/CD | GitHub Actions |
-| Monitoring | Sentry |
-| Testing | Jest |
+| App | React Native 0.88, React 19, Expo SDK 58 |
+| Navigation | React Navigation 7 (native stack and bottom tabs) |
+| UI | expo-image, expo-linear-gradient, Reanimated, Bricolage Grotesque and Manrope fonts |
+| Player | YouTube embed in `react-native-webview`, with custom controls and `expo-screen-orientation` for fullscreen |
+| Anime data | [AniList GraphQL API](https://docs.anilist.co) (bundled snapshot, see below) |
+| Episodes | YouTube Data API v3, at build time only |
+| Backend | Firebase Authentication and Cloud Firestore |
+| Builds and updates | EAS Build (APK), EAS Update (over-the-air updates) |
+| CI/CD | GitHub Actions, CodeQL, Dependabot, Gitleaks, audit-ci |
+| Tests | Jest |
+
+The app currently reads AniList data from a saved snapshot ([`data/animeSnapshot.json`](data/animeSnapshot.json), refreshed with `scripts/snapshot-anime.js`), so it works offline and loads instantly. Setting `USE_STATIC_DATA = false` in [`api.js`](api.js) switches to live AniList requests.
 
 ---
 
@@ -78,9 +106,7 @@ Official YouTube uploads can be region-locked. When an episode is blocked in you
 
 **[Download page with QR code →](https://fnyz.github.io/Animist/)**
 
-Android builds are published on the [Releases page](https://github.com/Fnyz/Animist/releases). Scan the QR code on the download page with your Android phone, or download `animist.apk` from the latest release and open it. Android asks you to allow installs from your browser the first time.
-
-*The download works after the first tagged release (see [Releasing](#releasing)).*
+Scan the QR code with your Android phone, or download `animist.apk` from the [latest release](https://github.com/Fnyz/Animist/releases/latest) and open it. Android asks you to allow installs from your browser the first time.
 
 ---
 
@@ -92,118 +118,129 @@ Android builds are published on the [Releases page](https://github.com/Fnyz/Anim
 | Push to `main`, pull requests, weekly | `codeql.yml` | GitHub CodeQL scans the code for security bugs |
 | Weekly | `dependabot.yml` | Opens pull requests for dependency updates and security fixes |
 | Push to `main` | `update.yml` | Publishes an over-the-air update to installed apps with EAS Update |
+| Daily at 06:00 (Philippines), or by hand | `episodes.yml` | Checks the official channels' RSS feeds for new episodes and, if there are any, refreshes `data/episodes.json` (see [New episodes automatically](#new-episodes-automatically)) |
 | Tag `v*` | `release.yml` | Builds a signed APK on the GitHub runner and attaches it to a GitHub Release |
 
 The QR code points to `releases/latest/download/animist.apk`, so it always downloads the newest build.
 
 ### Releasing
 
-One-time setup:
+1. Update `version` in `app.json` and add a `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md).
+2. Commit, then tag and push:
+   ```bash
+   git tag v1.2.0
+   git push origin v1.2.0
+   ```
+
+The `Release APK` workflow checks that the tag matches `app.json`, builds the APK, and publishes a GitHub Release with that version's notes from the changelog.
+
+<details>
+<summary>One-time setup for a fork</summary>
+
 1. Create a free account at [expo.dev](https://expo.dev), then run `npx eas-cli login` and `npx eas-cli init` in the project. This links the project and adds its ID to `app.json`.
 2. Run `npx eas-cli credentials -p android`, choose the **preview** profile, and let EAS generate the Android keystore. Every APK is signed with it.
 3. Run `npx eas-cli update:configure` to turn on over-the-air updates.
 4. Create an access token at expo.dev → Account settings → Access tokens, and add it on GitHub as the repository secret `EXPO_TOKEN` (Settings → Secrets and variables → Actions).
 5. Turn on GitHub Pages: Settings → Pages → Deploy from a branch → `main` / `docs`.
+6. For daily episode updates: add your YouTube Data API key as the repository secret `YOUTUBE_API_KEY`, and allow GitHub Actions to open pull requests (Settings → Actions → General → Workflow permissions → **Allow GitHub Actions to create and approve pull requests**).
 
-Each release:
-1. Update `version` in `app.json` and add a `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md).
-2. Commit, then tag and push:
-   ```bash
-   git tag v1.1.0
-   git push origin v1.1.0
-   ```
-The `Release APK` workflow checks that the tag matches `app.json`, builds the APK, and publishes a GitHub Release with that version's notes from the changelog.
-
-Run the same checks as CI locally with `npm run lint` and `npm test`.
+</details>
 
 ---
 
-## Roadmap
-
-- [ ] **1. Clean up and upgrade Expo**: remove unused packages, move to the current Expo SDK, keep users signed in, tighten Firestore rules
-- [ ] **2. New data layer**: one `api.js` on AniList and Jikan, TanStack Query caching, offline cache, Jest tests
-- [ ] **3. Rewire the screens**: new design, AniList IDs for watchlist and history, cheaper like counting
-- [ ] **4. Episodes**: YouTube playlists, Crunchyroll episode links and trailers
-- [ ] **5. User experience**: browse without login, Google Sign-In, new-episode notifications, AniList import
-- [ ] **6. CI/CD and distribution**: GitHub Actions, APK releases, QR download page, Sentry
-- [ ] **7. Portfolio polish**: screenshots, demo video, architecture diagram
-- [ ] **Later**: Google Play release, comment reporting and spoiler tags, in-app account deletion, web version
-
----
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 - Node.js 20+
 - An Android phone with Expo Go, or an Android emulator
-- A Firebase project with Authentication and Firestore enabled
+- A Firebase project with Authentication (email/password) and Firestore enabled
 
-### Installation
+### Run it
 
 ```bash
 git clone https://github.com/Fnyz/Animist.git
 cd Animist
 npm install
+npx expo start            # then scan the QR code with Expo Go
 ```
 
-### Firebase setup
+To use your own Firebase project, replace the config values in [`firebase.js`](firebase.js) and deploy the rules in [`firestore.rules`](firestore.rules).
 
-`firebase.js` initializes Firebase. To use your own project, replace the config values in it:
-
-```js
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID",
-};
-
-const app = initializeApp(firebaseConfig);
-export const Auth = getAuth(app);
-export const db = getFirestore(app);
-```
-
-### Run the app
+### Checks
 
 ```bash
-npx expo start            # then scan the QR code with Expo Go
-npx expo start --android  # open on a connected device or emulator
+npm run lint   # ESLint, same as CI
+npm test       # Jest unit tests
+```
+
+### Refresh the episode list by hand (optional)
+
+Add a YouTube Data API key to `.env` (see [`.env.example`](.env.example)), then run:
+
+```bash
+node scripts/check-feeds.js            # what's new on the channels (free, no key needed)
+node scripts/find-episodes.js --quick  # refresh anime the app already has (~5 min)
+node scripts/find-episodes.js          # full search, also finds new shows (15–40 min)
+```
+
+A run uses about 1,500–2,500 of the free 10,000 daily quota units. The full search is slower because AniList allows about 30 requests a minute.
+
+### Update the screenshots
+
+Connect an Android phone with USB debugging (or start an emulator), open the app, and run [`scripts/capture-screenshots.sh`](scripts/capture-screenshots.sh). It walks you through each screen and saves them to `docs/screenshots/`.
+
+---
+
+## Project structure
+
+```
+Animist/
+├── App.js                  # Navigation (tabs and stacks), fonts, auth gate
+├── context.js              # Signed-in user, watchlist, history and watch progress (Firestore)
+├── api.js                  # AniList data and episode sources for every screen
+├── progress.js             # Watch progress helpers (resume point, "12:34 left")
+├── firebase.js             # Firebase setup
+├── theme.js                # Colors, fonts and spacing
+├── screens/                # Home, Search, List, Details, Watch, My List, Profile, Auth, …
+├── components/
+│   ├── VideoPlayer.js      # Player controls, fullscreen, up next, backup videos
+│   ├── YouTubeView.js      # The YouTube embed inside a WebView
+│   ├── fullscreenBox.js    # Exact 16:9 fullscreen size on any screen shape
+│   ├── HeroCarousel.js     # Trending carousel on Home
+│   ├── ContinueRow.js      # Continue watching row on Home
+│   └── ui.js               # Buttons, posters, rows and other shared UI
+├── data/
+│   ├── animeSnapshot.json  # Saved AniList data
+│   └── episodes.json       # Official YouTube episodes, matched to AniList
+├── scripts/                # Episode finder and RSS check, AniList snapshot, screenshot capture
+├── __tests__/              # Jest tests
+└── docs/                   # Download page (GitHub Pages) and screenshots
 ```
 
 ---
 
-## Project Structure
+## Roadmap
 
-```
-Animist/
-├── App.js              # Root navigator and entry point
-├── context.js          # Global state (user, watchlist, history, likes)
-├── firebase.js         # Firebase initialization
-├── animeData.js        # Static avatar and theme data
-├── genre.js            # Genre category definitions
-├── scripts/
-│   └── capture-screenshots.sh  # Captures README screenshots from a device
-└── components/
-    ├── HomePage.js     # Main feed screen
-    ├── DetailsPage.js  # Anime details and episode list
-    ├── WatchAnime.js   # Episode watch screen
-    ├── SearchAnime.js  # Search screen
-    ├── Profile.js      # User profile
-    ├── LoginAndSignUp.js  # Sign-in and sign-up
-    └── ...             # Other components
-```
+- [x] **Clean up and upgrade**: current Expo SDK, stay signed in, stricter Firestore rules
+- [x] **New design**: dark theme with coral accents and bottom tabs
+- [x] **Legal data**: AniList for anime information
+- [x] **Episodes**: official YouTube channels inside the app, Crunchyroll links, trailers
+- [x] **Player**: custom controls, fullscreen, quality, resume, up next, backup videos
+- [x] **CI/CD**: GitHub Actions, signed APK releases, QR download page, over-the-air updates
+- [x] **Screenshots**
+- [x] **Fresh episodes automatically**: daily RSS check, pull requests with new episodes
+- [ ] **Live AniList data** instead of the snapshot
+- [ ] **Browse without an account**, Google Sign-In, new-episode notifications, AniList list import
+- [ ] **UI tests** with Maestro
+- [ ] **Later**: Google Play release, comment reporting and spoiler tags, in-app account deletion
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ---
 
 ## Disclaimer
 
-Animist does not host, store or scrape any video. Anime information comes from AniList and Jikan, and episodes play from official YouTube channels or open on licensed services. All anime titles and artwork belong to their respective owners.
+Animist does not host, store or scrape any video. Anime information comes from AniList. Episodes play from official YouTube channels through YouTube's embedded player, or open on licensed services. All anime titles and artwork belong to their respective owners.
 
 ## License
 

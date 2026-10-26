@@ -1,5 +1,5 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
-import { View, Text, ScrollView, Pressable, StyleSheet, Share, Linking } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Share, Linking, Animated } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +7,7 @@ import { getAnimeInfo } from '../api';
 import { myContext } from '../context';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
+import { progressFraction, progressLabel } from '../progress';
 import { colors, fonts, radius, space } from '../theme';
 
 const EPISODES_SHOWN = 12;
@@ -14,13 +15,14 @@ const EPISODES_SHOWN = 12;
 const DetailsScreen = ({ route, navigation }) => {
   const { animeId } = route.params;
   const insets = useSafeAreaInsets();
-  const { findInWatchList, addToWatchList, removeFromWatchList } = useContext(myContext);
+  const { findInWatchList, addToWatchList, removeFromWatchList, watchProgress } = useContext(myContext);
   const [anime, setAnime] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
   const [allEpisodes, setAllEpisodes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [scrollY] = useState(() => new Animated.Value(0));
 
   const load = useCallback(async () => {
     try {
@@ -81,7 +83,12 @@ const DetailsScreen = ({ route, navigation }) => {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }} showsVerticalScrollIndicator={false}>
+      <Animated.ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + space.xxl }}
+        showsVerticalScrollIndicator={false}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+      >
         <View style={styles.banner}>
           <Image source={{ uri: anime.banner }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
           <View style={styles.bannerShade} />
@@ -156,31 +163,62 @@ const DetailsScreen = ({ route, navigation }) => {
                 : `${anime.episodes.length} released`}
             </Text>
           </View>
-          <View style={styles.notice}>
-            <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
-            <Text style={styles.noticeText}>
-              In-app playback returns in the next update, from official YouTube channels. Until then, use the links above.
-            </Text>
-          </View>
+          {(() => {
+            const onYouTube = anime.episodes.filter((e) => e.source === 'youtube');
+            const linked = anime.episodes.find((e) => e.source === 'link');
+            const channels = [...new Set(onYouTube.map((e) => e.youtube.channel))].join(' and ');
+            const message = onYouTube.length
+              ? `${onYouTube.length} episode${onYouTube.length > 1 ? 's play' : ' plays'} in the app, free from ${channels} on YouTube.`
+              : linked
+                ? `Episodes open on ${linked.link.site}, the official streaming service.`
+                : 'No free official episodes yet. Try the services above.';
+            return (
+              <View style={[styles.notice, onYouTube.length > 0 && styles.noticeGood]}>
+                <Ionicons
+                  name={onYouTube.length ? 'checkmark-circle' : 'information-circle-outline'}
+                  size={18}
+                  color={onYouTube.length ? colors.success : colors.accent}
+                />
+                <Text style={styles.noticeText}>{message}</Text>
+              </View>
+            );
+          })()}
           {anime.episodes.length === 0 ? (
             <Text style={styles.muted}>No episodes have aired yet.</Text>
           ) : (
-            episodes.map((ep) => (
+            episodes.map((ep) => {
+              const progress = watchProgress(anime.id, ep.number);
+              const fraction = progressFraction(progress);
+              const label = progressLabel(progress);
+              return (
               <Pressable
                 key={ep.id}
                 onPress={() => navigation.navigate('View', { animeId: anime.id, episode: ep.number })}
                 style={styles.episode}
               >
                 <View style={styles.episodeThumb}>
+                  {ep.thumbnail ? <Image source={{ uri: ep.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
                   <Text style={styles.episodeNum}>EP {ep.number}</Text>
+                  {fraction > 0 && (
+                    <View style={styles.thumbBar}>
+                      <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+                    </View>
+                  )}
                 </View>
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={styles.episodeTitle}>Episode {ep.number}</Text>
-                  <Text style={styles.muted} numberOfLines={1}>{anime.title}</Text>
+                  <Text style={styles.episodeTitle} numberOfLines={1}>{ep.title ?? `Episode ${ep.number}`}</Text>
+                  <Text style={styles.muted} numberOfLines={1}>
+                    {label ?? (ep.source === 'youtube' ? 'Plays in the app' : ep.source === 'link' ? `Opens ${ep.link.site}` : 'Not available yet')}
+                  </Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+                <Ionicons
+                  name={ep.source === 'youtube' ? 'play-circle' : ep.source === 'link' ? 'open-outline' : 'lock-closed-outline'}
+                  size={20}
+                  color={ep.source === 'none' ? colors.muted : colors.text}
+                />
               </Pressable>
-            ))
+              );
+            })
           )}
           {anime.episodes.length > EPISODES_SHOWN && (
             <Button
@@ -190,7 +228,23 @@ const DetailsScreen = ({ route, navigation }) => {
             />
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
+
+      {/* Solid bar that fades in once the banner scrolls away, so text never runs under the
+          status bar or the back/share buttons. */}
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.header,
+          {
+            height: insets.top + 60,
+            paddingTop: insets.top,
+            opacity: scrollY.interpolate({ inputRange: [150, 220], outputRange: [0, 1], extrapolate: 'clamp' }),
+          },
+        ]}
+      >
+        <Text style={styles.headerTitle} numberOfLines={1}>{anime.title}</Text>
+      </Animated.View>
 
       {back}
       <IconButton icon="share-social-outline" label="Share" onPress={share} style={[styles.floating, { top: insets.top + 8, right: 16 }]} />
@@ -202,6 +256,18 @@ const DetailsScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   floating: { position: 'absolute', backgroundColor: 'rgba(14,15,20,0.7)' },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    justifyContent: 'center',
+    paddingHorizontal: 76,
+    backgroundColor: colors.bg,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  headerTitle: { fontFamily: fonts.displaySemi, fontSize: 17, color: colors.text, textAlign: 'center' },
   banner: { height: 280, backgroundColor: colors.surface2, justifyContent: 'center', alignItems: 'center' },
   bannerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,15,20,0.25)' },
   playButton: {
@@ -258,6 +324,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,122,89,0.25)',
   },
+  noticeGood: { backgroundColor: colors.successSoft, borderColor: 'rgba(127,224,174,0.3)' },
   noticeText: { flex: 1, fontFamily: fonts.body, fontSize: 13, lineHeight: 19, color: colors.textSoft },
   episode: {
     flexDirection: 'row',
@@ -271,11 +338,23 @@ const styles = StyleSheet.create({
     width: 104,
     height: 60,
     borderRadius: 10,
+    overflow: 'hidden',
     backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  episodeNum: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.muted },
+  thumbBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
+  thumbBarFill: { height: 3, backgroundColor: colors.accent },
+  episodeNum: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    color: colors.text,
+    backgroundColor: 'rgba(14,15,20,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
   episodeTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
 });
 

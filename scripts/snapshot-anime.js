@@ -7,27 +7,7 @@ const path = require('path');
 const ENDPOINT = 'https://graphql.anilist.co';
 const OUT = path.join(__dirname, '..', 'data', 'animeSnapshot.json');
 
-const MEDIA_FIELDS = `
-  id
-  title { romaji english native }
-  synonyms
-  coverImage { extraLarge large }
-  bannerImage
-  format
-  status
-  episodes
-  nextAiringEpisode { episode airingAt }
-  seasonYear
-  startDate { year month day }
-  genres
-  tags { name isMediaSpoiler }
-  description(asHtml: false)
-  averageScore
-  popularity
-  isAdult
-  trailer { id site }
-  externalLinks { site url type }
-`;
+const { MEDIA_FIELDS } = require('./anilistFields');
 
 const LISTS = {
   trending: 'sort: [TRENDING_DESC, POPULARITY_DESC]',

@@ -1,0 +1,134 @@
+name: Refresh episodes
+
+# Keeps data/episodes.json up to date with new uploads on the official YouTube channels.
+#
+# Automatic: every day at 06:00 Philippine time. It reads the channels' RSS feeds (free, no quota)
+#   and only runs the episode search when something new was uploaded. On Sundays it runs the full
+#   search, which also finds new shows. The result arrives as a pull request, or as a commit to main
+#   when the repository variable EPISODES_DELIVERY is set to "commit".
+# Manual: Actions > Refresh episodes > Run workflow, then pick the mode and the delivery.
+#
+# Needs the repository secret YOUTUBE_API_KEY. Skips itself until it's added.
+on:
+  schedule:
+    - cron: '0 22 * * *' # 22:00 UTC = 06:00 in the Philippines
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'quick: refresh episodes of anime the app has (~5 min). full: also search AniList for new shows (15-40 min).'
+        type: choice
+        options: [quick, full]
+        default: quick
+      delivery:
+        description: 'pull-request: you review and merge. commit: straight to main (then published to phones).'
+        type: choice
+        options: [pull-request, commit]
+        default: pull-request
+      skip_feed_check:
+        description: 'Run the search even if the RSS feeds show nothing new'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: refresh-episodes
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - name: Skip when YOUTUBE_API_KEY is missing
+        if: env.YOUTUBE_API_KEY == ''
+        run: echo "::notice::YOUTUBE_API_KEY isn't set yet, so episodes weren't refreshed."
+
+      - uses: actions/checkout@v4
+        if: env.YOUTUBE_API_KEY != ''
+
+      - uses: actions/setup-node@v4
+        if: env.YOUTUBE_API_KEY != ''
+        with:
+          node-version: 22
+
+      - name: Choose mode and delivery
+        id: plan
+        if: env.YOUTUBE_API_KEY != ''
+        env:
+          INPUT_MODE: ${{ inputs.mode }}
+          INPUT_DELIVERY: ${{ inputs.delivery }}
+          INPUT_SKIP_FEED_CHECK: ${{ inputs.skip_feed_check }}
+          DEFAULT_DELIVERY: ${{ vars.EPISODES_DELIVERY }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            mode="$INPUT_MODE"; delivery="$INPUT_DELIVERY"; check_feeds=$([ "$INPUT_SKIP_FEED_CHECK" = "true" ] && echo false || echo true)
+          else
+            # Scheduled: the full search on Sundays (Philippine time), otherwise quick.
+            mode=$([ "$(TZ=Asia/Manila date +%u)" = "7" ] && echo full || echo quick)
+            delivery="${DEFAULT_DELIVERY:-pull-request}"
+            check_feeds=$([ "$mode" = "quick" ] && echo true || echo false)
+          fi
+          echo "mode=$mode" >> "$GITHUB_OUTPUT"
+          echo "delivery=$delivery" >> "$GITHUB_OUTPUT"
+          echo "check_feeds=$check_feeds" >> "$GITHUB_OUTPUT"
+          echo "Mode: $mode · delivery: $delivery · RSS check first: $check_feeds"
+
+      - name: Check RSS feeds for new uploads
+        id: feeds
+        if: env.YOUTUBE_API_KEY != '' && steps.plan.outputs.check_feeds == 'true'
+        run: node scripts/check-feeds.js
+
+      - name: Search for episodes
+        id: search
+        if: env.YOUTUBE_API_KEY != '' && (steps.plan.outputs.check_feeds != 'true' || steps.feeds.outputs.new_videos != '0')
+        run: |
+          flags="--summary $RUNNER_TEMP/summary.md"
+          [ "${{ steps.plan.outputs.mode }}" = "quick" ] && flags="$flags --quick"
+          node scripts/find-episodes.js $flags
+          if git diff --quiet -- data/episodes.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Open a pull request
+        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'pull-request'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bot/refresh-episodes
+          delete-branch: true
+          add-paths: data/episodes.json
+          commit-message: 'Refresh episodes from official YouTube channels'
+          title: 'New episodes from official YouTube channels'
+          body-path: ${{ runner.temp }}/summary.md
+          labels: episodes
+
+      - name: Commit to main
+        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/episodes.json
+          git commit -m "Refresh episodes from official YouTube channels"
+          git push
+
+      # A push made by this workflow doesn't start other workflows, so the over-the-air update that
+      # normally follows a push to main is published here.
+      - uses: expo/expo-github-action@v8
+        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publish the update to phones
+        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
+        run: |
+          npm ci
+          eas update --channel preview --message "Refresh episodes" --non-interactive

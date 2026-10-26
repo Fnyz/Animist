@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { searchAnime } from '../api';
 import { myContext } from '../context';
-import { Chip, EmptyState, ErrorState } from '../components/ui';
+import { Chip, EmptyState, ErrorState, WatchBadge } from '../components/ui';
 import { colors, fonts, space } from '../theme';
 
 // Genres and AniList tags people can browse without typing.
@@ -25,6 +25,7 @@ const ResultRow = ({ anime, onOpen }) => {
     <Pressable onPress={() => onOpen(anime)} style={styles.row}>
       <View style={styles.thumb}>
         <Image source={{ uri: anime.image }} style={StyleSheet.absoluteFill} contentFit="cover" transition={200} />
+        <WatchBadge id={anime.id} size={20} style={styles.thumbBadge} />
       </View>
       <View style={{ flex: 1, gap: 5 }}>
         <Text style={styles.rowTitle} numberOfLines={2}>{anime.title}</Text>
@@ -127,7 +128,7 @@ const SearchScreen = ({ navigation }) => {
           onEndReached={() => hasMore && !loading && run(query.trim(), page + 1)}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
-            results.length ? <Text style={styles.count}>{results.length}{hasMore ? '+' : ''} results</Text> : null
+            results.length ? <Text style={styles.count}>{results.length}{hasMore ? '+' : ''} {results.length === 1 && !hasMore ? 'result' : 'results'}</Text> : null
           }
           ListEmptyComponent={
             loading ? null : (
@@ -162,6 +163,7 @@ const styles = StyleSheet.create({
   count: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, paddingBottom: 4 },
   row: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   thumb: { width: 72, height: 104, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.surface2 },
+  thumbBadge: { position: 'absolute', top: 5, right: 5 },
   rowTitle: { fontFamily: fonts.bodyBold, fontSize: 15, lineHeight: 20, color: colors.text },
   rowMeta: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   rowGenres: { fontFamily: fonts.body, fontSize: 12, color: colors.textSoft },

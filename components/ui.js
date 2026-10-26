@@ -4,6 +4,7 @@ import { View, Text, Pressable, FlatList, ActivityIndicator, StyleSheet, TextInp
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, fonts, radius, space } from '../theme';
+import { hasFreeEpisodes } from '../api';
 
 // The logo: "Ani" in white, "mist" in coral.
 export const Wordmark = ({ size = 28, style }) => (
@@ -78,6 +79,17 @@ export const Tag = ({ label }) => (
   </View>
 );
 
+// Small coral ▶ on a cover: this anime has episodes that play in the app.
+export const WatchBadge = ({ id, size = 22, style }) =>
+  hasFreeEpisodes(id) ? (
+    <View
+      style={[styles.watchBadge, { width: size, height: size, borderRadius: size / 2 }, style]}
+      accessibilityLabel="Episodes play in the app"
+    >
+      <Ionicons name="play" size={size * 0.5} color={colors.onAccent} style={{ marginLeft: size * 0.06 }} />
+    </View>
+  ) : null;
+
 // Cover image with a small badge (episode number, rank, "Movie", ...).
 export const Poster = ({ anime, width = 112, onPress, badge, showMeta = true }) => (
   <Pressable onPress={() => onPress?.(anime)} style={{ width, gap: 6 }} accessibilityRole="button" accessibilityLabel={anime.title}>
@@ -88,6 +100,7 @@ export const Poster = ({ anime, width = 112, onPress, badge, showMeta = true }) 
           <Text style={styles.badgeText}>{badge}</Text>
         </View>
       ) : null}
+      <WatchBadge id={anime.id} style={styles.watchBadgeCorner} />
     </View>
     {showMeta && (
       <>
@@ -250,6 +263,14 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     backgroundColor: 'rgba(14,15,20,0.85)',
   },
+  watchBadge: {
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(14,15,20,0.85)',
+  },
+  watchBadgeCorner: { position: 'absolute', top: 8, right: 8 },
   badgeText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.text },
   posterTitle: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   posterMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },

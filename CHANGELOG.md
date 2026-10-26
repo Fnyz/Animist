@@ -5,6 +5,23 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
+## [Unreleased]
+
+### New
+- Watch over 3,500 full episodes of 230+ anime inside the app, free from official YouTube channels (Muse Asia and GUNDAM CHANNEL INTL, with English subtitles or dubs).
+- A "Free to watch" row on Home, and a ▶ badge on every poster with episodes that play in the app.
+- Fullscreen playback (landscape), a draggable progress bar, and a video quality picker.
+- A Watch screen with previous/next, autoplay of the next episode, and the full episode list.
+- Real episode titles and thumbnails, with official Crunchyroll links where YouTube doesn't have the episode.
+- My List › History now shows what you watched and how much is left, and continues where you stopped.
+- Episodes resume where you left off (with a "Start over" option), and episode lists show a progress bar for each episode you started.
+- A "Continue watching" row on Home takes you straight back to the episode you were watching.
+- When an episode ends, an "Up next" card counts down to the next one (with Cancel), and fullscreen carries on into it.
+- More free episodes from more official channels: Muse Philippines, Ani-One Philippines, BEYBLADE and Cardfight!! Vanguard.
+- Episodes can mix channels: if one channel is missing an episode, another official channel fills the gap.
+- If YouTube blocks a video in your country, the player switches to a backup from another official channel.
+- New episodes arrive automatically: a daily check of the official channels' RSS feeds refreshes the episode list.
+
 ## [1.1.0] - 2026-10-23
 
 The relaunch. Animist's old streaming source shut down, so the app now runs on legal,

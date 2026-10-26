@@ -6,6 +6,7 @@ import { getHomeData } from '../api';
 import { myContext } from '../context';
 import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui';
 import HeroCarousel from '../components/HeroCarousel';
+import ContinueRow from '../components/ContinueRow';
 import { avatarFor } from '../avatars';
 import TrailerModal from '../components/TrailerModal';
 import { colors, space } from '../theme';
@@ -13,7 +14,7 @@ import { colors, space } from '../theme';
 export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
 
 const HomeScreen = ({ navigation }) => {
-  const { profile, userData } = useContext(myContext);
+  const { profile, userData, historyRecords } = useContext(myContext);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +82,20 @@ const HomeScreen = ({ navigation }) => {
             style={{ marginTop: -space.sm }}
           />
 
+          <ContinueRow
+            historyRecords={historyRecords}
+            onPlay={(animeId, episode) => navigation.navigate('View', { animeId, episode })}
+          />
+
+          {data.free?.length > 0 && (
+            <PosterRow
+              title="Free to watch"
+              items={data.free}
+              onPressItem={openAnime}
+              onSeeAll={() => seeAll('free', 'Free to watch')}
+              badgeFor={(a) => `▶ ${a.episodes.filter((e) => e.source === 'youtube').length} eps`}
+            />
+          )}
           <PosterRow
             title="New episodes"
             items={data.recent}

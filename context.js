@@ -3,7 +3,7 @@ import { createContext, useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, Auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 
 const myContext = createContext();
 
@@ -89,6 +89,35 @@ const addToWatchList = (anime) =>
   });
 
 const removeFromWatchList = (docId) => deleteDoc(doc(db, 'watchList', docId));
+
+// One history entry per anime (the latest episode watched), shown in My List > History.
+// `progress` ({ position, duration } in seconds) is kept per episode, so every episode resumes
+// where it was left; merge keeps the other episodes' positions.
+const recordWatch = (anime, episodeNumber, progress) => {
+  if (!userData?.id) return Promise.resolve();
+  const entry = {
+    userId: userData.id,
+    titleId: anime.id,
+    title: anime.title,
+    image: anime.image,
+    epiNumber: episodeNumber,
+    updatedAt: serverTimestamp(),
+  };
+  if (progress?.duration > 0) {
+    entry.positions = { [episodeNumber]: Math.floor(progress.position) };
+    entry.durations = { [episodeNumber]: Math.floor(progress.duration) };
+  }
+  return setDoc(doc(db, 'history', `${userData.id}_${anime.id}`), entry, { merge: true });
+};
+
+// Where an episode was left, in seconds, from History (0 when never started).
+const watchProgress = (animeId, episodeNumber) => {
+  const record = historyRecords.find((h) => String(h.data.titleId) === String(animeId));
+  return {
+    position: record?.data.positions?.[episodeNumber] ?? 0,
+    duration: record?.data.durations?.[episodeNumber] ?? 0,
+  };
+};
 
 const getEpisodeIdbyDefault = (id, num) => {
    let dt = {
@@ -241,6 +270,8 @@ const getUserProfile = (id) => {
      findInWatchList,
      addToWatchList,
      removeFromWatchList,
+     recordWatch,
+     watchProgress,
     }}>
     {children}
   </myContext.Provider>

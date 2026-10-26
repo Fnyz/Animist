@@ -1,0 +1,302 @@
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, Pressable, StyleSheet, Linking, useWindowDimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
+import { getAnimeInfo } from '../api';
+import { myContext } from '../context';
+import { formatTime, progressFraction, progressLabel, resumePoint } from '../progress';
+import VideoPlayer from '../components/VideoPlayer';
+import { Button, ErrorState, Loading, ScreenHeader } from '../components/ui';
+import { colors, fonts, radius, space } from '../theme';
+
+const SOURCE_ICON = { youtube: 'play-circle', link: 'open-outline', none: 'lock-closed-outline' };
+
+const openLink = (url) => Linking.openURL(url).catch(() => {});
+
+const SAVE_EVERY_SECONDS = 15;
+
+
+// Plays one episode: in the app from an official YouTube channel, or opens the official site.
+// route.params: { animeId, episode }
+const WatchScreen = ({ route, navigation }) => {
+  const { animeId } = route.params;
+  const { width } = useWindowDimensions();
+  const { recordWatch, watchProgress } = useContext(myContext);
+  const [anime, setAnime] = useState(null);
+  const [error, setError] = useState(null);
+  const [number, setNumber] = useState(route.params.episode ?? 1);
+  // The episode number the person chose to start over (ignores the saved position once).
+  const [startOver, setStartOver] = useState(null);
+  // Which of the episode's videos is playing (a backup when YouTube blocks the main one here).
+  const [source, setSource] = useState({ number: null, index: 0 });
+  const latest = useRef(null);
+  const lastSaved = useRef(0);
+
+  const load = useCallback(async () => {
+    try {
+      setAnime(await getAnimeInfo(animeId));
+    } catch (e) {
+      setError(e.message);
+    }
+  }, [animeId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const episode = anime?.episodes.find((e) => e.number === number);
+
+  // Remember what was watched, for My List > History.
+  useEffect(() => {
+    if (anime && episode && episode.source !== 'none') {
+      recordWatch(anime, episode.number).catch((e) => console.warn('history update failed', e));
+    }
+    // Only when the episode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [anime?.id, episode?.number]);
+
+  // Save the position every few seconds while playing, and once more when leaving the episode.
+  const saveProgress = (entry) => {
+    if (!entry) return;
+    lastSaved.current = entry.position;
+    recordWatch(entry.anime, entry.number, entry).catch((e) => console.warn('progress save failed', e));
+  };
+  const onProgress = ({ position, duration }) => {
+    latest.current = { anime, number, position, duration };
+    if (Math.abs(position - lastSaved.current) >= SAVE_EVERY_SECONDS) saveProgress(latest.current);
+  };
+  useEffect(
+    () => () => {
+      // Leaving this episode (next/previous, back, or closing the screen).
+      saveProgress(latest.current);
+      latest.current = null;
+      lastSaved.current = 0;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [number]
+  );
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScreenHeader title="Watch" onBack={() => navigation.goBack()} />
+        <ErrorState message={error} onRetry={() => { setError(null); load(); }} />
+      </SafeAreaView>
+    );
+  }
+  if (!anime) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScreenHeader title="Watch" onBack={() => navigation.goBack()} />
+        <Loading />
+      </SafeAreaView>
+    );
+  }
+
+  const total = anime.episodes.length;
+  const playerWidth = width - space.xl * 2;
+  const hasPrev = number > 1;
+  const hasNext = number < total;
+  const goTo = (n) => setNumber(n);
+  const startAt = startOver === number ? 0 : resumePoint(watchProgress(anime.id, number));
+  const sourceIndex = source.number === number ? source.index : 0;
+  const nextEpisode = anime.episodes.find((e) => e.number === number + 1);
+  const upNextTitle = `Episode ${number + 1}${nextEpisode?.title ? ` · ${nextEpisode.title}` : ''}`;
+  const playingFrom = episode?.youtube
+    ? [episode.youtube, ...episode.youtube.alternatives][sourceIndex] ?? episode.youtube
+    : null;
+
+  return (
+    <SafeAreaView style={styles.screen} edges={['top']}>
+      <ScreenHeader title={anime.title} onBack={() => navigation.goBack()} />
+      <ScrollView contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
+        {!episode ? (
+          <View style={styles.card}>
+            <Text style={styles.cardText}>This episode isn’t listed yet.</Text>
+          </View>
+        ) : episode.source === 'youtube' ? (
+          <View style={{ gap: space.sm }}>
+            <VideoPlayer
+              // One player for every episode, so fullscreen carries on into the next one;
+              // "Start over" makes a fresh one.
+              key={startOver === number ? `start-${number}` : 'player'}
+              videoId={episode.youtube.videoId}
+              alternatives={episode.youtube.alternatives.map((v) => v.videoId)}
+              onSourceChange={(index) => setSource({ number, index })}
+              width={playerWidth}
+              label="Episode"
+              startAt={startAt}
+              onProgress={onProgress}
+              upNext={hasNext ? { title: upNextTitle, onPlay: () => goTo(number + 1) } : null}
+              fallback={episode.link ? { title: `Watch on ${episode.link.site}`, onPress: () => openLink(episode.link.url) } : null}
+            />
+            {startAt > 0 && (
+              <View style={styles.resumeChip}>
+                <Ionicons name="play-forward" size={14} color={colors.accent} />
+                <Text style={styles.resumeText}>Resumed at {formatTime(startAt)}</Text>
+                <Pressable onPress={() => setStartOver(number)} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.startOver}>Start over</Text>
+                </Pressable>
+              </View>
+            )}
+          </View>
+        ) : episode.source === 'link' ? (
+          <Pressable onPress={() => openLink(episode.link.url)} style={[styles.linkCard, { height: (playerWidth * 9) / 16 }]}>
+            {episode.thumbnail ? <Image source={{ uri: episode.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+            <View style={styles.linkShade} />
+            <View style={styles.linkButton}>
+              <Ionicons name="open-outline" size={18} color={colors.onAccent} />
+              <Text style={styles.linkButtonText}>Watch on {episode.link.site}</Text>
+            </View>
+          </Pressable>
+        ) : (
+          <View style={styles.card}>
+            <Ionicons name="time-outline" size={28} color={colors.accent} />
+            <Text style={styles.cardTitle}>Not available to watch yet</Text>
+            <Text style={styles.cardText}>
+              No official source streams this episode for free yet. Try the services on the anime’s page.
+            </Text>
+          </View>
+        )}
+
+        {episode ? (
+          <View style={{ gap: 6 }}>
+            <Text style={styles.epLabel}>Episode {episode.number} of {total}</Text>
+            {episode.title ? <Text style={styles.epTitle}>{episode.title}</Text> : null}
+            {episode.source === 'youtube' ? (
+              <View style={styles.badge}>
+                <Ionicons name="checkmark-circle" size={14} color={colors.success} />
+                <Text style={styles.badgeText} numberOfLines={1}>Official · {playingFrom.channel} on YouTube</Text>
+              </View>
+            ) : episode.source === 'link' ? (
+              <Text style={styles.muted}>Opens {episode.link.site}, the official streaming service.</Text>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={{ flexDirection: 'row', gap: space.md }}>
+          <Button title="Previous" icon="play-back" variant="ghost" onPress={() => goTo(number - 1)} disabled={!hasPrev} style={{ flex: 1 }} />
+          <Button title="Next" icon="play-forward" onPress={() => goTo(number + 1)} disabled={!hasNext} style={{ flex: 1 }} />
+        </View>
+
+        <View style={{ gap: space.sm }}>
+          <Text style={styles.sectionTitle}>Episodes</Text>
+          {anime.episodes.map((ep) => {
+            const current = ep.number === number;
+            const progress = watchProgress(anime.id, ep.number);
+            const fraction = progressFraction(progress);
+            const label = progressLabel(progress);
+            return (
+              <Pressable
+                key={ep.id}
+                onPress={() => goTo(ep.number)}
+                style={[styles.row, current && styles.rowCurrent]}
+                accessibilityState={{ selected: current }}
+              >
+                <View style={styles.rowThumb}>
+                  {ep.thumbnail ? <Image source={{ uri: ep.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+                  <Text style={styles.rowNum}>{ep.number}</Text>
+                  {fraction > 0 && (
+                    <View style={styles.thumbBar}>
+                      <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+                    </View>
+                  )}
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Text style={[styles.rowTitle, current && { color: colors.accent }]} numberOfLines={1}>
+                    {ep.title ?? `Episode ${ep.number}`}
+                  </Text>
+                  <Text style={styles.muted} numberOfLines={1}>
+                    {label ?? (ep.source === 'youtube' ? 'Plays in the app' : ep.source === 'link' ? `Opens ${ep.link.site}` : 'Not available yet')}
+                  </Text>
+                </View>
+                <Ionicons name={SOURCE_ICON[ep.source]} size={18} color={ep.source === 'none' ? colors.muted : colors.text} />
+              </Pressable>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+};
+
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: colors.bg },
+  body: { paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.xl },
+  card: {
+    padding: space.xl,
+    gap: space.sm,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+  },
+  cardTitle: { fontFamily: fonts.displaySemi, fontSize: 18, color: colors.text, textAlign: 'center' },
+  cardText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: colors.textSoft, textAlign: 'center' },
+  linkCard: { borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
+  linkShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,15,20,0.45)' },
+  linkButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    height: 46,
+    paddingHorizontal: space.xl,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  linkButtonText: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.onAccent },
+  epLabel: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.accent },
+  epTitle: { fontFamily: fonts.display, fontSize: 22, lineHeight: 27, color: colors.text },
+  badge: {
+    alignSelf: 'flex-start',
+    maxWidth: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: radius.sm,
+    backgroundColor: colors.successSoft,
+  },
+  badgeText: { flexShrink: 1, fontFamily: fonts.bodyBold, fontSize: 12, color: colors.success },
+  muted: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  sectionTitle: { fontFamily: fonts.displaySemi, fontSize: 19, color: colors.text },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md, padding: space.sm, borderRadius: radius.md },
+  rowCurrent: { backgroundColor: colors.surface },
+  rowThumb: {
+    width: 96,
+    height: 54,
+    borderRadius: radius.sm,
+    overflow: 'hidden',
+    backgroundColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rowNum: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.text,
+    backgroundColor: 'rgba(14,15,20,0.75)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  thumbBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
+  thumbBarFill: { height: 3, backgroundColor: colors.accent },
+  resumeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.sm,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,122,89,0.12)',
+  },
+  resumeText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
+  startOver: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.accent },
+  rowTitle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.text },
+});
+
+export default WatchScreen;

@@ -2,8 +2,10 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { View, Text, Pressable, StyleSheet, Animated, useWindowDimensions, AccessibilityInfo } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { myContext } from '../context';
 import { Button } from './ui';
+import { hasFreeEpisodes } from '../api';
 import { colors, fonts, radius, space } from '../theme';
 
 const AUTO_ADVANCE_MS = 6000;
@@ -30,7 +32,15 @@ const HeroSlide = ({ anime, rank, onOpen, onTrailer }) => {
     <Pressable onPress={() => onOpen(anime)} style={styles.hero} accessibilityRole="button" accessibilityLabel={`Open ${anime.title}`}>
       <Image source={{ uri: anime.banner }} style={StyleSheet.absoluteFill} contentFit="cover" transition={400} />
       <View style={styles.panel}>
-        <Text style={styles.eyebrow}>#{rank} Trending this week</Text>
+        <View style={styles.eyebrowRow}>
+          <Text style={styles.eyebrow}>#{rank} Trending this week</Text>
+          {hasFreeEpisodes(anime.id) && (
+            <View style={styles.freePill}>
+              <Ionicons name="play" size={10} color={colors.onAccent} />
+              <Text style={styles.freePillText}>Watch free</Text>
+            </View>
+          )}
+        </View>
         <Text style={styles.title} numberOfLines={2}>{anime.title}</Text>
         <Text style={styles.meta} numberOfLines={1}>
           {[anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episodes` : null, ...anime.genres.slice(0, 2)].filter(Boolean).join(' · ')}
@@ -147,6 +157,17 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface2,
   },
   panel: { padding: space.xl, gap: 10, backgroundColor: colors.scrim },
+  eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
+  freePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    backgroundColor: colors.accent,
+  },
+  freePillText: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.onAccent },
   eyebrow: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.accent },
   title: { fontFamily: fonts.display, fontSize: 28, lineHeight: 31, color: colors.text },
   meta: { fontFamily: fonts.body, fontSize: 13, color: colors.textSoft },

@@ -20,7 +20,7 @@ import MyListScreen from './screens/MyListScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import DetailsScreen from './screens/DetailsScreen';
 import ListScreen from './screens/ListScreen';
-import VideoPlayer from './components/WatchAnime';
+import WatchScreen from './screens/WatchScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
@@ -86,7 +86,7 @@ const RootNavigator = () => {
           <Stack.Screen name="Main" component={MainTabs} />
           <Stack.Screen name="AnimeDetail" component={DetailsScreen} />
           <Stack.Screen name="List" component={ListScreen} />
-          <Stack.Screen name="View" component={VideoPlayer} />
+          <Stack.Screen name="View" component={WatchScreen} />
           <Stack.Screen name="Settings" component={EditProfileScreen} />
           <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
         </>

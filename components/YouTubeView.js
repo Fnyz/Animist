@@ -18,11 +18,29 @@ const HIDE_YOUTUBE_UI = [
 const PAGE_SCRIPT = `
 (function () {
   var style = document.createElement('style');
-  style.textContent = '${HIDE_YOUTUBE_UI}{display:none!important;} html,body{background:#000!important;}';
+  // No scrolling, ever: the page must always fit the player exactly.
+  // The video fills the player box and always shows the whole frame ("contain").
+  style.textContent = '${HIDE_YOUTUBE_UI}{display:none!important;}'
+    + ' html,body{background:#000!important;overflow:hidden!important;height:100%!important;margin:0!important;overscroll-behavior:none!important;touch-action:none!important;}'
+    + ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;}'
+    + ' video.html5-main-video{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}'
+    // Everything in YouTube's player except the video itself (titles, buttons, logos, overlays),
+    // whatever YouTube names them, desktop or mobile layout.
+    + ' .html5-video-player > :not(.html5-video-container){display:none!important;}';
   document.head.appendChild(style);
 
   function post(message) { window.ReactNativeWebView.postMessage(JSON.stringify(message)); }
   function video() { return document.querySelector('video'); }
+
+  // Taps that reach YouTube's page go to the app instead, so YouTube never pauses or shows
+  // its own UI on its own; the app decides what a tap does.
+  ['click', 'dblclick'].forEach(function (type) {
+    window.addEventListener(type, function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (type === 'click') post({ type: 'tap' });
+    }, true);
+  });
 
   window.__animist = {
     play: function () {
@@ -31,8 +49,20 @@ const PAGE_SCRIPT = `
     },
     pause: function () { var v = video(); if (v) v.pause(); },
     seek: function (s) { var v = video(); if (v) v.currentTime = s; },
-    mute: function (m) { var v = video(); if (v) v.muted = m; }
+    mute: function (m) { var v = video(); if (v) v.muted = m; },
+    // YouTube's own player object on the embed page picks the stream quality.
+    quality: function (q) {
+      var p = document.getElementById('movie_player');
+      if (p && p.setPlaybackQualityRange) p.setPlaybackQualityRange(q, q);
+    }
   };
+  function qualityInfo() {
+    var p = document.getElementById('movie_player');
+    return {
+      qualities: p && p.getAvailableQualityLevels ? p.getAvailableQualityLevels() : [],
+      quality: p && p.getPlaybackQuality ? p.getPlaybackQuality() : null
+    };
+  }
 
   var lastError = '';
   setInterval(function () {
@@ -44,8 +74,10 @@ const PAGE_SCRIPT = `
     }
     var v = video();
     if (!v) return;
+    var q = qualityInfo();
     post({ type: 'status', current: v.currentTime || 0, duration: v.duration || 0,
-           paused: v.paused, ended: v.ended, ready: v.readyState >= 2, muted: v.muted });
+           paused: v.paused, ended: v.ended, ready: true, muted: v.muted,
+           qualities: q.qualities, quality: q.quality });
   }, 400);
 
   // Autoplay: keep trying for a few seconds while the player loads.
@@ -60,16 +92,18 @@ const PAGE_SCRIPT = `
 true;
 `;
 
-const embedUrl = (videoId) =>
+const embedUrl = (videoId, start = 0) =>
   `https://www.youtube.com/embed/${videoId}?` +
   [
+    `start=${Math.max(0, Math.floor(start))}`,
     'autoplay=1', 'controls=0', 'playsinline=1', 'rel=0', 'modestbranding=1', 'iv_load_policy=3',
     'fs=0', 'disablekb=1', 'cc_load_policy=0', `widget_referrer=${encodeURIComponent(APP_REFERER)}`,
   ].join('&');
 
 // A bare YouTube player. Parent components get status through onStatus/onError and
 // control it with ref.play(), pause(), seek(seconds) and mute(bool).
-const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, ref) => {
+// `start` (seconds) only applies when the view is created; give it a new `key` to restart elsewhere.
+const YouTubeView = forwardRef(({ videoId, start = 0, onStatus, onError, onMuted, onTap, style }, ref) => {
   const web = useRef(null);
   const run = (code) => web.current?.injectJavaScript(`window.__animist && window.__animist.${code}; true;`);
 
@@ -78,6 +112,7 @@ const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, 
     pause: () => run('pause()'),
     seek: (seconds) => run(`seek(${Number(seconds) || 0})`),
     mute: (muted) => run(`mute(${muted ? 'true' : 'false'})`),
+    quality: (level) => run(`quality(${JSON.stringify(String(level))})`),
   }));
 
   const onMessage = (event) => {
@@ -86,6 +121,7 @@ const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, 
       if (message.type === 'status') onStatus?.(message);
       else if (message.type === 'error') onError?.(message.text);
       else if (message.type === 'muted') onMuted?.();
+      else if (message.type === 'tap') onTap?.();
     } catch {
       // Not one of our messages.
     }
@@ -94,7 +130,7 @@ const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, 
   return (
     <WebView
       ref={web}
-      source={{ uri: embedUrl(videoId), headers: { Referer: APP_REFERER } }}
+      source={{ uri: embedUrl(videoId, start), headers: { Referer: APP_REFERER } }}
       style={[{ backgroundColor: '#000' }, style]}
       injectedJavaScript={PAGE_SCRIPT}
       onMessage={onMessage}
@@ -105,6 +141,15 @@ const YouTubeView = forwardRef(({ videoId, onStatus, onError, onMuted, style }, 
       domStorageEnabled
       bounces={false}
       scrollEnabled={false}
+      // Lay YouTube's page out at the player's real size. Scale-to-fit (the default) lays it out at
+      // another size and squeezes it in, which stretches the video and makes it overflow.
+      scalesPageToFit={false}
+      setBuiltInZoomControls={false}
+      setDisplayZoomControls={false}
+      overScrollMode="never"
+      nestedScrollEnabled={false}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
       // Stay on the embed page: never open youtube.com links inside the player.
       onShouldStartLoadWithRequest={(req) =>
         req.isTopFrame === false || req.url.startsWith('https://www.youtube.com/embed/') || req.url === 'about:blank'
