@@ -101,6 +101,9 @@ export const buildEpisodes = (media) => {
     const n = Number(ep.title?.match(EPISODE_NUMBER)?.[1]);
     if (n && !official.has(n)) official.set(n, ep);
   }
+  // More links than the anime has episodes: AniList attached another entry's list (the movie
+  // Jujutsu Kaisen 0 carries the TV series' 24 episodes), so none of them are this anime's.
+  if (media.episodes && official.size > media.episodes) official.clear();
   const yt = YOUTUBE_EPISODES[String(media.id)];
   const ytEpisodes = yt?.episodes ?? {};
 

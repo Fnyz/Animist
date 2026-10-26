@@ -1,7 +1,9 @@
 import "./devLogger";
+import { withSentry } from "./sentry";
 import React, { useContext } from 'react';
 import { View, ActivityIndicator, StatusBar } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +15,9 @@ import {
 } from '@expo-google-fonts/manrope';
 import { GlobalProvider, myContext } from './context';
 import { colors, fonts } from './theme';
+import OfflineBanner from './components/OfflineBanner';
+import UpdateNotice from './components/UpdateNotice';
+import { CrashBoundary } from './components/CrashScreen';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 import SearchScreen from './screens/SearchScreen';
@@ -111,17 +116,23 @@ function App() {
   });
 
   return (
-    <GlobalProvider>
-      <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
-      {fontsLoaded ? (
-        <NavigationContainer theme={navTheme}>
-          <RootNavigator />
-        </NavigationContainer>
-      ) : (
-        <Splash />
-      )}
-    </GlobalProvider>
+    <SafeAreaProvider>
+      <GlobalProvider>
+        <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
+        {fontsLoaded ? (
+          <CrashBoundary>
+            <NavigationContainer theme={navTheme}>
+              <RootNavigator />
+              <OfflineBanner />
+              <UpdateNotice />
+            </NavigationContainer>
+          </CrashBoundary>
+        ) : (
+          <Splash />
+        )}
+      </GlobalProvider>
+    </SafeAreaProvider>
   );
 }
 
-export default App;
+export default withSentry(App);

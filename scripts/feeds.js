@@ -35,11 +35,12 @@ const knownVideoIds = (episodeData) => {
 };
 
 // Uploads that look like a new English episode: an episode number, English (or an English-language
-// channel), and not already in the app.
-const newEpisodeVideos = (videos, knownIds, { english = false } = {}) =>
+// channel), not skipped for the channel (`skip`), and not already in the app.
+const newEpisodeVideos = (videos, knownIds, { english = false, skip = null } = {}) =>
   videos.filter(
     (v) =>
       !knownIds.has(v.videoId) &&
+      !skip?.test(v.title) &&
       episodeNumber(v.title) &&
       (english ? !OTHER_LANGUAGES.test(v.title) : isEnglishSub(v.title))
   );

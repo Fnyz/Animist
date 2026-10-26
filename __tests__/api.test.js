@@ -127,7 +127,32 @@ describe('toAnime', () => {
     expect(toAnime(media).banner).toBe('https://img/cover.jpg');
   });
 
-  it('labels format and status for people', () => {
+  it("ignores episode links that belong to another entry (a movie with the series' links)", () => {
+    const movie = {
+      ...media,
+      format: 'MOVIE',
+      status: 'FINISHED',
+      episodes: 1,
+      nextAiringEpisode: null,
+      streamingEpisodes: [1, 2, 3].map((n) => ({ title: `Episode ${n} - Title`, url: `https://cr/${n}`, site: 'Crunchyroll' })),
+    };
+    const anime = toAnime(movie);
+    expect(anime.episodes).toHaveLength(1);
+    expect(anime.episodes[0].source).not.toBe('link');
+  });
+
+  it('keeps episode links that fit the anime', () => {
+    const series = {
+      ...media,
+      status: 'FINISHED',
+      episodes: 3,
+      nextAiringEpisode: null,
+      streamingEpisodes: [1, 2].map((n) => ({ title: `Episode ${n} - Title`, url: `https://cr/${n}`, site: 'Crunchyroll' })),
+    };
+    expect(toAnime(series).episodes.map((e) => e.source)).toEqual(['link', 'link', 'none']);
+  });
+
+    it('labels format and status for people', () => {
     const anime = toAnime(media);
     expect(anime.type).toBe('TV');
     expect(anime.status).toBe('Ongoing');

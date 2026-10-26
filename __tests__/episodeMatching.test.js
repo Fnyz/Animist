@@ -1,4 +1,7 @@
-const { normalize, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub } = require('../scripts/episodeMatching');
+const {
+  normalize, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor,
+} = require('../scripts/episodeMatching');
+const { CHANNELS } = require('../scripts/channels');
 
 const frieren = {
   id: 1,
@@ -196,5 +199,85 @@ describe('episodeNumber', () => {
     'Frieren Opening Theme',
   ])('skips %s', (title) => {
     expect(episodeNumber(title)).toBeNull();
+  });
+});
+
+describe('continued episode numbers', () => {
+  it('renumbers a later season counted on from the earlier ones', () => {
+    // The Culling Game: uploads #48-59, AniList counts 12 episodes.
+    expect(continuedNumberingOffset([48, 49, 59], 12)).toBe(47);
+  });
+
+  it('leaves normal numbering alone', () => {
+    expect(continuedNumberingOffset([1, 2, 12], 12)).toBe(0);
+    expect(continuedNumberingOffset([3, 14], 12)).toBe(0); // some fit: keep as is, extras get dropped
+  });
+
+  it('leaves ongoing shows alone', () => {
+    expect(continuedNumberingOffset([1100, 1101], Infinity)).toBe(0);
+    expect(continuedNumberingOffset([], 12)).toBe(0);
+  });
+
+  it('reads the continued numbers from Ani-One titles', () => {
+    expect(episodeNumber('JUJUTSU KAISEN The Culling Game Part 1| Ep #52 (EN Sub / JP Dub) 【Ani-One Philippines  】')).toBe(52);
+  });
+});
+
+describe('Ani-One Philippines ULTRA uploads', () => {
+  const { skip } = CHANNELS.find((c) => c.handle === '@AniOnePhilippines');
+
+  it('skips members-only copies', () => {
+    expect(skip.test('Jujutsu Kaisen Season 1【Ani-One Philippines ULTRA】')).toBe(true);
+    expect(skip.test('《Jujutsu Kaisen Season 1》Episode 3 (EN Sub | JP Dub)【Ani-One Philippines ULTRA】')).toBe(true);
+  });
+
+  it('keeps the free uploads', () => {
+    expect(skip.test('Jujutsu Kaisen Season 1 | Episode 1 (EN Sub | JP Dub)【Ani-One Philippines】')).toBe(false);
+    expect(skip.test('Ultraman | Episode 1 [English Sub]')).toBe(false);
+  });
+});
+
+describe('other ways channels write a title', () => {
+  const s1 = { id: 40, title: { english: 'JUJUTSU KAISEN', romaji: 'Jujutsu Kaisen' }, synonyms: [] };
+  const cullingGame = {
+    id: 41,
+    title: { english: 'JUJUTSU KAISEN Season 3: The Culling Game Part 1', romaji: 'Jujutsu Kaisen: Shimetsu Kaiyuu - Zenpen' },
+    synonyms: ['Jujutsu Kaisen 3rd Season'],
+  };
+  const kuroko = { id: 42, title: { english: "Kuroko's Basketball", romaji: 'Kuroko no Basket' }, synonyms: [] };
+  const kuroko2 = { id: 43, title: { english: "Kuroko's Basketball 2", romaji: 'Kuroko no Basket 2nd SEASON' }, synonyms: [] };
+
+  it('matches a season subtitle without "Season N:"', () => {
+    expect(scorePlaylist('JUJUTSU KAISEN The Culling Game Part 1', cullingGame)).toBe(80);
+    expect(scorePlaylist('JUJUTSU KAISEN The Culling Game Part 1', s1)).toBe(0);
+  });
+
+  it('reads a trailing number as the season', () => {
+    expect(scorePlaylist("Kuroko's Basketball Season 2", kuroko2)).toBe(80);
+    expect(scorePlaylist("Kuroko's Basketball Season 2", kuroko)).toBe(0);
+    expect(scorePlaylist("Kuroko's Basketball Season 1", kuroko2)).toBe(0);
+  });
+
+  it('leaves numbers that are part of the name alone', () => {
+    const mob = { id: 44, title: { english: 'Mob Psycho 100', romaji: 'Mob Psycho 100' }, synonyms: [] };
+    expect(scorePlaylist('Mob Psycho 100', mob)).toBe(100);
+  });
+});
+
+describe('searchTextFor', () => {
+  it('finds the English title in a playlist name', () => {
+    expect(searchTextFor('《中文》|《Chainsaw Man》【Ani-One】')).toBe('Chainsaw Man');
+    expect(searchTextFor('[2026 Oct] Frieren [English Sub]')).toBe('Frieren');
+  });
+
+  it('searches first seasons without "Season 1"', () => {
+    expect(searchTextFor('Oshi No Ko Season 1')).toBe('Oshi No Ko');
+    expect(searchTextFor('Blue Lock 1st Season')).toBe('Blue Lock');
+    expect(searchTextFor('Oshi No Ko Season 2')).toBe('Oshi No Ko Season 2');
+  });
+
+  it('gives nothing when there is no title to search', () => {
+    expect(searchTextFor('《中文》【Ani-One】')).toBeNull();
+    expect(searchTextFor(null)).toBeNull();
   });
 });

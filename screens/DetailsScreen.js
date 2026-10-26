@@ -7,6 +7,7 @@ import { getAnimeInfo } from '../api';
 import { myContext } from '../context';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
+import CheckEpisodesButton from '../components/CheckEpisodesButton';
 import { progressFraction, progressLabel } from '../progress';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -79,7 +80,7 @@ const DetailsScreen = ({ route, navigation }) => {
     Share.share({ message: `${anime.title} — https://anilist.co/anime/${anime.id}` }).catch(() => {});
 
   const episodes = allEpisodes ? anime.episodes : anime.episodes.slice(0, EPISODES_SHOWN);
-  const tags = [anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episodes` : null, anime.status, ...anime.genres].filter(Boolean);
+  const tags = [anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episode${anime.totalEpisodes === 1 ? '' : 's'}` : null, anime.status, ...anime.genres].filter(Boolean);
 
   return (
     <View style={styles.screen}>
@@ -183,6 +184,8 @@ const DetailsScreen = ({ route, navigation }) => {
               </View>
             );
           })()}
+          {/* Some episodes don't play in the app yet: maybe a channel has uploaded them since. */}
+          {anime.episodes.some((e) => e.source !== 'youtube') && <CheckEpisodesButton />}
           {anime.episodes.length === 0 ? (
             <Text style={styles.muted}>No episodes have aired yet.</Text>
           ) : (
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontFamily: fonts.displaySemi, fontSize: 17, color: colors.text, textAlign: 'center' },
   banner: { height: 280, backgroundColor: colors.surface2, justifyContent: 'center', alignItems: 'center' },
-  bannerShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,15,20,0.25)' },
+  bannerShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(14,15,20,0.25)' },
   playButton: {
     width: 64,
     height: 64,

@@ -62,6 +62,20 @@ const seasonOf = (playlistTitle) => {
   return n > 1 ? n : null;
 };
 
+// Other ways channels write an AniList title (they count as alternate names):
+// "JUJUTSU KAISEN Season 3: The Culling Game Part 1" -> "JUJUTSU KAISEN The Culling Game Part 1"
+// (only with a subtitle, so the season stays identifiable), and
+// "Kuroko's Basketball 2" -> "Kuroko's Basketball Season 2".
+const titleVariants = (title) => {
+  if (!title) return [];
+  const variants = [];
+  const subtitled = title.match(/^(.+?)\s+season\s+\d+\s*[:：\-–]\s*(.+)$/i);
+  if (subtitled) variants.push(normalize(`${subtitled[1]} ${subtitled[2]}`));
+  const numbered = normalize(title).match(/^(.*[a-z].*) ([2-9])$/);
+  if (numbered) variants.push(`${numbered[1]} season ${numbered[2]}`);
+  return variants;
+};
+
 // 100 when a playlist title equals the anime's main title, 80 for an alternate name, else 0.
 // Containment isn't enough: "Another" is inside "Re:ZERO ... in Another World", and
 // "Dr. STONE" is inside "Dr. STONE Season 4", which is a different season.
@@ -72,7 +86,10 @@ const scorePlaylist = (playlistTitle, media) => {
   const fits = (title) =>
     parts.includes(title) && (!season || title.includes(`season ${season}`) || title.endsWith(` ${season}`));
   const main = [media.title?.english, media.title?.romaji].map(normalize).filter((t) => t.length >= 4);
-  const alternate = (media.synonyms ?? []).map(normalize).filter((t) => t.length >= 4);
+  const alternate = [
+    ...(media.synonyms ?? []).map(normalize),
+    ...[media.title?.english, media.title?.romaji].flatMap(titleVariants),
+  ].filter((t) => t.length >= 4);
   if (main.some(fits)) return 100;
   if (alternate.some(fits)) return 80;
   return 0;
@@ -138,4 +155,29 @@ const episodeNumber = (videoTitle) => {
   return null;
 };
 
-module.exports = { normalize, titleParts, seasonOf, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub, OTHER_LANGUAGES };
+// Some channels number a later season from where the series left off (The Culling Game uploads are
+// "#48-59", AniList counts 1-12). When every number is past the season's length, shift them so the
+// first one is episode 1. Returns the offset to subtract (0 = numbers are fine as they are).
+const continuedNumberingOffset = (numbers, seasonLength) => {
+  if (!numbers.length || !Number.isFinite(seasonLength)) return 0;
+  const first = Math.min(...numbers);
+  return first > seasonLength ? first - 1 : 0;
+};
+
+// The English title inside a playlist name, for searching AniList.
+// "《中文》|《Chainsaw Man》【Ani-One】" -> "Chainsaw Man"; "[2026 Oct] Title [English Sub]" -> "Title".
+// A trailing "Season 1" is dropped: AniList doesn't call first seasons that, so searching for
+// "Oshi No Ko Season 1" only finds the later seasons.
+const searchTextFor = (playlistTitle) => {
+  const parts = String(playlistTitle ?? '')
+    .replace(/[[【(（][^\]】)）]*[\]】)）]/g, ' ')
+    .split(/[|｜《》]/)
+    .map((p) => p.replace(/\s+/g, ' ').trim())
+    .filter((p) => /[a-z]{3}/i.test(p));
+  const text = parts[0]?.replace(/\s*\b(?:season\s*0*1|s0*1|1st\s+season)\s*$/i, '').trim();
+  return text || null;
+};
+
+module.exports = {
+  normalize, titleParts, seasonOf, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor, OTHER_LANGUAGES,
+};

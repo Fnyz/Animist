@@ -12,6 +12,8 @@ const HIDE_YOUTUBE_UI = [
   '.ytp-watermark', '.ytp-youtube-button', '.ytp-large-play-button', '.ytp-pause-overlay',
   '.ytp-show-cards-title', '.ytp-ce-element', '.ytp-endscreen-content', '.ytp-paid-content-overlay',
   '.ytp-impression-link', '.ytp-cards-button', '.ytp-spinner', '.ytp-contextmenu',
+  // YouTube's mobile layout puts its controls next to the player instead of inside it.
+  '#player-controls', '#player-control-overlay', '[class*="PlayerControls"]', '[class*="ytmCustomControl"]',
 ].join(',');
 
 // Runs inside the YouTube page: hides its UI, starts playback and reports status every 400 ms.
@@ -139,6 +141,8 @@ const YouTubeView = forwardRef(({ videoId, start = 0, onStatus, onError, onMuted
       allowsFullscreenVideo={false}
       javaScriptEnabled
       domStorageEnabled
+      // Lets Chrome's DevTools (chrome://inspect) look inside the player while developing.
+      webviewDebuggingEnabled={__DEV__}
       bounces={false}
       scrollEnabled={false}
       // Lay YouTube's page out at the player's real size. Scale-to-fit (the default) lays it out at

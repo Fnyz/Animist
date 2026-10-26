@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import YouTubeView from './YouTubeView';
 import { fullscreenBox } from './fullscreenBox';
+import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
 import { Button } from './ui';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -21,6 +22,8 @@ const formatTime = (s) => {
 
 // Seconds the "Up next" card counts down before the next episode starts.
 const UP_NEXT_SECONDS = 5;
+// How long the center play/pause button (and the fullscreen controls) stay up while playing.
+const CONTROLS_HIDE_MS = 3000;
 
 const EMPTY = { current: 0, duration: 0, paused: true, ended: false, muted: false, qualities: [], quality: null };
 
@@ -37,7 +40,7 @@ const qualityLabel = (q) => (q && q !== 'auto' ? QUALITY_LABELS[q] ?? q : 'Auto'
 // mid-playback stretches the picture.
 const PlayerCore = ({
   videoId, start, width, height, label, fullscreen, onToggleFullscreen, onProgress, onEnded, onError,
-  quality, onQualityChange, edgePad, box, upNext,
+  quality, onQualityChange, edgePad, box, upNext, fullBleed,
 }) => {
   const player = useRef(null);
   const wasEnded = useRef(false);
@@ -45,8 +48,10 @@ const PlayerCore = ({
   const [barWidth, setBarWidth] = useState(0);
   const [seekTo, setSeekTo] = useState(null);
   const [qualityMenu, setQualityMenu] = useState(false);
-  // Fullscreen only: tapping the video shows or hides the controls.
+  // Tapping the video shows or hides the center play/pause button (and, in fullscreen, the
+  // controls). `shownAt` restarts the auto-hide timer whenever they're used.
   const [showControls, setShowControls] = useState(true);
+  const [shownAt, setShownAt] = useState(0);
   // Seconds left before the next episode starts, while the "Up next" card shows.
   const [countdown, setCountdown] = useState(null);
   const playNext = useEffectEvent(() => upNext?.onPlay());
@@ -104,7 +109,10 @@ const PlayerCore = ({
   };
 
   // A tap on the video: play/pause inline, show/hide the controls in fullscreen.
-  const onTapVideo = () => (fullscreen ? setShowControls((v) => !v) : togglePlay());
+  const onTapVideo = () => {
+    setShowControls((v) => !v);
+    setShownAt(Date.now());
+  };
 
   const toggleMute = () => {
     player.current?.mute(!status.muted);
@@ -150,6 +158,13 @@ const PlayerCore = ({
     },
   };
   const scrubbing = scrubAt !== null;
+
+  // While playing, hide the button and controls again after a few seconds, unless they're in use.
+  useEffect(() => {
+    if (!showControls || !playing || scrubbing || qualityMenu) return undefined;
+    const timer = setTimeout(() => setShowControls(false), CONTROLS_HIDE_MS);
+    return () => clearTimeout(timer);
+  }, [showControls, playing, scrubbing, qualityMenu, shownAt]);
 
   const current = scrubAt ?? seekTo ?? status.current;
   const progress = status.duration ? Math.min(current / status.duration, 1) : 0;
@@ -267,7 +282,7 @@ const PlayerCore = ({
   );
 
   const video = (
-    <View style={[styles.player, fullscreen ? [styles.playerFullscreen, box] : { width, height }]}>
+    <View style={[styles.player, fullscreen ? [styles.playerFullscreen, box] : [{ width, height }, fullBleed && styles.playerFullBleed]]}>
       <YouTubeView
         ref={player}
         videoId={videoId}
@@ -277,18 +292,31 @@ const PlayerCore = ({
         onMuted={() => setStatus((s) => ({ ...s, muted: true }))}
         onTap={onTapVideo}
       />
-      {/* Covers the video so taps reach the app instead of YouTube: inline it plays/pauses,
-          fullscreen it shows or hides the controls. */}
+      {/* Covers the video so taps reach the app instead of YouTube: a tap shows or hides the
+          center play/pause button (and the controls in fullscreen). */}
       <Pressable
         style={styles.tapLayer}
         onPress={onTapVideo}
         accessibilityRole="button"
-        accessibilityLabel={
-          fullscreen
-            ? showControls ? 'Hide controls' : 'Show controls'
-            : status.ended ? `Replay ${lower}` : playing ? `Pause ${lower}` : `Play ${lower}`
-        }
+        accessibilityLabel={showControls ? 'Hide controls' : 'Show controls'}
       />
+      {countdown === null && (showControls || !playing) && (
+        <View style={styles.centerWrap} pointerEvents="box-none">
+          <Pressable
+            onPress={() => {
+              togglePlay();
+              setShowControls(true);
+              setShownAt(Date.now());
+            }}
+            hitSlop={12}
+            style={({ pressed }) => [styles.centerButton, pressed && { transform: [{ scale: 0.92 }] }]}
+            accessibilityRole="button"
+            accessibilityLabel={status.ended ? `Replay ${lower}` : playing ? `Pause ${lower}` : `Play ${lower}`}
+          >
+            <Ionicons name={icon} size={40} color="#fff" style={[styles.centerIcon, icon === 'play' && { marginLeft: 4 }]} />
+          </Pressable>
+        </View>
+      )}
       {countdown !== null && upNext && (
         <View style={styles.upNext} accessibilityLiveRegion="polite">
           <Text style={styles.upNextLabel}>Up next</Text>
@@ -333,8 +361,10 @@ const PlayerCore = ({
   return (
     <View style={{ width, gap: space.md }}>
       {video}
-      {controls}
-      {qualityPicker}
+      <View style={[{ gap: space.md }, fullBleed && styles.belowFullBleed]}>
+        {controls}
+        {qualityPicker}
+      </View>
     </View>
   );
 };
@@ -343,11 +373,14 @@ const PlayerCore = ({
 // Give it key={videoId} so switching videos starts from a clean state.
 // `fallback` ({ title, icon, onPress }) is offered when YouTube refuses to play the video here.
 // `startAt` (seconds) resumes the video there; `onProgress` gets { position, duration } as it plays.
+// `fullBleed` makes the video span the whole `width` edge to edge (pass the screen width), with
+// the controls below inset by the page margin.
 // `alternatives` (video ids) are tried in order when YouTube refuses to play the video here, e.g.
 // because it's blocked in this country; `onSourceChange(index)` says which one is playing
 // (0 = `videoId`, 1 = the first alternative, ...).
 const VideoPlayer = ({
   videoId, alternatives = [], width, label = 'Video', onEnded, fallback, startAt = 0, onProgress, onSourceChange, upNext,
+  fullBleed = false,
 }) => {
   const insets = useSafeAreaInsets();
   // The space the fullscreen view actually got (measured), for sizing and centering the video.
@@ -403,27 +436,59 @@ const VideoPlayer = ({
   const height = Math.round((width * 9) / 16);
   const lower = label.toLowerCase();
 
+  const online = useOnline();
+  const offlineError = Boolean(error) && isNetworkError(error);
+
+  // Start the same video again where it was (after an error).
+  const retry = () => {
+    setError(null);
+    setSession((s) => ({ id: s.id + 1, start: position.current ?? s.start }));
+  };
+
+  // Lost the connection while playing: start again by itself once it's back.
+  const [retriedOnline, setRetriedOnline] = useState(false);
+  if (offlineError && online && !retriedOnline) {
+    setRetriedOnline(true);
+    retry();
+  }
+  if (!offlineError && retriedOnline) setRetriedOnline(false);
+
   if (error) {
     return (
       <View style={{ width, gap: space.md }}>
-        <View style={[styles.player, { width, height }]}>
-          <View style={styles.errorBox}>
-            <Ionicons name="logo-youtube" size={36} color={colors.accent} />
-            <Text style={styles.errorText}>This {lower} can’t play inside the app.</Text>
-            <Text style={styles.errorDetail} numberOfLines={2}>{error}</Text>
-          </View>
+        <View style={[styles.player, { width, height }, fullBleed && styles.playerFullBleed]}>
+          {offlineError ? (
+            <View style={styles.errorBox}>
+              <Ionicons name="cloud-offline-outline" size={36} color={colors.accent} />
+              <Text style={styles.errorText}>You’re offline</Text>
+              <Text style={styles.errorDetail}>The {lower} starts again by itself when you’re back online.</Text>
+            </View>
+          ) : (
+            <View style={styles.errorBox}>
+              <Ionicons name="logo-youtube" size={36} color={colors.accent} />
+              <Text style={styles.errorText}>This {lower} can’t play inside the app.</Text>
+              <Text style={styles.errorDetail} numberOfLines={2}>{error}</Text>
+            </View>
+          )}
         </View>
-        <View style={{ gap: space.sm }}>
-          {fallback ? <Button title={fallback.title} icon={fallback.icon ?? 'open-outline'} onPress={fallback.onPress} /> : null}
-          <Button title="Watch on YouTube" icon="logo-youtube" variant="ghost" onPress={() => openOnYouTube(currentId)} />
+        <View style={[{ gap: space.sm }, fullBleed && styles.belowFullBleed]}>
+          <Button title="Try again" icon="refresh" variant={offlineError || !fallback ? 'primary' : 'ghost'} onPress={retry} />
+          {!offlineError && fallback ? <Button title={fallback.title} icon={fallback.icon ?? 'open-outline'} onPress={fallback.onPress} /> : null}
+          {!offlineError && (
+            <Button title="Watch on YouTube" icon="logo-youtube" variant="ghost" onPress={() => openOnYouTube(currentId)} />
+          )}
         </View>
       </View>
     );
   }
 
-  // YouTube refused this video: try the next one (same position), or show the error.
+  // YouTube refused this video: try the next one (same position), or show the error. A network
+  // error isn't the video's fault, so the backups would fail too: show it straight away.
   const onPlayError = (text) => {
-    if (sourceIndex + 1 < sources.length) {
+    if (isNetworkError(text)) {
+      reportNetworkError();
+      setError(text);
+    } else if (sourceIndex + 1 < sources.length) {
       setSourceIndex(sourceIndex + 1);
       setSession((s) => ({ id: s.id + 1, start: s.start }));
       onSourceChange?.(sourceIndex + 1);
@@ -453,6 +518,7 @@ const VideoPlayer = ({
       edgePad={edgePad}
       box={fullscreenSize}
       upNext={upNext}
+      fullBleed={fullBleed}
     />
   );
 
@@ -461,7 +527,7 @@ const VideoPlayer = ({
       {fullscreen ? (
         // Keeps the space on the page while the video plays fullscreen.
         <View style={{ width, gap: space.md }}>
-          <View style={[styles.player, styles.placeholder, { width, height }]}>
+          <View style={[styles.player, styles.placeholder, { width, height }, fullBleed && styles.playerFullBleed]}>
             <Ionicons name="expand" size={28} color={colors.muted} />
             <Text style={styles.placeholderText}>Playing in fullscreen</Text>
           </View>
@@ -490,6 +556,9 @@ const VideoPlayer = ({
 const styles = StyleSheet.create({
   player: { borderRadius: radius.md, overflow: 'hidden', backgroundColor: '#000' },
   playerFullscreen: { borderRadius: 0 },
+  // Edge to edge on the page: square corners, and the controls below keep the page's side margin.
+  playerFullBleed: { borderRadius: 0 },
+  belowFullBleed: { paddingHorizontal: space.xl },
   overlay: {
     position: 'absolute',
     bottom: 0,
@@ -502,7 +571,11 @@ const styles = StyleSheet.create({
   placeholderText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted },
   fullscreenRoot: { flex: 1, backgroundColor: '#000' },
   fullscreenBox: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
-  tapLayer: { ...StyleSheet.absoluteFillObject },
+  tapLayer: { ...StyleSheet.absoluteFill },
+  centerWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  centerButton: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
+  // No background: a soft shadow keeps the icon readable on bright scenes.
+  centerIcon: { textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
   controls: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   controlButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   barHit: { flex: 1, height: 36, justifyContent: 'center' },
@@ -535,7 +608,7 @@ const styles = StyleSheet.create({
   qualityOptionText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
   time: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.textSoft, fontVariant: ['tabular-nums'] },
   upNext: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
     gap: space.sm,

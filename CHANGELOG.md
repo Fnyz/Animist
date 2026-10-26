@@ -21,6 +21,18 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - Episodes can mix channels: if one channel is missing an episode, another official channel fills the gap.
 - If YouTube blocks a video in your country, the player switches to a backup from another official channel.
 - New episodes arrive automatically: a daily check of the official channels' RSS feeds refreshes the episode list.
+- A "Check for new episodes" button on anime that are missing episodes loads the newest episode list right away (then rests for 5 minutes).
+- The app tells you when a new version is out, with a button to download it.
+- Tap the video to show a play/pause button in the middle; in fullscreen the controls now hide by themselves after a few seconds.
+- An "offline" banner when the phone loses the internet, and the player starts again by itself when the connection is back. The player's error screen has a "Try again" button.
+- A friendly "Something went wrong" screen instead of a blank screen if the app crashes, and crash reports with Sentry.
+
+### Fixed
+- Movies no longer list the TV series' episodes (for example Jujutsu Kaisen 0).
+- "1 episode" and "1 result" instead of "1 episodes" and "1 results".
+- YouTube's own buttons and title no longer show over the player (YouTube's mobile page placed them where the app didn't hide them).
+- The "Resumed at" label keeps showing where the episode started, instead of changing while you watch.
+- Overlays on the player and images (the "Up next" card, shades) cover what they should again; React Native 0.88 removed a style helper they used.
 
 ## [1.1.0] - 2026-10-23
 

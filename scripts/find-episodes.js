@@ -5,8 +5,9 @@
 // (it never sees the key), including the AniList data for discovered anime.
 //
 // Usage: put YOUTUBE_API_KEY=... in .env, then run: node scripts/find-episodes.js [options]
-//   --quick          Skip the AniList search for new shows: only refresh episodes of anime the app
-//                    already has (about 5 minutes instead of 15-40).
+//   --quick          Fast refresh (about 5 minutes instead of 15-40): AniList is only searched for
+//                    playlists it hasn't seen before (see data/finderCache.json), and videos already
+//                    in the app keep their saved details instead of being checked again.
 //   --summary FILE   Also write a Markdown summary of what changed (for the pull request).
 //   --allow-drop     Save even when more than 10% of the episodes disappeared (normally a sign of
 //                    an API problem, so the old file is kept).
@@ -14,7 +15,9 @@
 // 15-40 minutes, because AniList allows about 30 requests a minute.
 const fs = require('fs');
 const path = require('path');
-const { matchPlaylists, scorePlaylist, episodeNumber, isEnglishSub, OTHER_LANGUAGES } = require('./episodeMatching');
+const {
+  matchPlaylists, scorePlaylist, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor, OTHER_LANGUAGES,
+} = require('./episodeMatching');
 const { MEDIA_FIELDS } = require('./anilistFields');
 const { CHANNELS, MIN_MINUTES } = require('./channels');
 const { sameContent, suspiciousDrop, summarizeChanges, summaryMarkdown } = require('./episodeDiff');
@@ -27,6 +30,10 @@ const SUMMARY_FILE = args.includes('--summary') ? args[args.indexOf('--summary')
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'episodes.json');
 const SNAPSHOT = path.join(ROOT, 'data', 'animeSnapshot.json');
+// What earlier runs learned, so quick runs can skip work: AniList lookups by search text, the
+// AniList data of the anime found, and videos that were rejected (not embeddable, or clips).
+// The app never reads this file, so it doesn't ship.
+const CACHE = path.join(ROOT, 'data', 'finderCache.json');
 
 const MAX_PAGES_PER_PLAYLIST = 10; // 500 videos
 
@@ -89,28 +96,24 @@ const anilistSearch = async (search) => {
   return json.data?.Page?.media ?? [];
 };
 
-// The English title inside a playlist name, for searching AniList.
-// "《中文》|《Chainsaw Man》【Ani-One】" -> "Chainsaw Man"; "[2026 Oct] Title [English Sub]" -> "Title"
-const searchTextFor = (playlistTitle) => {
-  const parts = playlistTitle
-    .replace(/[[【(（][^\]】)）]*[\]】)）]/g, ' ')
-    .split(/[|｜《》]/)
-    .map((p) => p.replace(/\s+/g, ' ').trim())
-    .filter((p) => /[a-z]{3}/i.test(p));
-  return parts[0] ?? null;
-};
-
 // English episodes in a playlist, by episode number, never above the season's length.
-// On an English-language channel, any video not marked as another language counts.
-const englishEpisodes = (items, maxEpisode = Infinity, englishChannel = false) => {
-  const episodes = {};
+// On an English-language channel, any video not marked as another language counts; `skip` drops
+// videos by title. Later seasons numbered on from the earlier ones are renumbered from 1.
+const englishEpisodes = (items, maxEpisode = Infinity, englishChannel = false, skip = null) => {
+  const found = [];
   for (const item of items) {
     const title = item.snippet.title;
     const n = episodeNumber(title);
     const videoId = item.contentDetails?.videoId;
     const english = englishChannel ? !OTHER_LANGUAGES.test(title) : isEnglishSub(title);
-    if (!n || n > maxEpisode || !videoId || episodes[n] || !english) continue;
-    episodes[n] = { videoId, title: item.snippet.title };
+    if (n && videoId && english && !skip?.test(title)) found.push({ n, videoId, title });
+  }
+  const offset = continuedNumberingOffset(found.map((e) => e.n), maxEpisode);
+  const episodes = {};
+  for (const { n, videoId, title } of found) {
+    const number = n - offset;
+    if (number > maxEpisode || episodes[number]) continue;
+    episodes[number] = { videoId, title };
   }
   return episodes;
 };
@@ -151,11 +154,24 @@ const seasonLength = (media) =>
   const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'));
   const known = Object.values(snapshot.media).filter((m) => !m.isAdult);
   const previous = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
+  const cache = fs.existsSync(CACHE) ? JSON.parse(fs.readFileSync(CACHE, 'utf8')) : {};
+  cache.lookups ??= {};
+  cache.media ??= {};
+  cache.rejected ??= {};
+  for (const m of Object.values(previous?.media ?? {})) cache.media[m.id] ??= m;
+  // Videos already in the app, with the countries saved for them (quick runs reuse these).
+  const savedVideos = new Map();
+  for (const entry of Object.values(previous?.anime ?? {})) {
+    for (const ep of Object.values(entry.episodes)) {
+      const main = ep.allowedIn || ep.blockedIn ? ep : { ...ep, allowedIn: entry.allowedIn, blockedIn: entry.blockedIn };
+      for (const v of [main, ...(ep.alts ?? [])]) savedVideos.set(v.videoId, { allowedIn: v.allowedIn, blockedIn: v.blockedIn });
+    }
+  }
 
   // 1) Every playlist from the official channels, and its videos (read once).
   const channels = [];
   const playlists = [];
-  for (const { handle, english = false } of CHANNELS) {
+  for (const { handle, english = false, skip = null } of CHANNELS) {
     const channel = (await yt('channels', { part: 'snippet', forHandle: handle })).items?.[0];
     if (!channel) {
       console.warn(`Channel ${handle} not found, skipping.`);
@@ -164,8 +180,10 @@ const seasonLength = (media) =>
     const title = channel.snippet.title;
     channels.push({ handle, id: channel.id, title });
     const lists = await all('playlists', { part: 'snippet,contentDetails', channelId: channel.id });
-    const usable = lists.filter((pl) => (pl.contentDetails?.itemCount ?? 0) > 0 && !OTHER_LANGUAGES.test(pl.snippet.title));
-    for (const pl of usable) playlists.push({ id: pl.id, title: pl.snippet.title, channel: title, english });
+    const usable = lists.filter(
+      (pl) => (pl.contentDetails?.itemCount ?? 0) > 0 && !OTHER_LANGUAGES.test(pl.snippet.title) && !skip?.test(pl.snippet.title)
+    );
+    for (const pl of usable) playlists.push({ id: pl.id, title: pl.snippet.title, channel: title, english, skip });
     console.log(`${title}: ${lists.length} playlists, ${usable.length} usable`);
   }
   const items = new Map();
@@ -176,31 +194,37 @@ const seasonLength = (media) =>
 
   // 2) Discovery: playlists that don't match a known anime but hold English episodes
   //    are looked up on AniList, and kept only on an exact title match.
-  //    Quick mode skips this and reuses the anime found by earlier runs.
+  //    Quick mode only searches for playlists no earlier run has looked up.
   const knownMatches = matchPlaylists(playlists, known);
   const usedPlaylists = new Set([...knownMatches.values()].flat().map((p) => p.id));
-  const candidates = QUICK
-    ? []
-    : playlists.filter(
-        (pl) => !usedPlaylists.has(pl.id) && Object.keys(englishEpisodes(items.get(pl.id), Infinity, pl.english)).length >= 2
-      );
+  const candidates = playlists.filter(
+    (pl) => !usedPlaylists.has(pl.id) && Object.keys(englishEpisodes(items.get(pl.id), Infinity, pl.english, pl.skip)).length >= 2
+  );
   const knownIds = new Set(known.map((m) => m.id));
   const discovered = new Map();
-  if (QUICK) {
-    for (const m of Object.values(previous?.media ?? {})) if (!knownIds.has(m.id)) discovered.set(m.id, m);
-    console.log(`Quick mode: no AniList search, reusing ${discovered.size} anime found earlier.`);
-  } else {
-    console.log(`Looking up ${candidates.length} more playlists on AniList (about ${Math.ceil(candidates.length * 2.2 / 60)} min)...`);
-  }
-  for (const [i, pl] of candidates.entries()) {
+  const toLookUp = candidates.filter((pl) => {
+    const search = searchTextFor(pl.title);
+    return search && !(QUICK && search in cache.lookups);
+  });
+  console.log(
+    `Looking up ${toLookUp.length} playlists on AniList (about ${Math.ceil(toLookUp.length * 2.2 / 60)} min)` +
+      (QUICK ? `; ${candidates.length - toLookUp.length} known from earlier runs.` : '.')
+  );
+  let lookedUp = 0;
+  for (const pl of candidates) {
     const search = searchTextFor(pl.title);
     if (!search) continue;
-    const best = (await anilistSearch(search))
-      .map((m) => ({ m, score: scorePlaylist(pl.title, m) }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score || (b.m.popularity ?? 0) - (a.m.popularity ?? 0))[0];
-    if (best && !knownIds.has(best.m.id)) discovered.set(best.m.id, best.m);
-    if ((i + 1) % 25 === 0) console.log(`  ${i + 1}/${candidates.length} looked up, ${discovered.size} new anime found`);
+    if (!(QUICK && search in cache.lookups)) {
+      const best = (await anilistSearch(search))
+        .map((m) => ({ m, score: scorePlaylist(pl.title, m) }))
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score || (b.m.popularity ?? 0) - (a.m.popularity ?? 0))[0];
+      cache.lookups[search] = best ? best.m.id : null;
+      if (best) cache.media[best.m.id] = best.m;
+      if (++lookedUp % 25 === 0) console.log(`  ${lookedUp}/${toLookUp.length} looked up, ${discovered.size} new anime found`);
+    }
+    const media = cache.media[cache.lookups[search]];
+    if (media && !knownIds.has(media.id)) discovered.set(media.id, media);
   }
 
   // 3) Final matching across known and discovered anime. An anime can match playlists on several
@@ -212,18 +236,32 @@ const seasonLength = (media) =>
   const anime = {};
   for (const [mediaId, lists] of matches) {
     const maxEpisode = seasonLength(byId.get(mediaId));
-    // Every candidate video per episode number, best playlist first.
+    // Every candidate video per episode number, best playlist first. A video counts once per anime:
+    // the same upload often sits in several playlists ("Season 1" and "All Seasons").
     const candidates = {};
+    const seen = new Set();
     for (const pl of lists) {
-      for (const [n, ep] of Object.entries(englishEpisodes(items.get(pl.id), maxEpisode, pl.english))) {
+      for (const [n, ep] of Object.entries(englishEpisodes(items.get(pl.id), maxEpisode, pl.english, pl.skip))) {
+        if (seen.has(ep.videoId)) continue;
+        seen.add(ep.videoId);
         (candidates[n] ??= []).push({ ...ep, channel: pl.channel, english: pl.english, playlist: pl });
       }
     }
 
-    // Which countries can watch each video, so the app can fall back where it's blocked.
+    // Which countries can watch each video, so the app can fall back where it's blocked. Quick runs
+    // reuse what's saved for videos already in the app (or rejected before) and only ask about new ones.
     const all = Object.values(candidates).flat();
-    for (let i = 0; i < all.length; i += 50) {
-      const batch = all.slice(i, i + 50);
+    const unchecked = [];
+    for (const ep of all) {
+      const saved = savedVideos.get(ep.videoId);
+      const rejected = cache.rejected[ep.videoId];
+      if (QUICK && saved) Object.assign(ep, saved);
+      else if (QUICK && rejected === 'short') ep.tooShort = true;
+      else if (QUICK && rejected === 'embed') ep.embeddable = false;
+      else unchecked.push(ep);
+    }
+    for (let i = 0; i < unchecked.length; i += 50) {
+      const batch = unchecked.slice(i, i + 50);
       const details = await yt('videos', { part: 'contentDetails,status', id: batch.map((e) => e.videoId).join(',') });
       for (const v of details.items ?? []) {
         for (const ep of batch.filter((e) => e.videoId === v.id)) {
@@ -232,6 +270,9 @@ const seasonLength = (media) =>
           if (r?.blocked) ep.blockedIn = r.blocked;
           if (v.status?.embeddable === false) ep.embeddable = false;
           if (ep.english && minutesOf(v.contentDetails?.duration) < MIN_MINUTES) ep.tooShort = true;
+          if (ep.embeddable === false) cache.rejected[ep.videoId] = 'embed';
+          else if (ep.tooShort) cache.rejected[ep.videoId] = 'short';
+          else delete cache.rejected[ep.videoId];
         }
       }
     }
@@ -260,6 +301,9 @@ const seasonLength = (media) =>
   // AniList data for anime that aren't in the snapshot, so the app can show them.
   const media = {};
   for (const id of Object.keys(anime)) if (!knownIds.has(Number(id))) media[id] = byId.get(Number(id));
+
+  // Saved even when the episodes didn't change, so the next quick run can skip this run's lookups.
+  fs.writeFileSync(CACHE, JSON.stringify(cache) + '\n');
 
   const result = { generatedAt: new Date().toISOString(), channels, anime, media };
   const changes = summarizeChanges(previous, result);

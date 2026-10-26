@@ -60,7 +60,14 @@ describe('YouTube feeds', () => {
     expect(newEpisodeVideos(videos, new Set(), { english: true })).toHaveLength(1);
   });
 
+  it("skips a channel's ignored uploads", () => {
+    const videos = [{ videoId: 'u1', title: 'Jujutsu Kaisen | Episode 3 (EN Sub | JP Dub)【Ani-One Philippines ULTRA】' }];
+    expect(newEpisodeVideos(videos, new Set())).toHaveLength(1);
+    expect(newEpisodeVideos(videos, new Set(), { skip: /\bULTRA\b/ })).toEqual([]);
+  });
+
   it('builds the feed address', () => {
+
     expect(feedUrl('UC123')).toBe('https://www.youtube.com/feeds/videos.xml?channel_id=UC123');
   });
 });

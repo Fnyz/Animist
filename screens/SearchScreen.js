@@ -30,7 +30,7 @@ const ResultRow = ({ anime, onOpen }) => {
       <View style={{ flex: 1, gap: 5 }}>
         <Text style={styles.rowTitle} numberOfLines={2}>{anime.title}</Text>
         <Text style={styles.rowMeta}>
-          {[anime.type, anime.year, anime.totalEpisodes ? `${anime.totalEpisodes} episodes` : null].filter(Boolean).join(' · ')}
+          {[anime.type, anime.year, anime.totalEpisodes ? `${anime.totalEpisodes} episode${anime.totalEpisodes === 1 ? '' : 's'}` : null].filter(Boolean).join(' · ')}
         </Text>
         <Text style={styles.rowGenres} numberOfLines={1}>{anime.genres.slice(0, 3).join(' · ')}</Text>
       </View>

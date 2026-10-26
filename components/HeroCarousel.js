@@ -43,7 +43,7 @@ const HeroSlide = ({ anime, rank, onOpen, onTrailer }) => {
         </View>
         <Text style={styles.title} numberOfLines={2}>{anime.title}</Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {[anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episodes` : null, ...anime.genres.slice(0, 2)].filter(Boolean).join(' · ')}
+          {[anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episode${anime.totalEpisodes === 1 ? '' : 's'}` : null, ...anime.genres.slice(0, 2)].filter(Boolean).join(' · ')}
         </Text>
         <View style={{ flexDirection: 'row', gap: 10, paddingTop: 4 }}>
           {anime.trailer ? (

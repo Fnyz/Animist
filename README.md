@@ -69,8 +69,8 @@ The episode list is built ahead of time by [`scripts/find-episodes.js`](scripts/
 A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) keeps the list fresh:
 
 1. **Every day at 06:00 Philippine time** it reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Feeds are free and use no API quota.
-2. **Only when there are new episodes**, it runs a quick search (anime the app already has, about 5 minutes).
-3. **On Sundays** it runs the full search, which also finds new shows.
+2. **Only when there are new episodes**, it runs a quick search, about 5 minutes. It skips everything already in the app: known videos keep their saved details, and AniList is only searched for playlists it hasn't seen ([`data/finderCache.json`](data/finderCache.json) remembers earlier lookups).
+3. **On Sundays** it runs the full search, which re-checks every video, in case one was removed or blocked.
 4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
 
 You can also run it by hand: **Actions → Refresh episodes → Run workflow**, then choose:
@@ -179,8 +179,8 @@ Add a YouTube Data API key to `.env` (see [`.env.example`](.env.example)), then 
 
 ```bash
 node scripts/check-feeds.js            # what's new on the channels (free, no key needed)
-node scripts/find-episodes.js --quick  # refresh anime the app already has (~5 min)
-node scripts/find-episodes.js          # full search, also finds new shows (15–40 min)
+node scripts/find-episodes.js --quick  # only what's new: new playlists and new videos (~5 min)
+node scripts/find-episodes.js          # full search: re-checks everything (15–40 min)
 ```
 
 A run uses about 1,500–2,500 of the free 10,000 daily quota units. The full search is slower because AniList allows about 30 requests a minute.

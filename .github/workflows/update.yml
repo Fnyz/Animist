@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      # Crash reporting (sentry.js); a public value, so a repository variable, not a secret.
+      EXPO_PUBLIC_SENTRY_DSN: ${{ vars.SENTRY_DSN }}
     steps:
       - name: Skip when EXPO_TOKEN is missing
         if: env.EXPO_TOKEN == ''

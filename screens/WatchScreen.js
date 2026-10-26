@@ -30,6 +30,9 @@ const WatchScreen = ({ route, navigation }) => {
   const [startOver, setStartOver] = useState(null);
   // Which of the episode's videos is playing (a backup when YouTube blocks the main one here).
   const [source, setSource] = useState({ number: null, index: 0 });
+  // Where the episode started when it was opened. Fixed while it plays, so the progress saved along
+  // the way doesn't move the "Resumed at" chip.
+  const [opening, setOpening] = useState({ key: null, at: 0 });
   const latest = useRef(null);
   const lastSaved = useRef(0);
 
@@ -77,6 +80,11 @@ const WatchScreen = ({ route, navigation }) => {
     [number]
   );
 
+  const openKey = anime ? `${anime.id}-${number}-${startOver === number}` : null;
+  if (openKey && opening.key !== openKey) {
+    setOpening({ key: openKey, at: startOver === number ? 0 : resumePoint(watchProgress(anime.id, number)) });
+  }
+
   if (error) {
     return (
       <SafeAreaView style={styles.screen} edges={['top']}>
@@ -99,7 +107,7 @@ const WatchScreen = ({ route, navigation }) => {
   const hasPrev = number > 1;
   const hasNext = number < total;
   const goTo = (n) => setNumber(n);
-  const startAt = startOver === number ? 0 : resumePoint(watchProgress(anime.id, number));
+  const startAt = opening.key === openKey ? opening.at : 0;
   const sourceIndex = source.number === number ? source.index : 0;
   const nextEpisode = anime.episodes.find((e) => e.number === number + 1);
   const upNextTitle = `Episode ${number + 1}${nextEpisode?.title ? ` · ${nextEpisode.title}` : ''}`;
@@ -117,20 +125,23 @@ const WatchScreen = ({ route, navigation }) => {
           </View>
         ) : episode.source === 'youtube' ? (
           <View style={{ gap: space.sm }}>
-            <VideoPlayer
-              // One player for every episode, so fullscreen carries on into the next one;
-              // "Start over" makes a fresh one.
-              key={startOver === number ? `start-${number}` : 'player'}
-              videoId={episode.youtube.videoId}
-              alternatives={episode.youtube.alternatives.map((v) => v.videoId)}
-              onSourceChange={(index) => setSource({ number, index })}
-              width={playerWidth}
-              label="Episode"
-              startAt={startAt}
-              onProgress={onProgress}
-              upNext={hasNext ? { title: upNextTitle, onPlay: () => goTo(number + 1) } : null}
-              fallback={episode.link ? { title: `Watch on ${episode.link.site}`, onPress: () => openLink(episode.link.url) } : null}
-            />
+            <View style={styles.fullBleed}>
+              <VideoPlayer
+                // One player for every episode, so fullscreen carries on into the next one;
+                // "Start over" makes a fresh one.
+                key={startOver === number ? `start-${number}` : 'player'}
+                videoId={episode.youtube.videoId}
+                alternatives={episode.youtube.alternatives.map((v) => v.videoId)}
+                onSourceChange={(index) => setSource({ number, index })}
+                width={width}
+                fullBleed
+                label="Episode"
+                startAt={startAt}
+                onProgress={onProgress}
+                upNext={hasNext ? { title: upNextTitle, onPlay: () => goTo(number + 1) } : null}
+                fallback={episode.link ? { title: `Watch on ${episode.link.site}`, onPress: () => openLink(episode.link.url) } : null}
+              />
+            </View>
             {startAt > 0 && (
               <View style={styles.resumeChip}>
                 <Ionicons name="play-forward" size={14} color={colors.accent} />
@@ -224,6 +235,8 @@ const WatchScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
   body: { paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.xl },
+  // The video spans the whole screen width, past the page's side padding.
+  fullBleed: { marginHorizontal: -space.xl },
   card: {
     padding: space.xl,
     gap: space.sm,
@@ -234,7 +247,7 @@ const styles = StyleSheet.create({
   cardTitle: { fontFamily: fonts.displaySemi, fontSize: 18, color: colors.text, textAlign: 'center' },
   cardText: { fontFamily: fonts.body, fontSize: 14, lineHeight: 21, color: colors.textSoft, textAlign: 'center' },
   linkCard: { borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface2, alignItems: 'center', justifyContent: 'center' },
-  linkShade: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(14,15,20,0.45)' },
+  linkShade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(14,15,20,0.45)' },
   linkButton: {
     flexDirection: 'row',
     alignItems: 'center',

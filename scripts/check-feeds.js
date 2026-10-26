@@ -18,7 +18,7 @@ const OUT = path.join(__dirname, '..', 'data', 'episodes.json');
   const ids = new Map((data.channels ?? []).map((c) => [c.handle, c]));
 
   let total = 0;
-  for (const { handle, english } of CHANNELS) {
+  for (const { handle, english, skip } of CHANNELS) {
     const channel = ids.get(handle);
     if (!channel) {
       // Added to channels.js after the last full search: the weekly full run picks it up.
@@ -30,7 +30,7 @@ const OUT = path.join(__dirname, '..', 'data', 'episodes.json');
       console.warn(`${channel.title}: feed failed (HTTP ${res.status}), skipped.`);
       continue;
     }
-    const fresh = newEpisodeVideos(parseFeed(await res.text()), known, { english });
+    const fresh = newEpisodeVideos(parseFeed(await res.text()), known, { english, skip });
     total += fresh.length;
     console.log(`${channel.title}: ${fresh.length} new episode upload(s)`);
     for (const v of fresh) console.log(`  - ${v.title} (https://youtu.be/${v.videoId})`);

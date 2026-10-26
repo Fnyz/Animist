@@ -9,12 +9,14 @@ export { openOnYouTube } from './VideoPlayer';
 // Plays a YouTube trailer in a popup. No API key is needed.
 const TrailerModal = ({ videoId, title, onClose }) => {
   const { width, height } = useWindowDimensions();
-  const playerWidth = Math.min(width, height * 1.6) - space.xl * 2;
+  // The popup sits 4px from the screen edges, and the video 4px inside it (the smallest spacing).
+  const sheetWidth = Math.min(width, height * 1.6) - space.xs * 2;
+  const playerWidth = sheetWidth - space.xs * 2;
 
   return (
     <Modal visible={!!videoId} transparent animationType="fade" statusBarTranslucent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Close trailer">
-        <Pressable style={[styles.sheet, { width: playerWidth + space.lg * 2 }]} onPress={() => {}}>
+        <Pressable style={[styles.sheet, { width: sheetWidth }]} onPress={() => {}}>
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
               <Text style={styles.eyebrow}>Trailer</Text>
@@ -32,14 +34,15 @@ const TrailerModal = ({ videoId, title, onClose }) => {
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: 'rgba(5,6,10,0.92)', alignItems: 'center', justifyContent: 'center' },
   sheet: {
-    padding: space.lg,
+    paddingVertical: space.lg,
+    paddingHorizontal: space.xs,
     gap: space.lg,
     borderRadius: radius.lg,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  header: { flexDirection: 'row', alignItems: 'center', gap: space.md, paddingHorizontal: space.xs },
   eyebrow: { fontFamily: fonts.bodyBold, fontSize: 11, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.accent },
   title: { fontFamily: fonts.displaySemi, fontSize: 18, color: colors.text },
 });
