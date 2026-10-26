@@ -1,6 +1,6 @@
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Linking, Pressable, Modal, StatusBar, Dimensions, useWindowDimensions } from 'react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import { requireOptionalNativeModule } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import YouTubeView from './YouTubeView';
@@ -8,6 +8,18 @@ import { fullscreenBox } from './fullscreenBox';
 import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
 import { Button } from './ui';
 import { colors, fonts, radius, space } from '../theme';
+
+// Screen rotation for fullscreen, only when the installed app includes it: APKs before 1.2.0
+// don't, and loading it there would stop the whole app. Without it, fullscreen still fills the
+// screen; it just doesn't turn sideways by itself.
+const ScreenOrientation = requireOptionalNativeModule('ExpoScreenOrientation') ? require('expo-screen-orientation') : null;
+
+const lockOrientation = (landscape) =>
+  ScreenOrientation
+    ? ScreenOrientation.lockAsync(
+        landscape ? ScreenOrientation.OrientationLock.LANDSCAPE : ScreenOrientation.OrientationLock.PORTRAIT_UP
+      )
+    : Promise.resolve();
 
 export const openOnYouTube = (videoId) =>
   Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`).catch(() => {});
@@ -417,9 +429,7 @@ const VideoPlayer = ({
     setSession((s) => ({ id: s.id + 1, start: at ?? position.current }));
     setFullscreen(next);
     try {
-      await ScreenOrientation.lockAsync(
-        next ? ScreenOrientation.OrientationLock.LANDSCAPE : ScreenOrientation.OrientationLock.PORTRAIT_UP
-      );
+      await lockOrientation(next);
     } catch {
       // Some devices refuse orientation locks; the video still fills the screen.
     }
@@ -428,7 +438,7 @@ const VideoPlayer = ({
   // Never leave the app stuck sideways.
   useEffect(
     () => () => {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => {});
+      lockOrientation(false).catch(() => {});
     },
     []
   );
@@ -546,7 +556,8 @@ const VideoPlayer = ({
       >
         <StatusBar hidden />
         <View style={styles.fullscreenRoot} onLayout={(e) => setRoot(e.nativeEvent.layout)}>
-          {fullscreen && landscape && root ? core(true) : null}
+          {/* Without screen rotation (older APKs) the video plays fullscreen in portrait. */}
+          {fullscreen && (landscape || !ScreenOrientation) && root ? core(true) : null}
         </View>
       </Modal>
     </>

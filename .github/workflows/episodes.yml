@@ -135,4 +135,6 @@ jobs:
         if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
         run: |
           npm ci
+          git fetch --tags --quiet
+          node scripts/check-native-changes.js
           eas update --channel preview --message "Refresh episodes" --non-interactive

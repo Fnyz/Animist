@@ -134,6 +134,8 @@ The QR code points to `releases/latest/download/animist.apk`, so it always downl
 
 The `Release APK` workflow checks that the tag matches `app.json`, builds the APK, and publishes a GitHub Release with that version's notes from the changelog.
 
+**When a new APK is needed:** pushes to `main` reach installed apps as over-the-air updates, which only carry JavaScript. If you add or upgrade a package with native code, or change `plugins`/`android` in `app.json`, the installed APKs can't run the update, so the `OTA update` workflow refuses it ([`scripts/check-native-changes.js`](scripts/check-native-changes.js)). Bump the version and release a new APK instead. Installed apps then show an "update available" prompt.
+
 <details>
 <summary>One-time setup for a fork</summary>
 

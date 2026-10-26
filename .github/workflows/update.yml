@@ -20,6 +20,9 @@ jobs:
 
       - uses: actions/checkout@v4
         if: env.EXPO_TOKEN != ''
+        with:
+          # The release tags, to compare with the APK of this version (check below).
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         if: env.EXPO_TOKEN != ''
@@ -36,6 +39,12 @@ jobs:
       - name: Install dependencies
         if: env.EXPO_TOKEN != ''
         run: npm ci
+
+      # Installed APKs can't run JavaScript that needs native code they don't have, so an update
+      # with native changes is refused: that needs a new version and APK instead.
+      - name: Check installed apps can run this update
+        if: env.EXPO_TOKEN != ''
+        run: node scripts/check-native-changes.js
 
       - name: Publish update
         if: env.EXPO_TOKEN != ''
