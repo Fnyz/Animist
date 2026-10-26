@@ -45,7 +45,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: android-actions/setup-android@v3
+      # The Ubuntu runner already has the Android SDK (ANDROID_HOME); Gradle downloads any missing parts.
+      - name: Check the Android SDK
+        run: echo "ANDROID_HOME=$ANDROID_HOME" && test -d "$ANDROID_HOME"
 
       - uses: actions/setup-node@v4
         with:
