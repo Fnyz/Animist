@@ -17,7 +17,7 @@
       "package": "com.fnyz.animist",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0E0F14"
+        "backgroundColor": "#0F1112"
       }
     },
     "web": {
@@ -31,10 +31,20 @@
           "resizeMode": "cover",
           "backgroundColor": "#0E0F14"
         }
-      ]
+      ],
+      "expo-image"
     ],
     "runtimeVersion": {
       "policy": "appVersion"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "725d4e25-16ef-4564-8c3c-c5b3f02f3a59"
+      }
+    },
+    "owner": "piattos_44",
+    "updates": {
+      "url": "https://u.expo.dev/725d4e25-16ef-4564-8c3c-c5b3f02f3a59"
     }
   }
 }

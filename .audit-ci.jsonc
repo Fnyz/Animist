@@ -1,12 +1,14 @@
 {
   // Fails CI on any high or critical vulnerability in packages the app uses.
+  // Each allowlisted advisory has no usable fix yet; remove it once one ships (audit-ci says so).
   "$schema": "https://github.com/IBM/audit-ci/raw/main/docs/schema.json",
   "high": true,
   "skip-dev": true,
   "allowlist": [
-    // braces <=3.0.3: no fixed version exists yet. Used only by the Metro bundler at build time.
-    "GHSA-vfj7-8cjw-p6xm",
-    // node-forge <=1.4.0: no fixed version exists yet. Used only by Expo's CLI and update signing at build time.
-    "GHSA-86w9-cpqp-85rv"
+    // node-forge <=1.4.0: no fixed version exists. Used only by Expo's CLI and update signing at build time.
+    "GHSA-86w9-cpqp-85rv",
+    // zod <4.6.6 (2026-10-01): only fixed in zod 4, but Expo's CLI requires zod 3. Used only by the CLI
+    // to validate local project config at build time; not shipped in the app.
+    "GHSA-mrhx-c7xc-m3w5"
   ]
 }
