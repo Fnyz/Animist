@@ -5,10 +5,12 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
-## [Unreleased]
+## [1.2.0] - 2026-10-26
+
+Episodes inside the app: over 7,500 free episodes of 520+ anime from six official YouTube channels, with a player built for watching whole series.
 
 ### New
-- Watch over 3,500 full episodes of 230+ anime inside the app, free from official YouTube channels (Muse Asia and GUNDAM CHANNEL INTL, with English subtitles or dubs).
+- Watch over 7,500 full episodes of 520+ anime inside the app, free from official YouTube channels (Muse Asia, Muse Philippines, Ani-One Philippines, GUNDAM CHANNEL INTL, BEYBLADE and Cardfight!! Vanguard), with English subtitles or dubs.
 - A "Free to watch" row on Home, and a ▶ badge on every poster with episodes that play in the app.
 - Fullscreen playback (landscape), a draggable progress bar, and a video quality picker.
 - A Watch screen with previous/next, autoplay of the next episode, and the full episode list.
@@ -17,7 +19,6 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - Episodes resume where you left off (with a "Start over" option), and episode lists show a progress bar for each episode you started.
 - A "Continue watching" row on Home takes you straight back to the episode you were watching.
 - When an episode ends, an "Up next" card counts down to the next one (with Cancel), and fullscreen carries on into it.
-- More free episodes from more official channels: Muse Philippines, Ani-One Philippines, BEYBLADE and Cardfight!! Vanguard.
 - Episodes can mix channels: if one channel is missing an episode, another official channel fills the gap.
 - If YouTube blocks a video in your country, the player switches to a backup from another official channel.
 - New episodes arrive automatically: a daily check of the official channels' RSS feeds refreshes the episode list.

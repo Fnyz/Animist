@@ -30,9 +30,10 @@ const SUMMARY_FILE = args.includes('--summary') ? args[args.indexOf('--summary')
 const ROOT = path.join(__dirname, '..');
 const OUT = path.join(ROOT, 'data', 'episodes.json');
 const SNAPSHOT = path.join(ROOT, 'data', 'animeSnapshot.json');
-// What earlier runs learned, so quick runs can skip work: AniList lookups by search text, the
-// AniList data of the anime found, and videos that were rejected (not embeddable, or clips).
-// The app never reads this file, so it doesn't ship.
+// What earlier runs learned, so quick runs can skip work: AniList's results for each search (the
+// ids of the anime that match a playlist), their AniList data, and videos that were rejected (not
+// embeddable, or clips). The app never reads this file, so it doesn't ship.
+const CACHE_VERSION = 2;
 const CACHE = path.join(ROOT, 'data', 'finderCache.json');
 
 const MAX_PAGES_PER_PLAYLIST = 10; // 500 videos
@@ -154,10 +155,15 @@ const seasonLength = (media) =>
   const snapshot = JSON.parse(fs.readFileSync(SNAPSHOT, 'utf8'));
   const known = Object.values(snapshot.media).filter((m) => !m.isAdult);
   const previous = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : null;
-  const cache = fs.existsSync(CACHE) ? JSON.parse(fs.readFileSync(CACHE, 'utf8')) : {};
-  cache.lookups ??= {};
-  cache.media ??= {};
-  cache.rejected ??= {};
+  const saved = fs.existsSync(CACHE) ? JSON.parse(fs.readFileSync(CACHE, 'utf8')) : {};
+  // Version 1 kept one answer per search, which loses a season when two seasons' playlists search
+  // for the same title; its searches are dropped (looked up again), the rest is still good.
+  const cache = {
+    version: CACHE_VERSION,
+    searches: saved.version === CACHE_VERSION ? saved.searches ?? {} : {},
+    media: saved.media ?? {},
+    rejected: saved.rejected ?? {},
+  };
   for (const m of Object.values(previous?.media ?? {})) cache.media[m.id] ??= m;
   // Videos already in the app, with the countries saved for them (quick runs reuse these).
   const savedVideos = new Map();
@@ -194,7 +200,7 @@ const seasonLength = (media) =>
 
   // 2) Discovery: playlists that don't match a known anime but hold English episodes
   //    are looked up on AniList, and kept only on an exact title match.
-  //    Quick mode only searches for playlists no earlier run has looked up.
+  //    Quick mode only searches for titles no earlier run has searched for.
   const knownMatches = matchPlaylists(playlists, known);
   const usedPlaylists = new Set([...knownMatches.values()].flat().map((p) => p.id));
   const candidates = playlists.filter(
@@ -202,30 +208,36 @@ const seasonLength = (media) =>
   );
   const knownIds = new Set(known.map((m) => m.id));
   const discovered = new Map();
-  const toLookUp = candidates.filter((pl) => {
-    const search = searchTextFor(pl.title);
-    return search && !(QUICK && search in cache.lookups);
-  });
-  console.log(
-    `Looking up ${toLookUp.length} playlists on AniList (about ${Math.ceil(toLookUp.length * 2.2 / 60)} min)` +
-      (QUICK ? `; ${candidates.length - toLookUp.length} known from earlier runs.` : '.')
-  );
-  let lookedUp = 0;
+  // Playlists that share a search ("Frieren" Season 1 and Season 2) share one AniList search; each
+  // playlist then picks its own best match from the results.
+  const bySearch = new Map();
   for (const pl of candidates) {
     const search = searchTextFor(pl.title);
-    if (!search) continue;
-    if (!(QUICK && search in cache.lookups)) {
-      const best = (await anilistSearch(search))
+    if (search) bySearch.set(search, [...(bySearch.get(search) ?? []), pl]);
+  }
+  const toSearch = [...bySearch.keys()].filter((search) => !(QUICK && search in cache.searches));
+  console.log(
+    `Searching AniList for ${toSearch.length} titles (about ${Math.ceil(toSearch.length * 2.2 / 60)} min)` +
+      (QUICK ? `; ${bySearch.size - toSearch.length} known from earlier runs.` : '.')
+  );
+  for (const [i, search] of toSearch.entries()) {
+    // Only anime that match one of the playlists are kept, so the cache stays small.
+    const fits = (await anilistSearch(search)).filter((m) => bySearch.get(search).some((pl) => scorePlaylist(pl.title, m) > 0));
+    cache.searches[search] = fits.map((m) => m.id);
+    for (const m of fits) cache.media[m.id] = m;
+    if ((i + 1) % 25 === 0) console.log(`  ${i + 1}/${toSearch.length} searched`);
+  }
+  for (const [search, lists] of bySearch) {
+    const results = (cache.searches[search] ?? []).map((id) => cache.media[id]).filter(Boolean);
+    for (const pl of lists) {
+      const best = results
         .map((m) => ({ m, score: scorePlaylist(pl.title, m) }))
         .filter((x) => x.score > 0)
         .sort((a, b) => b.score - a.score || (b.m.popularity ?? 0) - (a.m.popularity ?? 0))[0];
-      cache.lookups[search] = best ? best.m.id : null;
-      if (best) cache.media[best.m.id] = best.m;
-      if (++lookedUp % 25 === 0) console.log(`  ${lookedUp}/${toLookUp.length} looked up, ${discovered.size} new anime found`);
+      if (best && !knownIds.has(best.m.id)) discovered.set(best.m.id, best.m);
     }
-    const media = cache.media[cache.lookups[search]];
-    if (media && !knownIds.has(media.id)) discovered.set(media.id, media);
   }
+  console.log(`${discovered.size} anime found beyond the snapshot.`);
 
   // 3) Final matching across known and discovered anime. An anime can match playlists on several
   //    channels: each episode comes from the best playlist that has it, the others fill the gaps.
