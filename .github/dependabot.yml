@@ -17,6 +17,14 @@ updates:
       # Major versions need a planned upgrade (usually a new Expo SDK).
       - dependency-name: '*'
         update-types: ['version-update:semver-major']
+      # Expo pins these to exact versions; they only change with an Expo SDK upgrade.
+      - dependency-name: 'react'
+      - dependency-name: 'react-dom'
+      - dependency-name: 'react-native'
+      - dependency-name: 'react-native-reanimated'
+      - dependency-name: 'react-native-worklets'
+      - dependency-name: 'react-native-webview'
+      - dependency-name: '@react-native-async-storage/async-storage'
 
   - package-ecosystem: github-actions
     directory: /

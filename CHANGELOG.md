@@ -12,6 +12,7 @@ stable sources and has a completely new look.
 
 ### New
 - A new dark design with bottom tabs: Home, Search, My List and Profile.
+- A new app icon with a coral frame to match the app.
 - Home opens with a carousel of the top 5 trending anime, followed by rows for new episodes, trending, airing this season, all-time popular and top movies.
 - Trailers play inside the app with simple play, pause, seek and mute controls.
 - Every anime page shows where to watch it officially, such as Crunchyroll or Netflix.
