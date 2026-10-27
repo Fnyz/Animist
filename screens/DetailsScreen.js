@@ -8,6 +8,8 @@ import { myContext } from '../context';
 import { useRequireAccount } from '../requireAccount';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
+import StatusSheet from '../components/StatusSheet';
+import { statusInfo, statusOf } from '../listStatus';
 import CheckEpisodesButton from '../components/CheckEpisodesButton';
 import { progressFraction, progressLabel } from '../progress';
 import { colors, fonts, radius, space } from '../theme';
@@ -17,7 +19,7 @@ const EPISODES_SHOWN = 12;
 const DetailsScreen = ({ route, navigation }) => {
   const { animeId } = route.params;
   const insets = useSafeAreaInsets();
-  const { findInWatchList, addToWatchList, removeFromWatchList, watchProgress } = useContext(myContext);
+  const { findInWatchList, addToWatchList, removeFromWatchList, setListStatus, watchProgress } = useContext(myContext);
   const requireAccount = useRequireAccount();
   const [anime, setAnime] = useState(null);
   const [error, setError] = useState(null);
@@ -25,6 +27,7 @@ const DetailsScreen = ({ route, navigation }) => {
   const [allEpisodes, setAllEpisodes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  const [statusSheet, setStatusSheet] = useState(false);
   const [scrollY] = useState(() => new Animated.Value(0));
 
   const load = useCallback(async () => {
@@ -66,17 +69,22 @@ const DetailsScreen = ({ route, navigation }) => {
   }
 
   const saved = findInWatchList(anime.id);
-  const toggleList = () => requireAccount(saveToList, 'Sign in to save anime to My List.');
-  const saveToList = async () => {
+  const savedStatus = saved ? statusInfo(statusOf(saved)) : null;
+  // On the list: pick its status (or remove it). Not yet: add it as "Plan to watch".
+  const onListButton = () => (saved ? setStatusSheet(true) : requireAccount(addToList, 'Sign in to save anime to My List.'));
+  const addToList = async () => {
     setSaving(true);
     try {
-      if (saved) await removeFromWatchList(saved.id);
-      else await addToWatchList(anime);
+      await addToWatchList(anime);
     } catch (e) {
       console.warn('watchlist update failed', e);
     } finally {
       setSaving(false);
     }
+  };
+  const changeList = (action) => {
+    setStatusSheet(false);
+    action().catch((e) => console.warn('watchlist update failed', e));
   };
 
   const share = () =>
@@ -122,9 +130,9 @@ const DetailsScreen = ({ route, navigation }) => {
 
         <View style={styles.actions}>
           <Button
-            title={saved ? 'In My List' : 'Add to My List'}
-            icon={saved ? 'checkmark-circle' : 'bookmark-outline'}
-            onPress={toggleList}
+            title={savedStatus ? `${savedStatus.label} ▾` : 'Add to My List'}
+            icon={savedStatus ? savedStatus.icon : 'bookmark-outline'}
+            onPress={onListButton}
             loading={saving}
             variant={saved ? 'ghost' : 'primary'}
             style={{ flex: 1 }}
@@ -254,6 +262,14 @@ const DetailsScreen = ({ route, navigation }) => {
 
       {back}
       <IconButton icon="share-social-outline" label="Share" onPress={share} style={[styles.floating, { top: insets.top + 8, right: 16 }]} />
+      <StatusSheet
+        visible={statusSheet && Boolean(saved)}
+        title={anime.title}
+        current={saved ? statusOf(saved) : null}
+        onPick={(key) => changeList(() => setListStatus(saved.id, key))}
+        onRemove={() => changeList(() => removeFromWatchList(saved.id))}
+        onClose={() => setStatusSheet(false)}
+      />
       <TrailerModal videoId={showTrailer ? anime.trailer : null} title={anime.title} onClose={() => setShowTrailer(false)} />
     </View>
   );

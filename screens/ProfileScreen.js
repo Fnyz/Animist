@@ -8,18 +8,19 @@ import Constants from 'expo-constants';
 import { Auth } from '../firebase';
 import { signOutGoogle } from '../googleAuth';
 import { stopEpisodeNotifications } from '../notifications';
+import { signInMethod } from '../accountDeletion';
 import { myContext } from '../context';
 import { Button } from '../components/ui';
 import { USE_STATIC_DATA } from '../api';
 import { avatarFor, AVATAR_CREDIT } from '../avatars';
 import { colors, fonts, radius, space } from '../theme';
 
-const Row = ({ icon, label, detail, onPress }) => (
+const Row = ({ icon, label, detail, onPress, danger }) => (
   <Pressable onPress={onPress} disabled={!onPress} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
-    <View style={styles.rowIcon}>
-      <Ionicons name={icon} size={19} color={colors.accent} />
+    <View style={[styles.rowIcon, danger && styles.rowIconDanger]}>
+      <Ionicons name={icon} size={19} color={danger ? colors.danger : colors.accent} />
     </View>
-    <Text style={styles.rowLabel}>{label}</Text>
+    <Text style={[styles.rowLabel, danger && { color: colors.danger }]}>{label}</Text>
     {detail ? <Text style={styles.rowDetail}>{detail}</Text> : null}
     {onPress ? <Ionicons name="chevron-forward" size={18} color={colors.muted} /> : null}
   </Pressable>
@@ -108,13 +109,20 @@ const ProfileScreen = ({ navigation }) => {
 
         <View style={styles.group}>
           <Row icon="create-outline" label="Edit profile and avatar" onPress={() => navigation.navigate('Settings')} />
-          <Row icon="key-outline" label="Change password" onPress={() => navigation.navigate('UpdatePass')} />
+          {/* Google accounts have no Animist password to change. */}
+          {signInMethod(authUser) === 'password' && (
+            <Row icon="key-outline" label="Change password" onPress={() => navigation.navigate('UpdatePass')} />
+          )}
           <Row icon="bookmark-outline" label="My List" onPress={() => navigation.navigate('MyList')} />
         </View>
 
         {appInfo}
 
         <Button title="Log out" icon="log-out-outline" variant="ghost" onPress={logOut} loading={signingOut} />
+
+        <View style={styles.group}>
+          <Row icon="trash-outline" label="Delete account" danger onPress={() => navigation.navigate('DeleteAccount')} />
+        </View>
         <Text style={styles.credit}>{AVATAR_CREDIT}</Text>
       </ScrollView>
     </SafeAreaView>
@@ -171,6 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  rowIconDanger: { backgroundColor: colors.dangerSoft },
   rowLabel: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   rowDetail: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   credit: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'center' },

@@ -5,8 +5,10 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getAnimeInfo } from '../api';
 import { myContext } from '../context';
-import { formatTime, progressFraction, progressLabel, resumePoint } from '../progress';
+import { formatTime, isFinished, progressFraction, progressLabel, resumePoint } from '../progress';
+import { statusAfterWatching, statusOf } from '../listStatus';
 import VideoPlayer from '../components/VideoPlayer';
+import CheckEpisodesButton from '../components/CheckEpisodesButton';
 import { Button, ErrorState, Loading, ScreenHeader } from '../components/ui';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -22,7 +24,7 @@ const SAVE_EVERY_SECONDS = 15;
 const WatchScreen = ({ route, navigation }) => {
   const { animeId } = route.params;
   const { width } = useWindowDimensions();
-  const { recordWatch, watchProgress, signedIn } = useContext(myContext);
+  const { recordWatch, watchProgress, signedIn, findInWatchList, setListStatus } = useContext(myContext);
   const [anime, setAnime] = useState(null);
   const [error, setError] = useState(null);
   const [number, setNumber] = useState(route.params.episode ?? 1);
@@ -50,10 +52,26 @@ const WatchScreen = ({ route, navigation }) => {
 
   const episode = anime?.episodes.find((e) => e.number === number);
 
+  // On My List: starting an episode marks the anime Watching; finishing the last episode of a show
+  // that finished airing marks it Completed (see listStatus.js).
+  const updateListStatus = (forAnime, episodeNumber, finishedEpisode) => {
+    const entry = findInWatchList(forAnime.id);
+    if (!entry) return;
+    const next = statusAfterWatching({
+      current: statusOf(entry),
+      episode: episodeNumber,
+      totalEpisodes: forAnime.totalEpisodes ?? forAnime.episodes.length,
+      finishedEpisode,
+      finishedAiring: forAnime.status === 'Completed',
+    });
+    if (next) setListStatus(entry.id, next).catch((e) => console.warn('status update failed', e));
+  };
+
   // Remember what was watched, for My List > History.
   useEffect(() => {
     if (anime && episode && episode.source !== 'none') {
       recordWatch(anime, episode.number).catch((e) => console.warn('history update failed', e));
+      updateListStatus(anime, episode.number, false);
     }
     // Only when the episode changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -64,6 +82,7 @@ const WatchScreen = ({ route, navigation }) => {
     if (!entry) return;
     lastSaved.current = entry.position;
     recordWatch(entry.anime, entry.number, entry).catch((e) => console.warn('progress save failed', e));
+    if (isFinished(entry)) updateListStatus(entry.anime, entry.number, true);
   };
   const onProgress = ({ position, duration }) => {
     latest.current = { anime, number, position, duration };
@@ -176,10 +195,23 @@ const WatchScreen = ({ route, navigation }) => {
         ) : (
           <View style={styles.card}>
             <Ionicons name="time-outline" size={28} color={colors.accent} />
-            <Text style={styles.cardTitle}>Not available to watch yet</Text>
+            <Text style={styles.cardTitle}>Not free to watch yet</Text>
             <Text style={styles.cardText}>
-              No official source streams this episode for free yet. Try the services on the anime’s page.
+              {anime.watchLinks.length
+                ? 'No official channel streams this episode for free yet. You can watch it on an official service:'
+                : 'No official channel streams this episode for free yet.'}
             </Text>
+            {/* The official services for this anime, so this is never a dead end. */}
+            {anime.watchLinks.length > 0 && (
+              <View style={styles.services}>
+                {anime.watchLinks.map((link) => (
+                  <Button key={link.url} title={`Watch on ${link.site}`} icon="open-outline" variant="ghost" onPress={() => openLink(link.url)} />
+                ))}
+              </View>
+            )}
+            <View style={styles.services}>
+              <CheckEpisodesButton />
+            </View>
           </View>
         )}
 
@@ -309,6 +341,7 @@ const styles = StyleSheet.create({
   },
   thumbBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
   thumbBarFill: { height: 3, backgroundColor: colors.accent },
+  services: { alignSelf: 'stretch', gap: space.sm },
   guestHint: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   guestHintText: { flexShrink: 1, fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   resumeChip: {

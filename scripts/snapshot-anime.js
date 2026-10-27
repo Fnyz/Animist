@@ -69,6 +69,27 @@ const page = (filter, perPage) => `{
     .slice(0, 30)
     .map((s) => ({ mediaId: keep(s.media), episode: s.episode, airingAt: s.airingAt }));
 
+  // The coming week's episodes, for the Schedule tab (from a day back, so today's are all there).
+  // airingAt is an exact time, so countdowns stay right even though this is refreshed once a day.
+  process.stdout.write('schedule… ');
+  const schedule = [];
+  for (let page = 1; page <= 6; page++) {
+    const data = await gql(`{
+      Page(page: ${page}, perPage: 50) {
+        pageInfo { hasNextPage }
+        airingSchedules(airingAt_greater: ${now - 86400}, airingAt_lesser: ${now + 8 * 86400}, sort: TIME) {
+          episode airingAt media { ${MEDIA_FIELDS} }
+        }
+      }
+    }`);
+    for (const s of data.Page.airingSchedules) {
+      if (s.media && !s.media.isAdult && (s.media.popularity ?? 0) >= 2000) {
+        schedule.push({ mediaId: keep(s.media), episode: s.episode, airingAt: s.airingAt });
+      }
+    }
+    if (!data.Page.pageInfo.hasNextPage) break;
+  }
+
   for (const genre of GENRES) {
     process.stdout.write(`${genre}… `);
     genres[genre] = (await gql(page(`sort: [POPULARITY_DESC], genre: "${genre}"`, 15))).Page.media.map(keep);
@@ -95,7 +116,7 @@ const page = (filter, perPage) => `{
   }
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, JSON.stringify({ savedAt: new Date().toISOString(), lists, recent, genres, media }));
+  fs.writeFileSync(OUT, JSON.stringify({ savedAt: new Date().toISOString(), lists, recent, schedule, genres, media }));
   console.log(`\nSaved ${Object.keys(media).length} anime to ${path.relative(process.cwd(), OUT)}`);
 })().catch((err) => {
   console.error('\nSnapshot failed:', err.message);

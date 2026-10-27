@@ -1,10 +1,12 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { myContext } from '../context';
-import { EmptyState, WatchBadge } from '../components/ui';
+import { Chip, EmptyState, WatchBadge } from '../components/ui';
+import StatusSheet from '../components/StatusSheet';
+import { LIST_STATUSES, statusInfo, statusOf } from '../listStatus';
 import { byLatest, historyProgress, progressFraction, progressLabel } from '../progress';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -19,8 +21,12 @@ const timeAgo = (ts) => {
 };
 
 const MyListScreen = ({ navigation }) => {
-  const { userWatchList, historyRecords, removeFromWatchList, signedIn } = useContext(myContext);
+  const { userWatchList, historyRecords, removeFromWatchList, setListStatus, signedIn } = useContext(myContext);
   const [tab, setTab] = useState('watchlist');
+  // 'all' or a status key (watching, planned, completed, dropped).
+  const [filter, setFilter] = useState('all');
+  // The list entry whose status sheet is open.
+  const [editing, setEditing] = useState(null);
 
   const watchlist = useMemo(
     () =>
@@ -30,7 +36,18 @@ const MyListScreen = ({ navigation }) => {
     [userWatchList]
   );
 
+  const counts = useMemo(() => {
+    const result = { all: watchlist.length };
+    for (const entry of watchlist) result[statusOf(entry)] = (result[statusOf(entry)] ?? 0) + 1;
+    return result;
+  }, [watchlist]);
+  const shown = filter === 'all' ? watchlist : watchlist.filter((entry) => statusOf(entry) === filter);
+
   const open = (titleId) => navigation.navigate('AnimeDetail', { animeId: titleId });
+  const changeEntry = (action) => {
+    setEditing(null);
+    action().catch((e) => console.warn('watchlist update failed', e));
+  };
 
   // Lists and history live in the account, so guests get the way in instead.
   if (!signedIn) {
@@ -71,9 +88,19 @@ const MyListScreen = ({ navigation }) => {
 
       {tab === 'watchlist' ? (
         <FlatList
-          data={watchlist}
+          data={shown}
           keyExtractor={(w) => w.id}
           contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: space.xxl, flexGrow: 1 }}
+          ListHeaderComponent={
+            watchlist.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filterRow}>
+                <Chip label={`All · ${counts.all}`} active={filter === 'all'} onPress={() => setFilter('all')} />
+                {LIST_STATUSES.map(({ key, label, icon }) => (
+                  <Chip key={key} label={`${label} · ${counts[key] ?? 0}`} icon={icon} active={filter === key} onPress={() => setFilter(key)} />
+                ))}
+              </ScrollView>
+            ) : null
+          }
           renderItem={({ item }) => (
             <Pressable onPress={() => open(item.data.titleId)} style={styles.row}>
               <View style={styles.thumb}>
@@ -85,23 +112,34 @@ const MyListScreen = ({ navigation }) => {
                 <Text style={styles.rowMeta}>{[item.data.type, timeAgo(item.data.createdAt)].filter(Boolean).join(' · ')}</Text>
               </View>
               <Pressable
-                onPress={() => removeFromWatchList(item.id).catch((e) => console.warn(e))}
+                onPress={() => setEditing(item)}
                 hitSlop={8}
-                style={styles.remove}
-                accessibilityLabel={`Remove ${item.data.title || 'anime'} from My List`}
+                style={styles.statusPill}
+                accessibilityRole="button"
+                accessibilityLabel={`${statusInfo(statusOf(item)).label}. Change status of ${item.data.title || 'anime'}`}
               >
-                <Ionicons name="trash-outline" size={19} color={colors.muted} />
+                <Ionicons name={statusInfo(statusOf(item)).icon} size={14} color={colors.accent} />
+                <Text style={styles.statusPillText}>{statusInfo(statusOf(item)).label}</Text>
+                <Ionicons name="chevron-down" size={14} color={colors.muted} />
               </Pressable>
             </Pressable>
           )}
           ListEmptyComponent={
-            <EmptyState
-              icon="bookmark-outline"
-              title="Your list is empty"
-              message="Tap “My List” on any anime to save it here."
-              actionTitle="Browse anime"
-              onAction={() => navigation.navigate('Home')}
-            />
+            watchlist.length > 0 ? (
+              <EmptyState
+                icon={statusInfo(filter).icon}
+                title={`Nothing in ${statusInfo(filter).label} yet`}
+                message="Change an anime's status from its page or from the list."
+              />
+            ) : (
+              <EmptyState
+                icon="bookmark-outline"
+                title="Your list is empty"
+                message="Tap “My List” on any anime to save it here."
+                actionTitle="Browse anime"
+                onAction={() => navigation.navigate('Home')}
+              />
+            )
           }
         />
       ) : historyRecords.length === 0 ? (
@@ -149,6 +187,14 @@ const MyListScreen = ({ navigation }) => {
           }}
         />
       )}
+      <StatusSheet
+        visible={Boolean(editing)}
+        title={editing?.data.title}
+        current={editing ? statusOf(editing) : null}
+        onPick={(key) => changeEntry(() => setListStatus(editing.id, key))}
+        onRemove={() => changeEntry(() => removeFromWatchList(editing.id))}
+        onClose={() => setEditing(null)}
+      />
     </SafeAreaView>
   );
 };
@@ -187,7 +233,19 @@ const styles = StyleSheet.create({
   continueText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.accent },
   rowTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.text },
   rowMeta: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
-  remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  statusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  statusPillText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
+  filterRow: { marginHorizontal: -space.xl, marginBottom: space.sm },
+  filters: { paddingHorizontal: space.xl, gap: space.sm },
 });
 
 export default MyListScreen;

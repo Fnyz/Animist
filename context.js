@@ -3,8 +3,9 @@ import { createContext, useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, Auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, orderBy, serverTimestamp } from 'firebase/firestore';
 import { offerEpisodeNotifications } from './notifications';
+import { DEFAULT_STATUS } from './listStatus';
 
 const myContext = createContext();
 
@@ -81,7 +82,7 @@ const findInWatchList = (animeId) =>
 
 // Stores the title and poster too, so My List can show items without extra API requests.
 // The first time, it also offers new-episode notifications for the anime on the list.
-const addToWatchList = async (anime) => {
+const addToWatchList = async (anime, status = DEFAULT_STATUS) => {
   const added = await addDoc(collection(db, 'watchList'), {
     name: userData?.user ?? '',
     userId: userData.id,
@@ -89,6 +90,7 @@ const addToWatchList = async (anime) => {
     title: anime.title,
     image: anime.image,
     type: anime.type ?? null,
+    status,
     createdAt: serverTimestamp(),
   });
   offerEpisodeNotifications(userData.id);
@@ -96,6 +98,9 @@ const addToWatchList = async (anime) => {
 };
 
 const removeFromWatchList = (docId) => deleteDoc(doc(db, 'watchList', docId));
+
+// Watching, Plan to watch, Completed or Dropped (see listStatus.js).
+const setListStatus = (docId, status) => updateDoc(doc(db, 'watchList', docId), { status, statusAt: serverTimestamp() });
 
 // One history entry per anime (the latest episode watched), shown in My List > History.
 // `progress` ({ position, duration } in seconds) is kept per episode, so every episode resumes
@@ -278,6 +283,7 @@ const getUserProfile = (id) => {
      findInWatchList,
      addToWatchList,
      removeFromWatchList,
+     setListStatus,
      recordWatch,
      watchProgress,
     }}>

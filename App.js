@@ -23,6 +23,7 @@ import { CrashBoundary } from './components/CrashScreen';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
 import SearchScreen from './screens/SearchScreen';
+import ScheduleScreen from './screens/ScheduleScreen';
 import MyListScreen from './screens/MyListScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import DetailsScreen from './screens/DetailsScreen';
@@ -31,6 +32,7 @@ import WatchScreen from './screens/WatchScreen';
 import EditProfileScreen from './screens/EditProfileScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
+import DeleteAccountScreen from './screens/DeleteAccountScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -50,6 +52,7 @@ const navTheme = {
 const TAB_ICONS = {
   Home: ['home', 'home-outline'],
   Search: ['search', 'search-outline'],
+  Schedule: ['calendar', 'calendar-outline'],
   MyList: ['bookmark', 'bookmark-outline'],
   Profile: ['person', 'person-outline'],
 };
@@ -69,6 +72,7 @@ const MainTabs = () => (
   >
     <Tabs.Screen name="Home" component={HomeScreen} />
     <Tabs.Screen name="Search" component={SearchScreen} />
+    <Tabs.Screen name="Schedule" component={ScheduleScreen} />
     <Tabs.Screen name="MyList" component={MyListScreen} options={{ title: 'My List' }} />
     <Tabs.Screen name="Profile" component={ProfileScreen} />
   </Tabs.Navigator>
@@ -94,6 +98,7 @@ const RootNavigator = () => {
       <Stack.Screen name="View" component={WatchScreen} />
       <Stack.Screen name="Settings" component={EditProfileScreen} />
       <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
+      <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
       <Stack.Screen name="SignUpAndSignIn" component={AuthScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="ForgetPass" component={ForgotPasswordScreen} />
     </Stack.Navigator>

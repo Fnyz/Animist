@@ -3,7 +3,7 @@
 // The native part only exists in APKs from 1.3.0 on; in Expo Go and older APKs the button is hidden.
 import { TurboModuleRegistry } from 'react-native';
 import Constants from 'expo-constants';
-import { GoogleAuthProvider, signInWithCredential } from 'firebase/auth';
+import { GoogleAuthProvider, reauthenticateWithCredential, signInWithCredential } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { Auth, db } from './firebase';
 import { randomAvatar } from './avatars';
@@ -61,6 +61,18 @@ export const signInWithGoogle = async () => {
     await setDoc(profile, { userId: user.uid, score: 1 }, { merge: true });
   }
   return user;
+};
+
+// Confirms it's really them before something sensitive (deleting the account): they pick their
+// Google account again. Resolves to true, or false when they closed the picker.
+export const reauthenticateWithGoogle = async (user) => {
+  const { GoogleSignin, isSuccessResponse } = library();
+  configure();
+  await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+  const response = await GoogleSignin.signIn();
+  if (!isSuccessResponse(response)) return false;
+  await reauthenticateWithCredential(user, GoogleAuthProvider.credential(response.data.idToken));
+  return true;
 };
 
 // Forgets the Google account on this phone too, so the next sign-in shows the account picker.

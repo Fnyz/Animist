@@ -272,6 +272,40 @@ export const getRecentEpisodes = async (page = 1, perPage = 20) => {
   return pageOf(data.Page, items);
 };
 
+const SCHEDULE_QUERY = `
+  query ($page: Int, $from: Int, $to: Int) {
+    Page(page: $page, perPage: 50) {
+      pageInfo { hasNextPage }
+      airingSchedules(airingAt_greater: $from, airingAt_lesser: $to, sort: TIME) {
+        episode
+        airingAt
+        media { ${MEDIA_FIELDS} popularity }
+      }
+    }
+  }
+`;
+
+// The coming week's episodes for the Schedule tab, soonest first: [{ anime, episode, airingAt }]
+// (airingAt in seconds). Starts a day back, so today's earlier episodes are there too.
+export const getSchedule = async () => {
+  let entries;
+  if (USE_STATIC_DATA) {
+    entries = (snapshot.schedule ?? []).map((s) => ({ ...s, media: staticMedia(s.mediaId) }));
+  } else {
+    const now = nowInSeconds();
+    entries = [];
+    for (let page = 1; page <= 6; page++) {
+      const data = await request(SCHEDULE_QUERY, { page, from: now - 86400, to: now + 8 * 86400 });
+      entries.push(...data.Page.airingSchedules);
+      if (!data.Page.pageInfo.hasNextPage) break;
+    }
+  }
+  return entries
+    .filter((s) => isListable(s.media))
+    .sort((a, b) => a.airingAt - b.airingAt)
+    .map((s) => ({ anime: toAnime(s.media), episode: s.episode, airingAt: s.airingAt }));
+};
+
 // A named list: 'trending' | 'airing' | 'popular' | 'movies' | 'free' (episodes play in the app).
 export const getList = async (kind, page = 1, perPage = 20) => {
   if (kind === 'free') return mediaPage(freeToWatchIds(), page, perPage);

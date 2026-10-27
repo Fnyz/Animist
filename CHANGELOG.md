@@ -5,6 +5,17 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
+## [Unreleased]
+
+### New
+- Delete your account from Profile: everything you stored (My List, history, likes, comments, notifications) is removed, after confirming with your password or Google account.
+- My List statuses: Watching, Plan to watch, Completed and Dropped, with filters. Starting an episode marks an anime Watching, and finishing the last episode of a finished show marks it Completed.
+- A Schedule tab: what airs each day this week, in your time zone, with countdowns, and a filter for anime on your list.
+
+### Fixed
+- "Change password" is no longer shown for Google accounts, which have no Animist password.
+- Episodes that aren't free yet show buttons for the anime's official services (and "Check for new episodes"), instead of a dead end.
+
 ## [1.3.0] - 2026-10-27
 
 Sign in with Google, get notified about new episodes, and use the app without an account.
