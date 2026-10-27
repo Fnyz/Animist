@@ -14,13 +14,15 @@ Browse trending and airing anime, watch thousands of free episodes from official
 
 ## Screenshots
 
-| Home | Continue watching | Details |
+| Home | Details | Seasons |
 |:---:|:---:|:---:|
-| ![Home with the trending carousel](docs/screenshots/home.jpg) | ![Continue watching and Free to watch rows](docs/screenshots/home-rows.jpg) | ![Anime details with where to watch](docs/screenshots/details.jpg) |
-| **Episodes** | **Player** | **Browse by genre** |
-| ![Episode list with watch progress](docs/screenshots/episodes.jpg) | ![Watch screen resuming an episode](docs/screenshots/watch.jpg) | ![Action genre grid](docs/screenshots/genre.jpg) |
-| **Search** | **History** | |
-| ![Search with genre shortcuts](docs/screenshots/search.jpg) | ![Watch history with continue buttons](docs/screenshots/history.jpg) | |
+| ![Home with a full-width trending banner playing its trailer clip](docs/screenshots/home.jpg) | ![Anime details with where to watch](docs/screenshots/details.jpg) | ![Seasons and Movies & specials rows](docs/screenshots/seasons.jpg) |
+| **Episodes** | **Player** | **Schedule** |
+| ![Episode list with free episodes from an official channel](docs/screenshots/episodes.jpg) | ![Watch screen playing an episode](docs/screenshots/watch.jpg) | ![This week's airing schedule with countdowns](docs/screenshots/schedule.jpg) |
+| **Continue watching** | **Browse by genre** | **Search** |
+| ![Continue watching and Free to watch rows](docs/screenshots/home-rows.jpg) | ![Action genre grid](docs/screenshots/genre.jpg) | ![Search with genre shortcuts](docs/screenshots/search.jpg) |
+| **History** | | |
+| ![Watch history with continue buttons](docs/screenshots/history.jpg) | | |
 
 **Fullscreen player**
 
@@ -38,17 +40,19 @@ Browse trending and airing anime, watch thousands of free episodes from official
 - 🔗 **Official links** (such as Crunchyroll) for episodes that aren't free on YouTube
 
 **Discover**
-- 🏠 **Home feed**: a trending carousel, Continue watching, Free to watch, new episodes, airing this season, all-time popular and top movies
+- 🏠 **Home feed**: full-width trending banners that play muted trailer clips, Continue watching, Free to watch, new episodes, airing this season, all-time popular and top movies
+- 📅 **Schedule**: what airs each day this week in your time zone, with countdowns
+- 🧩 **Seasons**: every season of an anime in release order, plus its movies and specials
 - 🔍 **Search as you type** and **browse by genre**
-- 📄 **Details** for every anime: synopsis, genres, score, trailer and where to watch it officially
+- 📄 **Details** for every anime: synopsis, genres, score, trailer, seasons and where to watch it officially
 - 🎬 **Trailers** play inside the app
 
 **Your account**
 - 👀 **No account needed** to browse and watch; signing in keeps your list, history and progress
 - 🔐 **Continue with Google**, or email sign-up with verification, password reset and password change
-- 📋 **Watchlist** and **watch history** with progress bars, synced with Firestore
+- 📋 **My List** with statuses (Watching, Plan to watch, Completed, Dropped) that update as you watch, and **watch history** with progress bars, synced with Firestore
 - 🔔 **New-episode notifications** for anime on your list
-- 👤 Profile with avatars
+- 👤 Profile with avatars, and **Delete account** that removes everything you stored
 
 **Always up to date**
 - 📦 New episodes and fixes arrive **over the air**, without reinstalling; an in-app prompt announces new versions
@@ -74,7 +78,7 @@ The episode list is built ahead of time by [`scripts/find-episodes.js`](scripts/
 
 A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) keeps the list fresh:
 
-1. **Every day at about 06:00 Philippine time** it refreshes the AniList data behind Home (trending, airing, new episodes) and reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Both are free and use no YouTube quota.
+1. **Every day at about 06:00 Philippine time** it refreshes the AniList data behind Home (trending, airing, new episodes, the schedule) and each anime's seasons ([`scripts/seasons.js`](scripts/seasons.js)), and reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Both are free and use no YouTube quota.
 2. **Only when there are new episodes**, it runs a quick search, about 5 minutes. It skips everything already in the app: known videos keep their saved details, and AniList is only searched for playlists it hasn't seen ([`data/finderCache.json`](data/finderCache.json) remembers earlier lookups).
 3. **On Sundays** it runs the full search, which re-checks every video, in case one was removed or blocked.
 4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
@@ -247,6 +251,7 @@ Add a YouTube Data API key to `.env` (see [`.env.example`](.env.example)), then 
 node scripts/check-feeds.js            # what's new on the channels (free, no key needed)
 node scripts/find-episodes.js --quick  # only what's new: new playlists and new videos (~5 min)
 node scripts/find-episodes.js          # full search: re-checks everything (15–40 min)
+node scripts/seasons.js                # seasons, movies and specials of each anime (free, ~1 min)
 ```
 
 A run uses about 1,500–2,500 of the free 10,000 daily quota units. The full search is slower because AniList allows about 30 requests a minute.

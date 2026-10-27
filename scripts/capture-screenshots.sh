@@ -2,13 +2,15 @@
 # Captures README screenshots from an Android device connected over USB (or a running emulator).
 # Usage: open the app on the device, then run ./scripts/capture-screenshots.sh
 # For each screen, navigate to it in the app and press Enter to capture it.
-# Screens: home (top), home-rows (scrolled to Continue watching), details, episodes (details,
-# scrolled to the list), watch, fullscreen (landscape), search, genre (a genre list), history.
+# Screens: home (top, with a trailer clip playing), details, seasons (details, scrolled to the
+# Seasons row), episodes (details, scrolled to the list), watch, fullscreen (landscape), schedule,
+# home-rows (scrolled to Continue watching), genre (a genre list), search, history.
+# Continue watching and history need a signed-in account.
 # Tip: turn off Expo Go's floating tools button first (developer menu > Tools button).
 set -euo pipefail
 
 OUT_DIR="$(cd "$(dirname "$0")/.." && pwd)/docs/screenshots"
-SCREENS=(home home-rows details episodes watch fullscreen search genre history)
+SCREENS=(home details seasons episodes watch fullscreen schedule home-rows genre search history)
 
 if ! command -v adb >/dev/null 2>&1; then
   echo "adb not found. Install Android platform-tools first." >&2
