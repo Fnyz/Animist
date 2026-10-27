@@ -22,6 +22,21 @@ const lockOrientation = (landscape) =>
       )
     : Promise.resolve();
 
+// Hiding Android's bottom gesture/navigation bar in fullscreen needs a native part that APKs only
+// have from 1.3.0 on; without it, only the status bar is hidden.
+const NavigationBar = requireOptionalNativeModule('ExpoNavigationBar') ? require('expo-navigation-bar').NavigationBar : null;
+
+// Fullscreen is immersive: no status bar (time, Wi-Fi) and no gesture bar. Android shows them
+// for a moment when someone swipes from an edge, then hides them again.
+const setImmersive = (on) => {
+  StatusBar.setHidden(on, 'fade');
+  try {
+    NavigationBar?.setHidden(on);
+  } catch {
+    // Some devices don't allow hiding the navigation bar; the video still fills the screen.
+  }
+};
+
 export const openOnYouTube = (videoId) =>
   Linking.openURL(`https://www.youtube.com/watch?v=${videoId}`).catch(() => {});
 
@@ -447,6 +462,7 @@ const VideoPlayer = ({
     const next = !fullscreen;
     setSession((s) => ({ id: s.id + 1, start: at ?? position.current }));
     setFullscreen(next);
+    setImmersive(next);
     try {
       await lockOrientation(next);
     } catch {
@@ -454,10 +470,11 @@ const VideoPlayer = ({
     }
   };
 
-  // Never leave the app stuck sideways.
+  // Never leave the app stuck sideways, or without its status and navigation bars.
   useEffect(
     () => () => {
       lockOrientation(false).catch(() => {});
+      setImmersive(false);
     },
     []
   );

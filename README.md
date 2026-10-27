@@ -44,9 +44,15 @@ Browse trending and airing anime, watch thousands of free episodes from official
 - 🎬 **Trailers** play inside the app
 
 **Your account**
-- 🔐 Email sign-up with verification, password reset and password change
+- 👀 **No account needed** to browse and watch; signing in keeps your list, history and progress
+- 🔐 **Continue with Google**, or email sign-up with verification, password reset and password change
 - 📋 **Watchlist** and **watch history** with progress bars, synced with Firestore
+- 🔔 **New-episode notifications** for anime on your list
 - 👤 Profile with avatars
+
+**Always up to date**
+- 📦 New episodes and fixes arrive **over the air**, without reinstalling; an in-app prompt announces new versions
+- 📶 Offline banner, a player that restarts when the connection is back, and crash reporting with Sentry
 
 ---
 
@@ -83,6 +89,57 @@ If a run finds over 10% fewer episodes than before, it keeps the old list. That 
 
 ---
 
+## Architecture
+
+```mermaid
+flowchart LR
+  subgraph phone["Animist app (React Native + Expo)"]
+    ui["Screens and player"]
+    bundled[("Bundled data: AniList snapshot, episode list")]
+  end
+
+  subgraph firebase["Firebase"]
+    auth["Authentication (email, Google)"]
+    db[("Firestore: lists, history, progress, push tokens")]
+  end
+
+  subgraph github["GitHub"]
+    repo[("Repository")]
+    actions["GitHub Actions"]
+    releases["Releases (APK) and download page"]
+  end
+
+  youtube["YouTube (official channels)"]
+  services["Crunchyroll and other official services"]
+  expo["Expo (EAS Update, push)"]
+  anilist["AniList API"]
+  ytapi["YouTube Data API and RSS"]
+  sentry["Sentry"]
+
+  ui -->|sign in| auth
+  ui -->|"my list, history"| db
+  ui -->|"plays episodes (embed)"| youtube
+  ui -->|opens| services
+  ui -->|crash reports| sentry
+  ui -->|"new version?"| releases
+
+  actions -->|"daily: fresh data"| anilist
+  actions -->|"daily: new episodes"| ytapi
+  actions -->|"data pull request or commit"| repo
+  repo -->|"push to main"| actions
+  actions -->|"publish update"| expo
+  actions -->|"who to notify"| db
+  actions -->|notifications| expo
+  actions -->|"tag v*: build APK"| releases
+  expo -->|"over-the-air updates, notifications"| phone
+```
+
+- **The app** ships with its data (AniList details and the official episode list), so it opens instantly and works offline. Videos stream from YouTube's own player.
+- **Firebase** holds only what's personal: accounts, lists, history, progress and phones' notification addresses. Rules let each person read and change only their own data.
+- **GitHub Actions** keeps the data fresh every day, publishes JavaScript updates to installed apps through Expo, sends new-episode notifications, and builds the APK for releases.
+
+---
+
 ## Tech stack
 
 | Layer | Technology |
@@ -93,7 +150,8 @@ If a run finds over 10% fewer episodes than before, it keeps the old list. That 
 | Player | YouTube embed in `react-native-webview`, with custom controls and `expo-screen-orientation` for fullscreen |
 | Anime data | [AniList GraphQL API](https://docs.anilist.co) (bundled snapshot, see below) |
 | Episodes | YouTube Data API v3, at build time only |
-| Backend | Firebase Authentication and Cloud Firestore |
+| Backend | Firebase Authentication (email, Google) and Cloud Firestore |
+| Notifications | expo-notifications and Expo's push service; sent by a script in the update workflow |
 | Builds and updates | EAS Build (APK), EAS Update (over-the-air updates) |
 | CI/CD | GitHub Actions, CodeQL, Dependabot, Gitleaks, audit-ci |
 | Tests | Jest |
@@ -117,7 +175,8 @@ Scan the QR code with your Android phone, or download `animist.apk` from the [la
 | Every push and pull request | `ci.yml` | **Lint** (ESLint, zero warnings) and **unit tests** (Jest) · **build check** (`expo-doctor`, Expo package versions, Android bundle) · **security** (dependency vulnerabilities with `audit-ci`, secret scanning with Gitleaks) |
 | Push to `main`, pull requests, weekly | `codeql.yml` | GitHub CodeQL scans the code for security bugs |
 | Weekly | `dependabot.yml` | Opens pull requests for dependency updates and security fixes |
-| Push to `main` | `update.yml` | Publishes an over-the-air update to installed apps with EAS Update |
+| Push to `main` | `update.yml` | Checks installed apps can run the update (no native changes since the release), publishes it with EAS Update, then sends new-episode notifications |
+| By hand, any branch | `test-apk.yml` | Builds a test APK without releasing it (downloadable from the run for 7 days) |
 | Daily at about 06:00 (Philippines), or by hand | `episodes.yml` | Checks the official channels' RSS feeds for new episodes and, if there are any, refreshes `data/episodes.json` and the AniList data (see [New episodes automatically](#new-episodes-automatically)) |
 | Tag `v*` | `release.yml` | Builds a signed APK on the GitHub runner and attaches it to a GitHub Release |
 
@@ -125,11 +184,14 @@ The QR code points to `releases/latest/download/animist.apk`, so it always downl
 
 ### Releasing
 
-1. Update `version` in `app.json` and add a `## [x.y.z] - date` section to [CHANGELOG.md](CHANGELOG.md).
-2. Commit, then tag and push:
+Each version is prepared on its own branch, so `main` keeps updating the current version's phones meanwhile:
+
+1. **Branch off:** `git switch -c release/1.4.0`, bump `version` in `app.json`, and do the work (native changes included).
+2. **Try it:** Actions → **Build test APK** → Run workflow on the branch, install the APK, fix and repeat.
+3. **Release:** add a `## [1.4.0] - date` section to [CHANGELOG.md](CHANGELOG.md), merge the branch into `main`, then tag and push:
    ```bash
-   git tag v1.2.0
-   git push origin v1.2.0
+   git tag v1.4.0
+   git push origin v1.4.0
    ```
 
 The `Release APK` workflow checks that the tag matches `app.json`, builds the APK, and publishes a GitHub Release with that version's notes from the changelog.
@@ -145,6 +207,8 @@ The `Release APK` workflow checks that the tag matches `app.json`, builds the AP
 4. Create an access token at expo.dev → Account settings → Access tokens, and add it on GitHub as the repository secret `EXPO_TOKEN` (Settings → Secrets and variables → Actions).
 5. Turn on GitHub Pages: Settings → Pages → Deploy from a branch → `main` / `docs`.
 6. For daily episode updates: add your YouTube Data API key as the repository secret `YOUTUBE_API_KEY`, and allow GitHub Actions to open pull requests (Settings → Actions → General → Workflow permissions → **Allow GitHub Actions to create and approve pull requests**).
+7. For Google sign-in: enable the Google provider in Firebase Authentication, add the Android app (`com.fnyz.animist`) with the EAS keystore's SHA-1 fingerprint, and put its `google-services.json` in the project root. Its "web client" ID goes in `app.json` → `extra.googleWebClientId`.
+8. For notifications: upload a Firebase service account key to Expo (`npx eas-cli credentials -p android` → Push Notifications (FCM V1)), add a key that can only use Firestore (role *Cloud Datastore User*) as the repository secret `FIREBASE_SERVICE_ACCOUNT`, and publish [`firestore.rules`](firestore.rules).
 
 </details>
 
@@ -202,6 +266,11 @@ Animist/
 ├── api.js                  # AniList data and episode sources for every screen
 ├── progress.js             # Watch progress helpers (resume point, "12:34 left")
 ├── firebase.js             # Firebase setup
+├── googleAuth.js           # "Continue with Google"
+├── notifications.js        # New-episode notifications on the phone
+├── sentry.js               # Crash reporting
+├── connectivity.js         # Online/offline detection
+├── appVersion.js           # "A new version is out" check
 ├── theme.js                # Colors, fonts and spacing
 ├── screens/                # Home, Search, List, Details, Watch, My List, Profile, Auth, …
 ├── components/
@@ -210,11 +279,13 @@ Animist/
 │   ├── fullscreenBox.js    # Exact 16:9 fullscreen size on any screen shape
 │   ├── HeroCarousel.js     # Trending carousel on Home
 │   ├── ContinueRow.js      # Continue watching row on Home
+│   ├── UpdateNotice.js     # New-version prompt
+│   ├── NotificationBridge.js # Opens the anime a notification is about
 │   └── ui.js               # Buttons, posters, rows and other shared UI
 ├── data/
 │   ├── animeSnapshot.json  # Saved AniList data
 │   └── episodes.json       # Official YouTube episodes, matched to AniList
-├── scripts/                # Episode finder and RSS check, AniList snapshot, screenshot capture
+├── scripts/                # Episode finder, RSS check, AniList snapshot, notifications, update guard
 ├── __tests__/              # Jest tests
 └── docs/                   # Download page (GitHub Pages) and screenshots
 ```
@@ -231,8 +302,9 @@ Animist/
 - [x] **CI/CD**: GitHub Actions, signed APK releases, QR download page, over-the-air updates
 - [x] **Screenshots**
 - [x] **Fresh episodes automatically**: daily RSS check, pull requests with new episodes
-- [ ] **Live AniList data** instead of the snapshot
-- [ ] **Browse without an account**, Google Sign-In, new-episode notifications, AniList list import
+- [x] **Browse without an account**, Google Sign-In, new-episode notifications
+- [x] **Daily AniList data** refresh (trending, airing, new episodes)
+- [ ] **AniList list import**
 - [ ] **UI tests** with Maestro
 - [ ] **Later**: Google Play release, comment reporting and spoiler tags, in-app account deletion
 

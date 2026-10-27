@@ -1,1 +1,0 @@
-rm -rf node_modules package-lock.json && npm install --no-audit --no-fund 2>&1 | grep -v "deprecated\|EBADENGINE\|required:\|current:\|^npm warn }" | tail -3; find node_modules -path "*@firebase/app/package.json" | xargs -I{} sh -c 'echo "{} $(node -p "require(\"./{}\").version")"'
