@@ -23,13 +23,27 @@ const HIDE_YOUTUBE_UI = [
 const PAGE_CSS =
   `${HIDE_YOUTUBE_UI}{display:none!important;}` +
   ' html,body{background:#000!important;overflow:hidden!important;height:100%!important;margin:0!important;overscroll-behavior:none!important;touch-action:none!important;}' +
-  ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;}' +
+  ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;left:0!important;top:0!important;width:var(--animist-w,100%)!important;height:var(--animist-h,100%)!important;}' +
   ' video.html5-main-video{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}' +
   ' .html5-video-player > :not(.html5-video-container){display:none!important;}';
 
-// Adds PAGE_CSS to the page once (both scripts below call it).
+// Adds PAGE_CSS to the page once (both scripts below call it), and sizes the player to the part of
+// the page that's actually visible. On some phones Android lays the page out larger than the
+// WebView (about 5% on a 2.75x screen), so a player sized to the page lost the bottom and right of
+// the picture, subtitles included.
 const ADD_CSS = `
+  function fitAnimist() {
+    var vv = window.visualViewport, el = document.documentElement;
+    if (!vv || !el || !vv.width || !vv.height) return;
+    el.style.setProperty('--animist-w', vv.width + 'px');
+    el.style.setProperty('--animist-h', vv.height + 'px');
+  }
+  if (window.visualViewport && !window.__animistFit) {
+    window.__animistFit = true;
+    window.visualViewport.addEventListener('resize', fitAnimist);
+  }
   function addAnimistCss() {
+    fitAnimist();
     if (document.getElementById('animist-css')) return true;
     var root = document.head || document.documentElement;
     if (!root) return false;

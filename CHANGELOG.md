@@ -17,6 +17,7 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 ### Fixed
 - "Change password" is no longer shown for Google accounts, which have no Animist password.
 - Episodes that aren't free yet show buttons for the anime's official services (and "Check for new episodes"), instead of a dead end.
+- Fullscreen video no longer cuts off the bottom and right edge of the picture on some phones, so subtitles near the bottom show in full.
 
 ## [1.3.0] - 2026-10-27
 
