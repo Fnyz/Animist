@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, Auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
 import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { offerEpisodeNotifications } from './notifications';
 
 const myContext = createContext();
 
@@ -79,8 +80,9 @@ const findInWatchList = (animeId) =>
   userWatchList.find((w) => String(w.data.titleId) === String(animeId));
 
 // Stores the title and poster too, so My List can show items without extra API requests.
-const addToWatchList = (anime) =>
-  addDoc(collection(db, 'watchList'), {
+// The first time, it also offers new-episode notifications for the anime on the list.
+const addToWatchList = async (anime) => {
+  const added = await addDoc(collection(db, 'watchList'), {
     name: userData?.user ?? '',
     userId: userData.id,
     titleId: anime.id,
@@ -89,6 +91,9 @@ const addToWatchList = (anime) =>
     type: anime.type ?? null,
     createdAt: serverTimestamp(),
   });
+  offerEpisodeNotifications(userData.id);
+  return added;
+};
 
 const removeFromWatchList = (docId) => deleteDoc(doc(db, 'watchList', docId));
 

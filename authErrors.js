@@ -12,6 +12,12 @@ const ERROR_MESSAGES = {
   'auth/too-many-requests': 'Too many attempts. Wait a minute, or reset your password.',
   'auth/network-request-failed': "You're offline. Check your connection and try again.",
   'permission-denied': 'The server refused the request. Try again later.',
+  // Google sign-in (codes from the Google sign-in library)
+  'auth/account-exists-with-different-credential': 'This email already has an account. Log in with your password instead.',
+  PLAY_SERVICES_NOT_AVAILABLE: 'Google sign-in needs Google Play services on this phone. Use email instead.',
+  IN_PROGRESS: 'Google sign-in is already open.',
+  DEVELOPER_ERROR: "Google sign-in isn't set up for this version of the app. Use email for now.",
+  10: "Google sign-in isn't set up for this version of the app. Use email for now.",
 };
 
 export const messageFor = (error) => {

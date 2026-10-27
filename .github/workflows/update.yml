@@ -49,3 +49,12 @@ jobs:
       - name: Publish update
         if: env.EXPO_TOKEN != ''
         run: eas update --channel preview --auto --non-interactive
+
+      # After publishing, so tapping a notification finds the new episodes. Off until the
+      # FIREBASE_SERVICE_ACCOUNT secret is added; it never fails the published update.
+      - name: Notify people about new episodes
+        if: env.EXPO_TOKEN != ''
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          BEFORE: ${{ github.event.before }}
+        run: node scripts/notify-new-episodes.js --before "$BEFORE"

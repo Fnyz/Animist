@@ -23,3 +23,7 @@ logs/
 .env
 .env.*
 !.env.example
+
+# Firebase service account keys (private): uploaded to EAS / GitHub secrets, never committed.
+*firebase-adminsdk*.json
+service-account*.json

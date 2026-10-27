@@ -12,9 +12,14 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - Home stays current: trending, airing this season and new episodes are refreshed every day.
 - A new look for the trending carousel: the poster art fills the card and fades into the page.
 - Versions that must be installed (marked `[required]` in their notes) show an update prompt that can't be skipped.
+- Continue with Google: sign in with your Google account in one tap.
+- New-episode notifications: get notified when an anime on your list has a new free episode. Tapping it opens the anime with the episode ready.
+- A new launch screen that fills the whole screen, with the app icon.
 
 ### Fixed
 - YouTube's own title bar no longer flashes over the player while a video loads on a slow connection; the video's thumbnail shows until it plays.
+- Fullscreen is truly fullscreen: the status bar (time, Wi-Fi) and Android's gesture bar are hidden until you swipe from an edge.
+- A smaller download: the APK now only includes the code real phones use (no versions for computer emulators).
 
 ## [1.2.0] - 2026-10-26
 

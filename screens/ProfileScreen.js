@@ -6,6 +6,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import Constants from 'expo-constants';
 import { Auth } from '../firebase';
+import { signOutGoogle } from '../googleAuth';
+import { stopEpisodeNotifications } from '../notifications';
 import { myContext } from '../context';
 import { Button } from '../components/ui';
 import { USE_STATIC_DATA } from '../api';
@@ -32,6 +34,9 @@ const ProfileScreen = ({ navigation }) => {
   const logOut = async () => {
     setSigningOut(true);
     try {
+      // While still signed in: this phone stops getting the account's notifications.
+      await stopEpisodeNotifications();
+      await signOutGoogle();
       await signOut(Auth);
     } catch (e) {
       console.warn('sign out failed', e);
