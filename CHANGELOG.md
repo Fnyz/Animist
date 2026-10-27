@@ -5,7 +5,9 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
-## [Unreleased]
+## [1.3.0] - 2026-10-27
+
+Sign in with Google, get notified about new episodes, and use the app without an account.
 
 ### New
 - Browse and watch without an account: the app opens straight to Home. Signing in is only needed to keep a list, history and progress, and it brings you back to where you were.
