@@ -69,7 +69,7 @@ jobs:
       - name: Build APK
         run: eas build --platform android --profile preview --local --non-interactive --output animist.apk
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           name: Animist ${{ github.ref_name }}
           body_path: release-notes.md
