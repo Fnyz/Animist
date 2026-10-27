@@ -19,6 +19,7 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 ### Fixed
 - YouTube's own title bar no longer flashes over the player while a video loads on a slow connection; the video's thumbnail shows until it plays.
 - Fullscreen is truly fullscreen: the status bar (time, Wi-Fi) and Android's gesture bar are hidden until you swipe from an edge.
+- A smaller download: the APK now only includes the code real phones use (no versions for computer emulators).
 
 ## [1.2.0] - 2026-10-26
 
