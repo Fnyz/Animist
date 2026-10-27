@@ -24,7 +24,7 @@ const Row = ({ icon, label, detail, onPress }) => (
 );
 
 const ProfileScreen = ({ navigation }) => {
-  const { profile, userWatchList, authUser } = useContext(myContext);
+  const { profile, userWatchList, authUser, signedIn } = useContext(myContext);
   const [signingOut, setSigningOut] = useState(false);
   const me = profile?.[0]?.data ?? {};
   const fullName = [me.firstname, me.lastname].filter(Boolean).join(' ') || 'Anime fan';
@@ -38,6 +38,45 @@ const ProfileScreen = ({ navigation }) => {
       setSigningOut(false);
     }
   };
+
+  const appInfo = (
+    <View style={styles.group}>
+      <Row icon="server-outline" label="Anime data" detail={USE_STATIC_DATA ? 'Offline snapshot' : 'AniList (live)'} />
+      <Row icon="information-circle-outline" label="Version" detail={Constants.expoConfig?.version ?? '1.0.0'} />
+    </View>
+  );
+
+  // Browsing without an account: what signing in adds, and the way in. An account that's still
+  // waiting for email verification goes to the same screen, which shows the verification step.
+  if (!signedIn) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <ScrollView contentContainerStyle={{ padding: space.xl, gap: space.xxl }}>
+          <Text style={styles.heading}>Profile</Text>
+          <View style={styles.card}>
+            <View style={[styles.avatar, styles.guestAvatar]}>
+              <Ionicons name="person-outline" size={30} color={colors.accent} />
+            </View>
+            <View style={{ flex: 1, gap: 3 }}>
+              <Text style={styles.name}>{authUser ? 'Almost there' : 'Browsing as a guest'}</Text>
+              <Text style={styles.email}>
+                {authUser
+                  ? `Verify ${authUser.email} to finish creating your account.`
+                  : 'Sign in to keep a list, save your history and continue episodes where you left them.'}
+              </Text>
+            </View>
+          </View>
+          <Button
+            title={authUser ? 'Verify your email' : 'Log in or create an account'}
+            icon={authUser ? 'mail-outline' : 'log-in-outline'}
+            onPress={() => navigation.navigate('SignUpAndSignIn')}
+          />
+          {appInfo}
+          <Text style={styles.credit}>{AVATAR_CREDIT}</Text>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -68,10 +107,7 @@ const ProfileScreen = ({ navigation }) => {
           <Row icon="bookmark-outline" label="My List" onPress={() => navigation.navigate('MyList')} />
         </View>
 
-        <View style={styles.group}>
-          <Row icon="server-outline" label="Anime data" detail={USE_STATIC_DATA ? 'Offline snapshot' : 'AniList (live)'} />
-          <Row icon="information-circle-outline" label="Version" detail={Constants.expoConfig?.version ?? '1.0.0'} />
-        </View>
+        {appInfo}
 
         <Button title="Log out" icon="log-out-outline" variant="ghost" onPress={logOut} loading={signingOut} />
         <Text style={styles.credit}>{AVATAR_CREDIT}</Text>
@@ -104,6 +140,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'hidden',
   },
+  guestAvatar: { backgroundColor: 'rgba(255,122,89,0.1)' },
   name: { fontFamily: fonts.display, fontSize: 20, color: colors.text },
   handle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.accent },
   email: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },

@@ -1,11 +1,14 @@
 #!/usr/bin/env node
 // Saves a snapshot of real AniList data to data/animeSnapshot.json, used by api.js
 // when USE_STATIC_DATA is true. Re-run to refresh it: node scripts/snapshot-anime.js
+// The daily episode workflow runs it too, so Home's lists stay current. About 25 requests and a
+// minute; no key needed. If AniList answers with much less than last time, the old file is kept.
 const fs = require('fs');
 const path = require('path');
 
 const ENDPOINT = 'https://graphql.anilist.co';
 const OUT = path.join(__dirname, '..', 'data', 'animeSnapshot.json');
+const EPISODES = path.join(__dirname, '..', 'data', 'episodes.json');
 
 const { MEDIA_FIELDS } = require('./anilistFields');
 
@@ -69,6 +72,26 @@ const page = (filter, perPage) => `{
   for (const genre of GENRES) {
     process.stdout.write(`${genre}… `);
     genres[genre] = (await gql(page(`sort: [POPULARITY_DESC], genre: "${genre}"`, 15))).Page.media.map(keep);
+  }
+
+  // Anime with episodes in the app whose data lives in this snapshot (the rest is stored in
+  // data/episodes.json) stay in it even when they drop out of the lists above; otherwise their
+  // pages would have no data. Fetched again too, so airing shows keep the right episode count.
+  const episodes = fs.existsSync(EPISODES) ? JSON.parse(fs.readFileSync(EPISODES, 'utf8')) : { anime: {}, media: {} };
+  const missing = Object.keys(episodes.anime ?? {})
+    .map(Number)
+    .filter((id) => !media[id] && !(episodes.media ?? {})[id]);
+  for (let i = 0; i < missing.length; i += 50) {
+    process.stdout.write('anime with episodes… ');
+    const ids = missing.slice(i, i + 50);
+    (await gql(`{ Page(perPage: 50) { media(id_in: [${ids.join(',')}], type: ANIME) { ${MEDIA_FIELDS} } } }`)).Page.media.forEach(keep);
+  }
+
+  // A much smaller answer than last time means AniList had a problem, not that anime vanished.
+  const before = fs.existsSync(OUT) ? Object.keys(JSON.parse(fs.readFileSync(OUT, 'utf8')).media ?? {}).length : 0;
+  const after = Object.keys(media).length;
+  if (before && after < before * 0.8) {
+    throw new Error(`only ${after} anime instead of ${before}; kept the old snapshot`);
   }
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });

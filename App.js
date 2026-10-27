@@ -78,29 +78,22 @@ const Splash = () => (
   </View>
 );
 
-// Shows the main app to signed-in users with a verified email, and the login screens to everyone else.
+// Everyone gets the app: browsing and watching need no account. Signing in (to keep a list,
+// history and progress) is a screen people open when they need it, and it returns to where they were.
 const RootNavigator = () => {
-  const { authReady, authUser, verified } = useContext(myContext);
+  const { authReady } = useContext(myContext);
   if (!authReady) return <Splash />;
-  const signedIn = authUser && verified;
 
   return (
     <Stack.Navigator screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      {signedIn ? (
-        <>
-          <Stack.Screen name="Main" component={MainTabs} />
-          <Stack.Screen name="AnimeDetail" component={DetailsScreen} />
-          <Stack.Screen name="List" component={ListScreen} />
-          <Stack.Screen name="View" component={WatchScreen} />
-          <Stack.Screen name="Settings" component={EditProfileScreen} />
-          <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
-        </>
-      ) : (
-        <>
-          <Stack.Screen name="SignUpAndSignIn" component={AuthScreen} />
-          <Stack.Screen name="ForgetPass" component={ForgotPasswordScreen} />
-        </>
-      )}
+      <Stack.Screen name="Main" component={MainTabs} />
+      <Stack.Screen name="AnimeDetail" component={DetailsScreen} />
+      <Stack.Screen name="List" component={ListScreen} />
+      <Stack.Screen name="View" component={WatchScreen} />
+      <Stack.Screen name="Settings" component={EditProfileScreen} />
+      <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
+      <Stack.Screen name="SignUpAndSignIn" component={AuthScreen} options={{ animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="ForgetPass" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 };

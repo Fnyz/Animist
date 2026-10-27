@@ -1,17 +1,21 @@
 name: Refresh episodes
 
-# Keeps data/episodes.json up to date with new uploads on the official YouTube channels.
+# Keeps the app's data current: AniList's lists (trending, airing, new episodes; data/animeSnapshot.json)
+# and the episodes on the official YouTube channels (data/episodes.json).
 #
-# Automatic: every day at 06:00 Philippine time. It reads the channels' RSS feeds (free, no quota)
-#   and only runs the episode search when something new was uploaded. On Sundays it runs the full
-#   search, which also finds new shows. The result arrives as a pull request, or as a commit to main
-#   when the repository variable EPISODES_DELIVERY is set to "commit".
+# Automatic: every day at about 06:00 Philippine time. It refreshes the AniList data (free, about a
+#   minute), reads the channels' RSS feeds (free, no quota) and only runs the episode search when
+#   something new was uploaded. On Sundays it runs the full search, which re-checks every video.
+#   Everything that changed arrives as one pull request, or as a commit to main when the repository
+#   variable EPISODES_DELIVERY is set to "commit".
 # Manual: Actions > Refresh episodes > Run workflow, then pick the mode and the delivery.
 #
 # Needs the repository secret YOUTUBE_API_KEY. Skips itself until it's added.
 on:
   schedule:
-    - cron: '0 22 * * *' # 22:00 UTC = 06:00 in the Philippines
+    # 21:47 UTC = 05:47 in the Philippines. Off the hour on purpose: GitHub delays scheduled runs that
+    # start on the hour, when most others do.
+    - cron: '47 21 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -81,6 +85,12 @@ jobs:
           echo "check_feeds=$check_feeds" >> "$GITHUB_OUTPUT"
           echo "Mode: $mode · delivery: $delivery · RSS check first: $check_feeds"
 
+      # A failure (AniList down) keeps yesterday's data and doesn't stop the episode check.
+      - name: Refresh AniList data
+        if: env.YOUTUBE_API_KEY != ''
+        continue-on-error: true
+        run: node scripts/snapshot-anime.js
+
       - name: Check RSS feeds for new uploads
         id: feeds
         if: env.YOUTUBE_API_KEY != '' && steps.plan.outputs.check_feeds == 'true'
@@ -93,15 +103,31 @@ jobs:
           flags="--summary $RUNNER_TEMP/summary.md"
           [ "${{ steps.plan.outputs.mode }}" = "quick" ] && flags="$flags --quick"
           node scripts/find-episodes.js $flags
-          if git diff --quiet -- data/episodes.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            cat "$RUNNER_TEMP/summary.md" >> "$GITHUB_STEP_SUMMARY"
+
+      # What changed, for the pull request: the episode summary (if the search ran and found
+      # something) and a line for fresh AniList data.
+      - name: Collect changes
+        id: changes
+        if: env.YOUTUBE_API_KEY != ''
+        run: |
+          episodes=$(git diff --quiet -- data/episodes.json && echo false || echo true)
+          anilist=$(git diff --quiet -- data/animeSnapshot.json && echo false || echo true)
+          summary="$RUNNER_TEMP/pr-body.md"
+          : > "$summary"
+          if [ "$episodes" = "true" ]; then cat "$RUNNER_TEMP/summary.md" >> "$summary"; fi
+          if [ "$anilist" = "true" ]; then
+            echo "AniList data refreshed: trending, airing this season, popular, movies and new episodes." >> "$summary"
           fi
+          if [ "$episodes" = "true" ]; then title="New episodes from official YouTube channels"
+          else title="Fresh AniList data (trending, airing, new episodes)"; fi
+          changed=$([ "$episodes" = "true" ] || [ "$anilist" = "true" ] && echo true || echo false)
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+          echo "summary=$summary" >> "$GITHUB_OUTPUT"
+          [ "$changed" = "true" ] && cat "$summary" >> "$GITHUB_STEP_SUMMARY" || echo "Nothing new today." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open a pull request
-        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'pull-request'
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'pull-request'
         uses: peter-evans/create-pull-request@v7
         with:
           branch: bot/refresh-episodes
@@ -109,32 +135,33 @@ jobs:
           add-paths: |
             data/episodes.json
             data/finderCache.json
-          commit-message: 'Refresh episodes from official YouTube channels'
-          title: 'New episodes from official YouTube channels'
-          body-path: ${{ runner.temp }}/summary.md
+            data/animeSnapshot.json
+          commit-message: ${{ steps.changes.outputs.title }}
+          title: ${{ steps.changes.outputs.title }}
+          body-path: ${{ steps.changes.outputs.summary }}
           labels: episodes
 
       - name: Commit to main
-        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit'
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/episodes.json data/finderCache.json
-          git commit -m "Refresh episodes from official YouTube channels"
+          git add data/episodes.json data/finderCache.json data/animeSnapshot.json
+          git commit -m "${{ steps.changes.outputs.title }}"
           git push
 
       # A push made by this workflow doesn't start other workflows, so the over-the-air update that
       # normally follows a push to main is published here.
       - uses: expo/expo-github-action@v8
-        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish the update to phones
-        if: steps.search.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
         run: |
           npm ci
           git fetch --tags --quiet
           node scripts/check-native-changes.js
-          eas update --channel preview --message "Refresh episodes" --non-interactive
+          eas update --channel preview --environment preview --message "${{ steps.changes.outputs.title }}" --non-interactive

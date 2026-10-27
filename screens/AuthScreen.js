@@ -15,7 +15,7 @@ import { myContext } from '../context';
 import { getList } from '../api';
 import { randomAvatar } from '../avatars';
 import { messageFor } from '../authErrors';
-import { Button, Wordmark, Field, ErrorBanner } from '../components/ui';
+import { Button, Wordmark, Field, ErrorBanner, IconButton } from '../components/ui';
 import { colors, fonts, radius, space } from '../theme';
 
 // Three slowly offset rows of real posters behind the form.
@@ -118,8 +118,10 @@ const VerifyPanel = ({ email }) => {
   );
 };
 
-const AuthScreen = ({ navigation }) => {
-  const { authUser, verified } = useContext(myContext);
+// route.params: { reason } – why it opened, e.g. "Sign in to save anime to My List."
+const AuthScreen = ({ navigation, route }) => {
+  const { authUser, verified, signedIn } = useContext(myContext);
+  const reason = route.params?.reason;
   const [mode, setMode] = useState('login');
   const [form, setForm] = useState({ firstName: '', lastName: '', username: '', email: '', password: '' });
   const [error, setError] = useState(null);
@@ -184,15 +186,25 @@ const AuthScreen = ({ navigation }) => {
 
   const needsVerification = authUser && !verified;
 
+  // Signed in (and verified): back to where they came from.
+  useEffect(() => {
+    if (!signedIn) return;
+    if (navigation.canGoBack()) navigation.goBack();
+    else navigation.navigate('Main');
+  }, [signedIn, navigation]);
+
   return (
     <View style={styles.screen}>
       <PosterWall />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
           <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+            {navigation.canGoBack() && (
+              <IconButton icon="close" label="Close" onPress={() => navigation.goBack()} style={styles.close} />
+            )}
             <View style={styles.brand}>
               <Wordmark size={52} />
-              <Text style={styles.tagline}>Discover anime, keep your list, and talk about every episode.</Text>
+              <Text style={styles.tagline}>{reason ?? 'Keep your list, your history and every episode where you left it.'}</Text>
             </View>
 
             {needsVerification ? (
@@ -280,6 +292,7 @@ const styles = StyleSheet.create({
   wallRow: { flexDirection: 'row', gap: space.md },
   scroll: { flexGrow: 1, justifyContent: 'flex-end', padding: space.xl, gap: space.xl },
   brand: { gap: space.sm },
+  close: { position: 'absolute', top: space.md, right: space.xl, zIndex: 1 },
   tagline: { fontFamily: fonts.bodyMedium, fontSize: 16, color: colors.textSoft, lineHeight: 23, maxWidth: 320 },
   card: {
     backgroundColor: 'rgba(24,26,34,0.96)',

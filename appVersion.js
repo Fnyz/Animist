@@ -27,7 +27,11 @@ export const isNewer = (latest, current) => {
   return false;
 };
 
-// { version, notesUrl } of a newer release, or null (also when offline or GitHub doesn't answer).
+// A release whose notes contain "[required]" (written in its CHANGELOG section) must be installed:
+// older versions can't keep using the app, e.g. after a change on YouTube's side.
+export const isRequired = (notes) => /\[required\]/i.test(String(notes ?? ''));
+
+// { version, notesUrl, required } of a newer release, or null (also when offline or GitHub doesn't answer).
 export const findNewerRelease = async (current = installedVersion(), timeoutMs = 8000) => {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,7 +43,7 @@ export const findNewerRelease = async (current = installedVersion(), timeoutMs =
     if (!res.ok) return null;
     const release = await res.json();
     if (release.draft || release.prerelease || !isNewer(release.tag_name, current)) return null;
-    return { version: release.tag_name.replace(/^v/, ''), notesUrl: release.html_url };
+    return { version: release.tag_name.replace(/^v/, ''), notesUrl: release.html_url, required: isRequired(release.body) };
   } catch {
     return null;
   } finally {

@@ -7,6 +7,7 @@ import { colors, fonts, radius, space } from '../theme';
 
 // Tells people when a newer APK is out (APKs installed outside the Play Store get no update
 // prompts). Checked once each time the app opens; "Later" hides it until the next launch.
+// A required release (see appVersion.isRequired) can't be put off: no "Later", and it stays open.
 const UpdateNotice = () => {
   const [release, setRelease] = useState(null);
 
@@ -20,7 +21,10 @@ const UpdateNotice = () => {
     };
   }, []);
 
-  const close = () => setRelease(null);
+  const required = Boolean(release?.required);
+  const close = () => {
+    if (!required) setRelease(null);
+  };
   const download = () => {
     Linking.openURL(APK_URL).catch(() => {});
     close();
@@ -33,9 +37,11 @@ const UpdateNotice = () => {
           <View style={styles.icon}>
             <Ionicons name="sparkles" size={24} color={colors.onAccent} />
           </View>
-          <Text style={styles.title}>Animist {release?.version} is out</Text>
+          <Text style={styles.title}>{required ? 'Update required' : `Animist ${release?.version} is out`}</Text>
           <Text style={styles.message}>
-            A new version is ready to download. Install it over this one; your account and lists stay as they are.
+            {required
+              ? `This version can't be used anymore. Install Animist ${release?.version} over it to keep watching; your account and lists stay as they are.`
+              : 'A new version is ready to download. Install it over this one; your account and lists stay as they are.'}
           </Text>
           {release?.notesUrl ? (
             <Pressable onPress={() => Linking.openURL(release.notesUrl).catch(() => {})} hitSlop={8} accessibilityRole="link">
@@ -44,7 +50,7 @@ const UpdateNotice = () => {
           ) : null}
           <View style={{ alignSelf: 'stretch', gap: space.sm, marginTop: space.sm }}>
             <Button title="Download" icon="download-outline" onPress={download} />
-            <Button title="Later" variant="ghost" onPress={close} />
+            {!required && <Button title="Later" variant="ghost" onPress={close} />}
           </View>
         </View>
       </View>

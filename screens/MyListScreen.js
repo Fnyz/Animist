@@ -19,7 +19,7 @@ const timeAgo = (ts) => {
 };
 
 const MyListScreen = ({ navigation }) => {
-  const { userWatchList, historyRecords, removeFromWatchList } = useContext(myContext);
+  const { userWatchList, historyRecords, removeFromWatchList, signedIn } = useContext(myContext);
   const [tab, setTab] = useState('watchlist');
 
   const watchlist = useMemo(
@@ -31,6 +31,24 @@ const MyListScreen = ({ navigation }) => {
   );
 
   const open = (titleId) => navigation.navigate('AnimeDetail', { animeId: titleId });
+
+  // Lists and history live in the account, so guests get the way in instead.
+  if (!signedIn) {
+    return (
+      <SafeAreaView style={styles.screen} edges={['top']}>
+        <View style={styles.top}>
+          <Text style={styles.heading}>My List</Text>
+        </View>
+        <EmptyState
+          icon="bookmark-outline"
+          title="Save anime and pick up where you left off"
+          message="Sign in to keep a list, see your watch history and continue episodes on any phone."
+          actionTitle="Log in or create an account"
+          onAction={() => navigation.navigate('SignUpAndSignIn', { reason: 'Sign in to use My List.' })}
+        />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>

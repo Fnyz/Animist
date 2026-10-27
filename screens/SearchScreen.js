@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { searchAnime } from '../api';
 import { myContext } from '../context';
+import { useRequireAccount } from '../requireAccount';
 import { Chip, EmptyState, ErrorState, WatchBadge } from '../components/ui';
 import { colors, fonts, space } from '../theme';
 
@@ -19,7 +20,12 @@ const browseLabel = (g) => ({ 'Martial-Arts': 'Martial Arts', 'Super-Power': 'Su
 const ResultRow = ({ anime, onOpen }) => {
   const { findInWatchList, addToWatchList, removeFromWatchList } = useContext(myContext);
   const saved = findInWatchList(anime.id);
-  const toggle = () => (saved ? removeFromWatchList(saved.id) : addToWatchList(anime)).catch((e) => console.warn(e));
+  const requireAccount = useRequireAccount();
+  const toggle = () =>
+    requireAccount(
+      () => (saved ? removeFromWatchList(saved.id) : addToWatchList(anime)).catch((e) => console.warn(e)),
+      'Sign in to save anime to My List.'
+    );
 
   return (
     <Pressable onPress={() => onOpen(anime)} style={styles.row}>

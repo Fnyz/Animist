@@ -17,10 +17,12 @@ const GlobalProvider = ({children}) => {
     const [allComments, setAllComments] = useState([]);
     const [historyRecords , setHistoryRecords] = useState([]);
     const [profile, setProfile] = useState(null);
-    // Firebase sign-in state: the app shows the login screens until a verified user is signed in.
+    // Firebase sign-in state. Anyone can browse and watch; saving a list, history and progress
+    // needs a signed-in user with a verified email (`signedIn`).
     const [authUser, setAuthUser] = useState(null);
     const [verified, setVerified] = useState(false);
     const [authReady, setAuthReady] = useState(false);
+    const signedIn = Boolean(authUser && verified);
 
     const likesUnsubRef = useRef(null);
     const allLikesUnsubRef = useRef(null);
@@ -266,6 +268,7 @@ const getUserProfile = (id) => {
      authUser,
      verified,
      authReady,
+     signedIn,
      refreshUser,
      findInWatchList,
      addToWatchList,

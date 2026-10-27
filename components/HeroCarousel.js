@@ -2,21 +2,25 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 import { View, Text, Pressable, StyleSheet, Animated, useWindowDimensions, AccessibilityInfo } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { myContext } from '../context';
+import { useRequireAccount } from '../requireAccount';
 import { Button } from './ui';
 import { hasFreeEpisodes } from '../api';
 import { colors, fonts, radius, space } from '../theme';
 
 const AUTO_ADVANCE_MS = 6000;
-const HERO_HEIGHT = 420;
+const HERO_HEIGHT = 460;
 
 const HeroSlide = ({ anime, rank, onOpen, onTrailer }) => {
   const { findInWatchList, addToWatchList, removeFromWatchList } = useContext(myContext);
   const [saving, setSaving] = useState(false);
+  const requireAccount = useRequireAccount();
   const saved = findInWatchList(anime.id);
 
-  const toggleList = async () => {
+  const toggleList = () => requireAccount(saveToList, 'Sign in to save anime to My List.');
+  const saveToList = async () => {
     setSaving(true);
     try {
       if (saved) await removeFromWatchList(saved.id);
@@ -30,7 +34,20 @@ const HeroSlide = ({ anime, rank, onOpen, onTrailer }) => {
 
   return (
     <Pressable onPress={() => onOpen(anime)} style={styles.hero} accessibilityRole="button" accessibilityLabel={`Open ${anime.title}`}>
-      <Image source={{ uri: anime.banner }} style={StyleSheet.absoluteFill} contentFit="cover" transition={400} />
+      {/* The poster fills the card and fades into the page, with the text on the fade. */}
+      <Image
+        source={{ uri: anime.image }}
+        style={StyleSheet.absoluteFill}
+        contentFit="cover"
+        contentPosition="top"
+        transition={400}
+      />
+      <LinearGradient
+        colors={['rgba(14,15,20,0)', 'rgba(14,15,20,0.55)', colors.bg]}
+        locations={[0.3, 0.58, 0.92]}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
       <View style={styles.panel}>
         <View style={styles.eyebrowRow}>
           <Text style={styles.eyebrow}>#{rank} Trending this week</Text>
@@ -154,9 +171,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     overflow: 'hidden',
     justifyContent: 'flex-end',
-    backgroundColor: colors.surface2,
+    backgroundColor: colors.bg,
   },
-  panel: { padding: space.xl, gap: 10, backgroundColor: colors.scrim },
+  panel: { padding: space.xl, paddingTop: 0, gap: 10 },
   eyebrowRow: { flexDirection: 'row', alignItems: 'center', gap: space.sm, flexWrap: 'wrap' },
   freePill: {
     flexDirection: 'row',

@@ -22,7 +22,7 @@ const SAVE_EVERY_SECONDS = 15;
 const WatchScreen = ({ route, navigation }) => {
   const { animeId } = route.params;
   const { width } = useWindowDimensions();
-  const { recordWatch, watchProgress } = useContext(myContext);
+  const { recordWatch, watchProgress, signedIn } = useContext(myContext);
   const [anime, setAnime] = useState(null);
   const [error, setError] = useState(null);
   const [number, setNumber] = useState(route.params.episode ?? 1);
@@ -142,6 +142,18 @@ const WatchScreen = ({ route, navigation }) => {
                 fallback={episode.link ? { title: `Watch on ${episode.link.site}`, onPress: () => openLink(episode.link.url) } : null}
               />
             </View>
+            {!signedIn && (
+              <Pressable
+                onPress={() => navigation.navigate('SignUpAndSignIn', { reason: 'Sign in to save your progress and continue episodes later.' })}
+                style={styles.guestHint}
+                accessibilityRole="button"
+              >
+                <Ionicons name="bookmark-outline" size={14} color={colors.muted} />
+                <Text style={styles.guestHintText}>
+                  <Text style={styles.startOver}>Sign in</Text> to save your progress and continue later.
+                </Text>
+              </Pressable>
+            )}
             {startAt > 0 && (
               <View style={styles.resumeChip}>
                 <Ionicons name="play-forward" size={14} color={colors.accent} />
@@ -297,6 +309,8 @@ const styles = StyleSheet.create({
   },
   thumbBar: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.25)' },
   thumbBarFill: { height: 3, backgroundColor: colors.accent },
+  guestHint: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  guestHintText: { flexShrink: 1, fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   resumeChip: {
     flexDirection: 'row',
     alignItems: 'center',

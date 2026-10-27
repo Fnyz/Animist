@@ -68,7 +68,7 @@ The episode list is built ahead of time by [`scripts/find-episodes.js`](scripts/
 
 A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) keeps the list fresh:
 
-1. **Every day at 06:00 Philippine time** it reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Feeds are free and use no API quota.
+1. **Every day at about 06:00 Philippine time** it refreshes the AniList data behind Home (trending, airing, new episodes) and reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Both are free and use no YouTube quota.
 2. **Only when there are new episodes**, it runs a quick search, about 5 minutes. It skips everything already in the app: known videos keep their saved details, and AniList is only searched for playlists it hasn't seen ([`data/finderCache.json`](data/finderCache.json) remembers earlier lookups).
 3. **On Sundays** it runs the full search, which re-checks every video, in case one was removed or blocked.
 4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
@@ -98,7 +98,7 @@ If a run finds over 10% fewer episodes than before, it keeps the old list. That 
 | CI/CD | GitHub Actions, CodeQL, Dependabot, Gitleaks, audit-ci |
 | Tests | Jest |
 
-The app currently reads AniList data from a saved snapshot ([`data/animeSnapshot.json`](data/animeSnapshot.json), refreshed with `scripts/snapshot-anime.js`), so it works offline and loads instantly. Setting `USE_STATIC_DATA = false` in [`api.js`](api.js) switches to live AniList requests.
+The app currently reads AniList data from a saved snapshot ([`data/animeSnapshot.json`](data/animeSnapshot.json), refreshed daily by the episode workflow with `scripts/snapshot-anime.js`), so it works offline and loads instantly. Setting `USE_STATIC_DATA = false` in [`api.js`](api.js) switches to live AniList requests.
 
 ---
 
@@ -118,7 +118,7 @@ Scan the QR code with your Android phone, or download `animist.apk` from the [la
 | Push to `main`, pull requests, weekly | `codeql.yml` | GitHub CodeQL scans the code for security bugs |
 | Weekly | `dependabot.yml` | Opens pull requests for dependency updates and security fixes |
 | Push to `main` | `update.yml` | Publishes an over-the-air update to installed apps with EAS Update |
-| Daily at 06:00 (Philippines), or by hand | `episodes.yml` | Checks the official channels' RSS feeds for new episodes and, if there are any, refreshes `data/episodes.json` (see [New episodes automatically](#new-episodes-automatically)) |
+| Daily at about 06:00 (Philippines), or by hand | `episodes.yml` | Checks the official channels' RSS feeds for new episodes and, if there are any, refreshes `data/episodes.json` and the AniList data (see [New episodes automatically](#new-episodes-automatically)) |
 | Tag `v*` | `release.yml` | Builds a signed APK on the GitHub runner and attaches it to a GitHub Release |
 
 The QR code points to `releases/latest/download/animist.apk`, so it always downloads the newest build.

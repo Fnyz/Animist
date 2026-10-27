@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { View, ScrollView, RefreshControl, Pressable, StyleSheet, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { getHomeData } from '../api';
 import { myContext } from '../context';
 import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui';
@@ -14,7 +15,7 @@ import { colors, space } from '../theme';
 export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
 
 const HomeScreen = ({ navigation }) => {
-  const { profile, userData, historyRecords } = useContext(myContext);
+  const { profile, userData, historyRecords, signedIn } = useContext(myContext);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -53,7 +54,11 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.header}>
         <Wordmark />
         <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Profile" style={styles.avatar}>
-          <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          {signedIn ? (
+            <Image source={{ uri: avatar }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          ) : (
+            <Ionicons name="person-outline" size={22} color={colors.accent} />
+          )}
         </Pressable>
       </View>
 

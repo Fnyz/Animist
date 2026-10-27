@@ -5,6 +5,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { getAnimeInfo } from '../api';
 import { myContext } from '../context';
+import { useRequireAccount } from '../requireAccount';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
 import CheckEpisodesButton from '../components/CheckEpisodesButton';
@@ -17,6 +18,7 @@ const DetailsScreen = ({ route, navigation }) => {
   const { animeId } = route.params;
   const insets = useSafeAreaInsets();
   const { findInWatchList, addToWatchList, removeFromWatchList, watchProgress } = useContext(myContext);
+  const requireAccount = useRequireAccount();
   const [anime, setAnime] = useState(null);
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -64,7 +66,8 @@ const DetailsScreen = ({ route, navigation }) => {
   }
 
   const saved = findInWatchList(anime.id);
-  const toggleList = async () => {
+  const toggleList = () => requireAccount(saveToList, 'Sign in to save anime to My List.');
+  const saveToList = async () => {
     setSaving(true);
     try {
       if (saved) await removeFromWatchList(saved.id);
