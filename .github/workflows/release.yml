@@ -23,7 +23,7 @@ jobs:
           echo "::error::Add an EXPO_TOKEN secret (expo.dev > Account settings > Access tokens) in GitHub > Settings > Secrets and variables > Actions."
           exit 1
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Check the tag matches the app version
         run: |
