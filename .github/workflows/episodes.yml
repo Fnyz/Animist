@@ -55,10 +55,10 @@ jobs:
         if: env.YOUTUBE_API_KEY == ''
         run: echo "::notice::YOUTUBE_API_KEY isn't set yet, so episodes weren't refreshed."
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: env.YOUTUBE_API_KEY != ''
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: env.YOUTUBE_API_KEY != ''
         with:
           node-version: 22
