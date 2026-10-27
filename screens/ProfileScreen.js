@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { signInMethod } from '../accountDeletion';
 import { myContext } from '../context';
 import { Button } from '../components/ui';
 import { USE_STATIC_DATA } from '../api';
+import { useHeroClips } from '../heroClips';
 import { avatarFor, AVATAR_CREDIT } from '../avatars';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -26,9 +27,29 @@ const Row = ({ icon, label, detail, onPress, danger }) => (
   </Pressable>
 );
 
+const SwitchRow = ({ icon, label, detail, value, onChange }) => (
+  <Pressable onPress={() => onChange(!value)} style={styles.row} accessibilityRole="switch" accessibilityState={{ checked: value }}>
+    <View style={styles.rowIcon}>
+      <Ionicons name={icon} size={19} color={colors.accent} />
+    </View>
+    <View style={{ flex: 1, gap: 2 }}>
+      <Text style={[styles.rowLabel, { flex: 0 }]}>{label}</Text>
+      {detail ? <Text style={styles.switchDetail}>{detail}</Text> : null}
+    </View>
+    <Switch
+      value={value}
+      onValueChange={onChange}
+      trackColor={{ false: colors.line, true: colors.accent }}
+      thumbColor={colors.text}
+      importantForAccessibility="no"
+    />
+  </Pressable>
+);
+
 const ProfileScreen = ({ navigation }) => {
   const { profile, userWatchList, authUser, signedIn } = useContext(myContext);
   const [signingOut, setSigningOut] = useState(false);
+  const [clips, setClips] = useHeroClips();
   const me = profile?.[0]?.data ?? {};
   const fullName = [me.firstname, me.lastname].filter(Boolean).join(' ') || 'Anime fan';
 
@@ -47,6 +68,13 @@ const ProfileScreen = ({ navigation }) => {
 
   const appInfo = (
     <View style={styles.group}>
+      <SwitchRow
+        icon="film-outline"
+        label="Trailer clips on Home"
+        detail="Plays muted trailers in the top banners. Uses mobile data when you're not on Wi-Fi."
+        value={clips}
+        onChange={setClips}
+      />
       <Row icon="server-outline" label="Anime data" detail={USE_STATIC_DATA ? 'Offline snapshot' : 'AniList (live)'} />
       <Row icon="information-circle-outline" label="Version" detail={Constants.expoConfig?.version ?? '1.0.0'} />
     </View>
@@ -182,6 +210,7 @@ const styles = StyleSheet.create({
   rowIconDanger: { backgroundColor: colors.dangerSoft },
   rowLabel: { flex: 1, fontFamily: fonts.bodySemi, fontSize: 15, color: colors.text },
   rowDetail: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
+  switchDetail: { fontFamily: fonts.body, fontSize: 12, lineHeight: 16, color: colors.muted },
   credit: { fontFamily: fonts.body, fontSize: 11, color: colors.muted, textAlign: 'center' },
 });
 

@@ -83,9 +83,40 @@ const EPISODE_MEDIA = EPISODE_DATA.media ?? {};
 export const episodeVideos = (entry, ep) =>
   ep ? [ep, ...(ep.alts ?? [])].map((v) => ({ videoId: v.videoId, channel: v.channel ?? entry.channel })) : [];
 
+// Franchises (seasons, movies, specials linked as prequel/sequel on AniList), refreshed daily by
+// scripts/seasons.js.
+const SEASONS = require('./data/seasons.json');
+const { isSeason } = require('./scripts/seasonGroups');
+const GROUP_OF = new Map(SEASONS.groups.flatMap((group) => group.map((id) => [String(id), group])));
+
+// The Seasons row of an anime page: { seasons, extras } in release order (TV seasons, then movies,
+// OVAs and specials), or null when the anime has no other parts.
+// Each part: { id, title, format, year, episodes, cover, current, free }.
+export const getSeasons = (id) => {
+  const group = GROUP_OF.get(String(id));
+  if (!group) return null;
+  const parts = group.map((partId) => ({
+    ...SEASONS.entries[partId],
+    id: partId,
+    current: String(partId) === String(id),
+    free: hasFreeEpisodes(partId),
+  }));
+  return { seasons: parts.filter((p) => isSeason(p.format)), extras: parts.filter((p) => !isSeason(p.format)) };
+};
+
 // True when the anime has official episodes that play inside the app. Works with just an id,
 // so places that only store ids (My List, History) can show the badge too.
 export const hasFreeEpisodes = (id) => Boolean(YOUTUBE_EPISODES[String(id)]);
+
+// Which episode "Watch free" starts: the one the person was on (or the next, if it's free too),
+// else the first free one. null when nothing plays in the app.
+export const freeEpisodeToStart = (id, continueEp) => {
+  const episodes = YOUTUBE_EPISODES[String(id)]?.episodes;
+  if (!episodes) return null;
+  if (continueEp && episodes[continueEp]) return continueEp;
+  const numbers = Object.keys(episodes).map(Number).sort((a, b) => a - b);
+  return numbers[0] ?? null;
+};
 
 const EPISODE_NUMBER = /\b(?:episode|ep\.?)\s*(\d+)/i;
 
@@ -400,11 +431,14 @@ const INFO_QUERY = `
 
 // Full details for one anime. `id` is the AniList id.
 export const getAnimeInfo = async (id) => {
-  if (USE_STATIC_DATA) {
-    const media = staticMedia(id);
-    if (!media) throw new Error("This anime isn't in the offline data yet.");
-    return toAnime(media);
+  const media = USE_STATIC_DATA ? staticMedia(id) : null;
+  if (media) return toAnime(media);
+  // Not in the offline data (e.g. an older season from the Seasons row): ask AniList directly.
+  try {
+    const data = await request(INFO_QUERY, { id: Number(id) });
+    if (data?.Media) return toAnime(data.Media);
+  } catch {
+    // Offline or AniList is down; explained below.
   }
-  const data = await request(INFO_QUERY, { id: Number(id) });
-  return toAnime(data.Media);
+  throw new Error("This anime isn't in the offline data yet, and AniList couldn't be reached. Check your connection.");
 };

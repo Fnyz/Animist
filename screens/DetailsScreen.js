@@ -9,6 +9,7 @@ import { useRequireAccount } from '../requireAccount';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
 import StatusSheet from '../components/StatusSheet';
+import SeasonsRow from '../components/SeasonsRow';
 import { statusInfo, statusOf } from '../listStatus';
 import CheckEpisodesButton from '../components/CheckEpisodesButton';
 import { progressFraction, progressLabel } from '../progress';
@@ -165,6 +166,9 @@ const DetailsScreen = ({ route, navigation }) => {
             </Pressable>
           )}
         </View>
+
+        {/* Other seasons, movies and specials of the same story (push: back returns here). */}
+        <SeasonsRow animeId={anime.id} onOpen={(id) => navigation.push('AnimeDetail', { animeId: id })} />
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

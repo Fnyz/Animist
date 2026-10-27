@@ -1,5 +1,6 @@
+import axios from 'axios';
 import {
-  USE_STATIC_DATA, hasFreeEpisodes, episodeVideos, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
+  USE_STATIC_DATA, hasFreeEpisodes, episodeVideos, getSeasons, freeEpisodeToStart, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
 } from '../api';
 
 // These tests use the saved snapshot, so they run offline and give the same results every time.
@@ -73,8 +74,23 @@ describe('api (static snapshot)', () => {
     expect(info.description).not.toMatch(/<[^>]+>/);
   });
 
-  it('explains when an anime is missing from the snapshot', async () => {
-    await expect(getAnimeInfo(999999999)).rejects.toThrow(/offline data/);
+  it("explains when an anime is missing from the snapshot and AniList can't be reached", async () => {
+    const post = jest.spyOn(axios, 'post').mockRejectedValue(new Error('Network Error'));
+    try {
+      await expect(getAnimeInfo(999999999)).rejects.toThrow(/offline data/);
+    } finally {
+      post.mockRestore();
+    }
+  });
+
+  it('loads anime that are not in the offline data from AniList', async () => {
+    const media = { id: 5, title: { english: 'Older Season', romaji: 'Older' }, coverImage: { large: 'https://img/c.jpg' }, genres: [], format: 'TV', status: 'FINISHED', episodes: 12 };
+    const post = jest.spyOn(axios, 'post').mockResolvedValue({ data: { data: { Media: media } } });
+    try {
+      await expect(getAnimeInfo(5)).resolves.toMatchObject({ id: 5, title: 'Older Season' });
+    } finally {
+      post.mockRestore();
+    }
   });
 });
 
@@ -199,5 +215,39 @@ describe('episodeVideos', () => {
 
   it('is empty when the episode has no video', () => {
     expect(episodeVideos(entry, undefined)).toEqual([]);
+  });
+});
+
+describe('getSeasons', () => {
+  it('lists Jujutsu Kaisen seasons and movies in order, marking the one being viewed', () => {
+    const { seasons, extras } = getSeasons(145064); // Season 2
+    expect(seasons[0].id).toBe(113415);
+    expect(seasons.find((s) => s.current).id).toBe(145064);
+    expect(seasons.every((s) => ['TV', 'TV_SHORT', 'ONA', null, undefined].includes(s.format))).toBe(true);
+    expect(extras.some((e) => e.format === 'MOVIE')).toBe(true);
+    expect(seasons.find((s) => s.id === 113415).free).toBe(true);
+  });
+
+  it('is empty for anime without other parts', () => {
+    expect(getSeasons(999999999)).toBeNull();
+  });
+});
+
+describe('freeEpisodeToStart', () => {
+  const episodes = require('../data/episodes.json').anime;
+  const [id, entry] = Object.entries(episodes).find(([, e]) => Object.keys(e.episodes).length > 2);
+  const numbers = Object.keys(entry.episodes).map(Number).sort((a, b) => a - b);
+
+  it('starts at the first free episode', () => {
+    expect(freeEpisodeToStart(id)).toBe(numbers[0]);
+  });
+
+  it('continues where the person was when that episode is free', () => {
+    expect(freeEpisodeToStart(id, numbers[1])).toBe(numbers[1]);
+    expect(freeEpisodeToStart(id, 99999)).toBe(numbers[0]);
+  });
+
+  it('is null for anime without free episodes', () => {
+    expect(freeEpisodeToStart(999999999, 1)).toBeNull();
   });
 });

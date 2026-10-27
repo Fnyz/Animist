@@ -9,7 +9,7 @@ import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui
 import HeroCarousel from '../components/HeroCarousel';
 import ContinueRow from '../components/ContinueRow';
 import { avatarFor } from '../avatars';
-import TrailerModal from '../components/TrailerModal';
+import { useHeroClips } from '../heroClips';
 import { colors, space } from '../theme';
 
 export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
@@ -19,7 +19,9 @@ const HomeScreen = ({ navigation }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [trailerOf, setTrailerOf] = useState(null);
+  const [clipsEnabled] = useHeroClips();
+  // The banner clips stop once the banner is mostly scrolled away.
+  const [heroInView, setHeroInView] = useState(true);
 
   const load = useCallback(async () => {
     try {
@@ -70,9 +72,16 @@ const HomeScreen = ({ navigation }) => {
           contentContainerStyle={{ paddingBottom: space.xxl, gap: space.xxl }}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.accent} colors={[colors.accent]} />}
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => setHeroInView(e.nativeEvent.contentOffset.y < 300)}
+          scrollEventThrottle={100}
         >
           {data.trending.length > 0 && (
-            <HeroCarousel items={data.trending.slice(0, 5)} onOpen={openAnime} onTrailer={setTrailerOf} paused={!!trailerOf} />
+            <HeroCarousel
+              items={data.trending.slice(0, 5)}
+              onOpen={openAnime}
+              onWatch={(anime, episode) => navigation.navigate('View', { animeId: anime.id, episode })}
+              clips={clipsEnabled && heroInView}
+            />
           )}
 
           <FlatList
@@ -138,7 +147,6 @@ const HomeScreen = ({ navigation }) => {
         </ScrollView>
       )}
 
-      <TrailerModal videoId={trailerOf?.trailer} title={trailerOf?.title} onClose={() => setTrailerOf(null)} />
     </SafeAreaView>
   );
 };

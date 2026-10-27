@@ -124,18 +124,19 @@ export const PAGE_SCRIPT = `
 true;
 `;
 
-const embedUrl = (videoId, start = 0) =>
+const embedUrl = (videoId, start = 0, muted = false) =>
   `https://www.youtube.com/embed/${videoId}?` +
   [
     `start=${Math.max(0, Math.floor(start))}`,
+    ...(muted ? ['mute=1'] : []),
     'autoplay=1', 'controls=0', 'playsinline=1', 'rel=0', 'modestbranding=1', 'iv_load_policy=3',
     'fs=0', 'disablekb=1', 'cc_load_policy=0', `widget_referrer=${encodeURIComponent(APP_REFERER)}`,
   ].join('&');
 
 // A bare YouTube player. Parent components get status through onStatus/onError and
 // control it with ref.play(), pause(), seek(seconds) and mute(bool).
-// `start` (seconds) only applies when the view is created; give it a new `key` to restart elsewhere.
-const YouTubeView = forwardRef(({ videoId, start = 0, onStatus, onError, onMuted, onTap, style }, ref) => {
+// `start` (seconds) and `muted` only apply when the view is created; give it a new `key` to restart elsewhere.
+const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, onError, onMuted, onTap, style }, ref) => {
   const web = useRef(null);
   const run = (code) => web.current?.injectJavaScript(`window.__animist && window.__animist.${code}; true;`);
 
@@ -162,7 +163,7 @@ const YouTubeView = forwardRef(({ videoId, start = 0, onStatus, onError, onMuted
   return (
     <WebView
       ref={web}
-      source={{ uri: embedUrl(videoId, start), headers: { Referer: APP_REFERER } }}
+      source={{ uri: embedUrl(videoId, start, muted), headers: { Referer: APP_REFERER } }}
       style={[{ backgroundColor: '#000' }, style]}
       injectedJavaScriptBeforeContentLoaded={EARLY_SCRIPT}
       injectedJavaScript={PAGE_SCRIPT}

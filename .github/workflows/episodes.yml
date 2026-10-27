@@ -104,6 +104,13 @@ jobs:
           [ "${{ steps.plan.outputs.mode }}" = "quick" ] && flags="$flags --quick"
           node scripts/find-episodes.js $flags
 
+      # Seasons, movies and specials of each anime, for the Seasons row on anime pages. A failure
+      # (AniList down) keeps yesterday's file and doesn't stop the rest.
+      - name: Refresh seasons
+        if: env.YOUTUBE_API_KEY != ''
+        continue-on-error: true
+        run: node scripts/seasons.js
+
       # What changed, for the pull request: the episode summary (if the search ran and found
       # something) and a line for fresh AniList data.
       - name: Collect changes
@@ -111,12 +118,12 @@ jobs:
         if: env.YOUTUBE_API_KEY != ''
         run: |
           episodes=$(git diff --quiet -- data/episodes.json && echo false || echo true)
-          anilist=$(git diff --quiet -- data/animeSnapshot.json && echo false || echo true)
+          anilist=$(git diff --quiet -- data/animeSnapshot.json data/seasons.json && echo false || echo true)
           summary="$RUNNER_TEMP/pr-body.md"
           : > "$summary"
           if [ "$episodes" = "true" ]; then cat "$RUNNER_TEMP/summary.md" >> "$summary"; fi
           if [ "$anilist" = "true" ]; then
-            echo "AniList data refreshed: trending, airing this season, popular, movies and new episodes." >> "$summary"
+            echo "AniList data refreshed: trending, airing this season, popular, movies, new episodes and seasons." >> "$summary"
           fi
           if [ "$episodes" = "true" ]; then title="New episodes from official YouTube channels"
           else title="Fresh AniList data (trending, airing, new episodes)"; fi
@@ -136,6 +143,7 @@ jobs:
             data/episodes.json
             data/finderCache.json
             data/animeSnapshot.json
+            data/seasons.json
           commit-message: ${{ steps.changes.outputs.title }}
           title: ${{ steps.changes.outputs.title }}
           body-path: ${{ steps.changes.outputs.summary }}
@@ -146,7 +154,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/episodes.json data/finderCache.json data/animeSnapshot.json
+          git add data/episodes.json data/finderCache.json data/animeSnapshot.json data/seasons.json
           git commit -m "${{ steps.changes.outputs.title }}"
           git push
 
