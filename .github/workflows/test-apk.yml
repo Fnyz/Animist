@@ -2,9 +2,13 @@ name: Build test APK
 
 # Builds an APK from any branch without releasing it, to try native changes (like a new
 # release/x.y.z branch) on a phone first. Actions > Build test APK > Run workflow > pick the
-# branch. The APK is attached to the run under "Artifacts" for 7 days.
+# branch. The newest test build is always at the same link, with a QR code on the test page
+# (https://fnyz.github.io/Animist/test.html); it's also attached to the run for 7 days.
 on:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   apk:
@@ -43,6 +47,18 @@ jobs:
       # Same build as a release (signed with the EAS key, so it installs over the current app).
       - name: Build APK
         run: eas build --platform android --profile preview --local --non-interactive --output animist-test.apk
+
+      # Replaces the previous test build. A pre-release, so the public download page and the app's
+      # "new version" prompt (both use the latest full release) never offer it.
+      - name: Publish as the test-build pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete test-build --cleanup-tag --yes 2>/dev/null || true
+          gh release create test-build animist-test.apk \
+            --prerelease --latest=false --target "$GITHUB_SHA" \
+            --title "Test build (not released)" \
+            --notes "Branch: ${GITHUB_REF_NAME} · Commit: ${GITHUB_SHA::7} · Version: $(node -p "require('./app.json').expo.version") · Built: $(date -u '+%Y-%m-%d %H:%M UTC') · Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
       - uses: actions/upload-artifact@v4
         with:

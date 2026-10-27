@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animist test build</title>
+<meta name="description" content="The newest unreleased Animist build, for testing before a release.">
+<!-- For testing only: keep it out of search results. -->
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0E0F14; --surface: #181A22; --line: #2C2F3A; --text: #F2F2F5;
+    --soft: #C3C6D2; --muted: #A3A6B4; --accent: #FF7A59; --on-accent: #1A0E0A; --warn: #FFC857;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.6;
+    padding: 48px max(20px, env(safe-area-inset-left)) 64px max(20px, env(safe-area-inset-right));
+  }
+  main { max-width: 880px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items: center; }
+  .badge { display: inline-block; font-weight: 700; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--bg); background: var(--warn); border-radius: 8px; padding: 4px 10px; }
+  .wordmark { font-family: var(--display); font-weight: 800; font-size: clamp(44px, 8vw, 68px); letter-spacing: -2px; margin: 14px 0 0; line-height: 1; }
+  .wordmark span { color: var(--accent); }
+  .tagline { font-size: 17px; color: var(--soft); max-width: 44ch; margin: 16px 0 24px; }
+  .download {
+    display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 24px; border-radius: 12px;
+    background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 16px; text-decoration: none;
+  }
+  .download:focus-visible, a:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .build { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; font-size: 14px; color: var(--soft); }
+  .build dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
+  .build dt { color: var(--muted); }
+  .build dd { margin: 0; overflow-wrap: anywhere; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 28px; display: grid; gap: 18px; justify-items: center; text-align: center; }
+  .qr { width: 220px; height: 220px; background: #fff; border-radius: 16px; padding: 14px; display: grid; place-items: center; }
+  .qr svg { width: 100%; height: 100%; display: block; }
+  .card h2 { font-family: var(--display); font-weight: 600; font-size: 20px; margin: 0; }
+  .card p { margin: 0; color: var(--muted); font-size: 14px; }
+  section.steps { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .step { background: var(--surface); border-radius: 16px; padding: 20px; }
+  .step b { display: block; font-family: var(--display); font-size: 15px; color: var(--accent); margin-bottom: 6px; }
+  .step p { margin: 0; color: var(--soft); font-size: 14px; }
+  footer { grid-column: 1 / -1; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 20px; }
+  footer a { color: var(--soft); }
+  @media (max-width: 720px) {
+    main { grid-template-columns: 1fr; gap: 32px; }
+    section.steps { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <div>
+    <span class="badge">Test build</span>
+    <h1 class="wordmark">Ani<span>mist</span></h1>
+    <p class="tagline">The newest unreleased build, for trying changes on a phone before a release. It may have bugs. For the regular app, use the <a href="./" style="color: var(--soft)">download page</a>.</p>
+    <a class="download" href="https://github.com/Fnyz/Animist/releases/download/test-build/animist-test.apk">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0 5-5m-5 5-5-5M5 21h14"/></svg>
+      Download test build
+    </a>
+    <div class="build" aria-live="polite">
+      <dl id="build"><dt>Build</dt><dd>Loading details…</dd></dl>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="qr"><svg role="img" aria-label="QR code that downloads the newest Animist test build" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 37 37" shape-rendering="crispEdges"><path stroke="#0E0F14" d="M0 0.5h7m3 0h1m2 0h1m4 0h6m4 0h1m1 0h7M0 1.5h1m5 0h1m2 0h3m2 0h1m6 0h1m3 0h1m1 0h2m1 0h1m5 0h1M0 2.5h1m1 0h3m1 0h1m1 0h1m2 0h1m9 0h4m1 0h2m2 0h1m1 0h3m1 0h1M0 3.5h1m1 0h3m1 0h1m1 0h2m3 0h1m1 0h3m4 0h1m1 0h3m3 0h1m1 0h3m1 0h1M0 4.5h1m1 0h3m1 0h1m1 0h1m1 0h2m1 0h3m1 0h5m3 0h1m2 0h1m1 0h1m1 0h3m1 0h1M0 5.5h1m5 0h1m1 0h1m4 0h2m2 0h2m2 0h2m3 0h2m2 0h1m5 0h1M0 6.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M8 7.5h2m2 0h2m1 0h2m2 0h1m1 0h1m1 0h1m4 0h1M0 8.5h1m1 0h5m4 0h4m3 0h1m1 0h1m2 0h1m1 0h2m3 0h5M0 9.5h4m5 0h1m1 0h3m1 0h6m2 0h1m1 0h1m2 0h1m2 0h1m2 0h2M1 10.5h2m3 0h1m1 0h1m2 0h1m1 0h1m6 0h1m1 0h1m2 0h6m2 0h4M1 11.5h3m4 0h6m2 0h1m1 0h1m2 0h1m2 0h1m1 0h4m1 0h1m4 0h1M0 12.5h1m3 0h1m1 0h2m3 0h1m1 0h2m2 0h1m2 0h1m1 0h6m1 0h2m1 0h5M0 13.5h1m1 0h4m2 0h1m1 0h1m1 0h1m3 0h5m2 0h2m6 0h1M1 14.5h4m1 0h3m1 0h1m2 0h1m1 0h3m2 0h3m1 0h1m1 0h2m1 0h5m1 0h2M1 15.5h1m2 0h1m2 0h1m4 0h1m3 0h9m4 0h4m2 0h1M0 16.5h1m2 0h2m1 0h1m2 0h1m1 0h1m1 0h2m1 0h1m2 0h1m2 0h4m1 0h6m1 0h3M0 17.5h1m1 0h4m2 0h1m2 0h1m1 0h3m2 0h3m1 0h2m1 0h1m2 0h2m1 0h1m2 0h2M2 18.5h1m1 0h3m4 0h1m3 0h2m4 0h1m4 0h2m3 0h3m1 0h2M1 19.5h1m3 0h1m6 0h1m1 0h2m3 0h4m3 0h1m2 0h4m3 0h1M2 20.5h2m1 0h2m2 0h2m1 0h2m1 0h1m1 0h1m1 0h1m2 0h2m1 0h1m1 0h1m1 0h2m1 0h3M0 21.5h5m2 0h1m1 0h1m1 0h1m1 0h1m4 0h2m1 0h1m1 0h1m1 0h1m2 0h2m3 0h1m1 0h1M0 22.5h1m4 0h2m1 0h2m1 0h1m3 0h2m1 0h1m2 0h2m2 0h4m1 0h4m1 0h2M1 23.5h1m1 0h3m1 0h1m1 0h3m2 0h1m5 0h2m2 0h1m1 0h4m1 0h2m2 0h1M0 24.5h1m2 0h2m1 0h1m3 0h1m2 0h3m2 0h1m3 0h6m1 0h2m1 0h1m1 0h2M0 25.5h1m1 0h1m1 0h1m3 0h2m2 0h1m1 0h3m2 0h1m3 0h1m1 0h1m2 0h2m4 0h1M0 26.5h1m1 0h3m1 0h1m2 0h2m1 0h2m4 0h1m2 0h2m2 0h6m3 0h3M0 27.5h1m1 0h2m1 0h1m3 0h1m2 0h1m1 0h1m1 0h1m3 0h3m1 0h1m1 0h3m1 0h2m3 0h2M0 28.5h1m4 0h3m6 0h1m1 0h2m2 0h1m1 0h2m2 0h1m1 0h8M8 29.5h1m1 0h3m3 0h2m1 0h3m1 0h1m4 0h1m3 0h2M0 30.5h7m3 0h2m1 0h1m1 0h3m2 0h3m1 0h1m3 0h1m1 0h1m1 0h1m1 0h3M0 31.5h1m5 0h1m1 0h1m1 0h1m4 0h5m1 0h3m2 0h1m1 0h1m3 0h2m2 0h1M0 32.5h1m1 0h3m1 0h1m1 0h1m1 0h1m4 0h2m3 0h1m1 0h11m1 0h3M0 33.5h1m1 0h3m1 0h1m1 0h1m1 0h6m2 0h3m1 0h2m3 0h1m1 0h2m1 0h2m2 0h1M0 34.5h1m1 0h3m1 0h1m1 0h2m2 0h1m2 0h4m1 0h2m2 0h5m6 0h2M0 35.5h1m5 0h1m2 0h1m2 0h1m2 0h1m3 0h1m1 0h3m3 0h4m1 0h1m3 0h1M0 36.5h7m1 0h2m1 0h5m1 0h1m2 0h1m1 0h6m2 0h1m1 0h5"/></svg></div>
+    <h2>Scan with your phone</h2>
+    <p>Always the newest test build.</p>
+  </div>
+
+  <section class="steps" aria-label="How to install">
+    <div class="step"><b>1. Download</b><p>Scan the code or tap the button on your Android phone.</p></div>
+    <div class="step"><b>2. Install over the app</b><p>Open the file and tap Install. It replaces the installed Animist; your account and lists stay.</p></div>
+    <div class="step"><b>3. Back to normal</b><p>To return to the regular version, install it from the download page.</p></div>
+  </section>
+
+  <footer>Built by the <a href="https://github.com/Fnyz/Animist/actions/workflows/test-apk.yml">Build test APK</a> workflow from any branch. Not shown to regular users: the app's update prompt and the download page only offer full releases.</footer>
+</main>
+
+<script>
+  // Shows which branch and commit the current test build came from (written by the workflow
+  // into the pre-release's notes: "Branch: … · Commit: … · Version: … · Built: … · Run: …").
+  (async () => {
+    const list = document.getElementById('build');
+    const row = (label, value, href) => {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      if (href) {
+        const a = document.createElement('a');
+        a.href = href;
+        a.textContent = value;
+        a.style.color = 'var(--soft)';
+        dd.appendChild(a);
+      } else {
+        dd.textContent = value;
+      }
+      list.append(dt, dd);
+    };
+    try {
+      const res = await fetch('https://api.github.com/repos/Fnyz/Animist/releases/tags/test-build');
+      if (!res.ok) throw new Error(res.status === 404 ? 'none' : 'unavailable');
+      const release = await res.json();
+      const fields = Object.fromEntries(
+        String(release.body || '').split('·').map((part) => part.split(': ').map((s) => s.trim())).filter((p) => p.length === 2)
+      );
+      list.replaceChildren();
+      if (fields.Version) row('Version', fields.Version);
+      if (fields.Branch) row('Branch', fields.Branch);
+      if (fields.Commit) row('Commit', fields.Commit, 'https://github.com/Fnyz/Animist/commit/' + encodeURIComponent(fields.Commit));
+      row('Built', fields.Built || new Date(release.published_at).toUTCString());
+      if (fields.Run && fields.Run.startsWith('https://github.com/')) row('Details', 'Workflow run', fields.Run);
+    } catch (e) {
+      list.replaceChildren();
+      row('Build', e.message === 'none' ? 'No test build yet. Run the Build test APK workflow.' : "Couldn't load the details right now.");
+    }
+  })();
+</script>
+</body>
+</html>
