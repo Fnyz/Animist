@@ -2,7 +2,7 @@
   "expo": {
     "name": "Animist",
     "slug": "Animist",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/animistIcon.png",
     "userInterfaceStyle": "dark",
@@ -18,7 +18,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0F1112"
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -27,9 +28,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/FinalSplash.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#0E0F14"
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#0F1112"
         }
       ],
       "expo-image",
@@ -37,6 +39,15 @@
         "@sentry/react-native",
         {
           "disableAutoUpload": true
+        }
+      ],
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#FF7A59",
+          "defaultChannel": "new-episodes"
         }
       ]
     ],
@@ -46,7 +57,8 @@
     "extra": {
       "eas": {
         "projectId": "725d4e25-16ef-4564-8c3c-c5b3f02f3a59"
-      }
+      },
+      "googleWebClientId": "140996729252-lip07f0ceig4qcqq85p5f52v9p1rbl4l.apps.googleusercontent.com"
     },
     "owner": "piattos_44",
     "updates": {

@@ -17,6 +17,8 @@ import { GlobalProvider, myContext } from './context';
 import { colors, fonts } from './theme';
 import OfflineBanner from './components/OfflineBanner';
 import UpdateNotice from './components/UpdateNotice';
+import NotificationBridge from './components/NotificationBridge';
+import { navigationRef } from './navigationRef';
 import { CrashBoundary } from './components/CrashScreen';
 import AuthScreen from './screens/AuthScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -114,10 +116,11 @@ function App() {
         <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
         {fontsLoaded ? (
           <CrashBoundary>
-            <NavigationContainer theme={navTheme}>
+            <NavigationContainer theme={navTheme} ref={navigationRef}>
               <RootNavigator />
               <OfflineBanner />
               <UpdateNotice />
+              <NotificationBridge />
             </NavigationContainer>
           </CrashBoundary>
         ) : (

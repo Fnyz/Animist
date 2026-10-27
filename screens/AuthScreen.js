@@ -15,6 +15,7 @@ import { myContext } from '../context';
 import { getList } from '../api';
 import { randomAvatar } from '../avatars';
 import { messageFor } from '../authErrors';
+import { googleSignInAvailable, signInWithGoogle } from '../googleAuth';
 import { Button, Wordmark, Field, ErrorBanner, IconButton } from '../components/ui';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -186,6 +187,19 @@ const AuthScreen = ({ navigation, route }) => {
 
   const needsVerification = authUser && !verified;
 
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const continueWithGoogle = async () => {
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      await signInWithGoogle(); // Google accounts are verified, so this signs straight in.
+    } catch (e) {
+      setError(messageFor(e));
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
+
   // Signed in (and verified): back to where they came from.
   useEffect(() => {
     if (!signedIn) return;
@@ -226,6 +240,17 @@ const AuthScreen = ({ navigation, route }) => {
                 </View>
 
                 <Text style={styles.cardTitle}>{isRegister ? 'Join Animist' : 'Welcome back'}</Text>
+
+                {googleSignInAvailable && (
+                  <>
+                    <Button title="Continue with Google" icon="logo-google" variant="ghost" onPress={continueWithGoogle} loading={googleBusy} />
+                    <View style={styles.divider}>
+                      <View style={styles.dividerLine} />
+                      <Text style={styles.dividerText}>or with email</Text>
+                      <View style={styles.dividerLine} />
+                    </View>
+                  </>
+                )}
 
                 {isRegister && (
                   <>
@@ -316,6 +341,9 @@ const styles = StyleSheet.create({
   segmentText: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.muted },
   link: { fontFamily: fonts.bodyBold, fontSize: 14, color: colors.accent },
   linkMuted: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.muted },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  dividerLine: { flex: 1, height: 1, backgroundColor: colors.line },
+  dividerText: { fontFamily: fonts.body, fontSize: 12, color: colors.muted },
   switchText: { fontFamily: fonts.body, fontSize: 14, color: colors.muted, textAlign: 'center' },
   verifyIcon: {
     width: 56,

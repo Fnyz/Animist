@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "140996729252",
+    "project_id": "animist-67715",
+    "storage_bucket": "animist-67715.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:140996729252:android:3d1811d6cc2e9099abc931",
+        "android_client_info": {
+          "package_name": "com.fnyz.animist"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "140996729252-1jkii6nlqcul650rpgde008qpggh0mnt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.fnyz.animist",
+            "certificate_hash": "d35797a569ef4657d8625ad7a31e0e84287745a9"
+          }
+        },
+        {
+          "client_id": "140996729252-lip07f0ceig4qcqq85p5f52v9p1rbl4l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlwXSYIi0mbJpDYwExSGvLos4vtHp8nj0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "140996729252-lip07f0ceig4qcqq85p5f52v9p1rbl4l.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

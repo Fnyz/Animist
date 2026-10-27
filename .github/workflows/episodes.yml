@@ -165,3 +165,9 @@ jobs:
           git fetch --tags --quiet
           node scripts/check-native-changes.js
           eas update --channel preview --environment preview --message "${{ steps.changes.outputs.title }}" --non-interactive
+
+      - name: Notify people about new episodes
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit' && env.EXPO_TOKEN != ''
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/notify-new-episodes.js --before HEAD~1

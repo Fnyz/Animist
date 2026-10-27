@@ -42,6 +42,14 @@ service cloud.firestore {
       allow update: if ownsDoc() && writesOwn();
     }
 
+    // A phone's address for new-episode notifications (the document id is the Expo push token).
+    // Only its owner can save or remove it; the notification sender uses admin access.
+    match /pushTokens/{token} {
+      allow read, delete: if ownsDoc();
+      allow create: if writesOwn() && request.resource.data.token == token;
+      allow update: if writesOwn() && request.resource.data.token == token;
+    }
+
     match /likes/{id} {
       allow read: if signedIn();
       allow create: if writesOwn();

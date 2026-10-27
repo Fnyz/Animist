@@ -3,5 +3,5 @@
 useDefault = true
 
 [allowlist]
-description = "Firebase web config: the API key is public by design and protected by Firestore rules"
-paths = ['''^firebase\.js$''']
+description = "Firebase config: the API key is public by design and protected by Firestore rules (also inside google-services.json)"
+paths = ['''^firebase\.js$''', '''^google-services\.json$''']
