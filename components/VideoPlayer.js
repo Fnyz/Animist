@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Linking, Pressable, Modal, StatusBar, Dimension
 import { requireOptionalNativeModule } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import YouTubeView from './YouTubeView';
 import { fullscreenBox } from './fullscreenBox';
 import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
@@ -34,6 +35,9 @@ const formatTime = (s) => {
 
 // Seconds the "Up next" card counts down before the next episode starts.
 const UP_NEXT_SECONDS = 5;
+// Longest the thumbnail covers the player while the video loads (see `started` in PlayerCore).
+const COVER_MAX_MS = 10000;
+
 // How long the center play/pause button (and the fullscreen controls) stay up while playing.
 const CONTROLS_HIDE_MS = 3000;
 
@@ -94,7 +98,17 @@ const PlayerCore = ({
 
   const playing = !status.paused && !status.ended;
 
+  // Until the video really plays, the thumbnail covers the player, so whatever YouTube's page shows
+  // while it loads (its title bar, logo, play button) never flashes, even on a slow connection.
+  // If the video doesn't start by itself (or never reports it), the cover lifts after a while.
+  const [started, setStarted] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setStarted(true), COVER_MAX_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
   const onStatus = (s) => {
+    if (!started && (!s.paused || s.ended)) setStarted(true);
     if (s.ended && !wasEnded.current) {
       onEnded?.();
       if (upNext) setCountdown(UP_NEXT_SECONDS);
@@ -304,6 +318,11 @@ const PlayerCore = ({
         onMuted={() => setStatus((s) => ({ ...s, muted: true }))}
         onTap={onTapVideo}
       />
+      {!started && (
+        <View style={styles.cover} pointerEvents="none">
+          <Image source={{ uri: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` }} style={styles.coverImage} contentFit="cover" />
+        </View>
+      )}
       {/* Covers the video so taps reach the app instead of YouTube: a tap shows or hides the
           center play/pause button (and the controls in fullscreen). */}
       <Pressable
@@ -583,6 +602,8 @@ const styles = StyleSheet.create({
   fullscreenRoot: { flex: 1, backgroundColor: '#000' },
   fullscreenBox: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' },
   tapLayer: { ...StyleSheet.absoluteFill },
+  cover: { ...StyleSheet.absoluteFill, backgroundColor: '#000' },
+  coverImage: { ...StyleSheet.absoluteFill, opacity: 0.6 },
   centerWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   centerButton: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   // No background: a soft shadow keeps the icon readable on bright scenes.

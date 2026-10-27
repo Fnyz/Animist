@@ -10,6 +10,11 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 ### New
 - Browse and watch without an account: the app opens straight to Home. Signing in is only needed to keep a list, history and progress, and it brings you back to where you were.
 - Home stays current: trending, airing this season and new episodes are refreshed every day.
+- A new look for the trending carousel: the poster art fills the card and fades into the page.
+- Versions that must be installed (marked `[required]` in their notes) show an update prompt that can't be skipped.
+
+### Fixed
+- YouTube's own title bar no longer flashes over the player while a video loads on a slow connection; the video's thumbnail shows until it plays.
 
 ## [1.2.0] - 2026-10-26
 

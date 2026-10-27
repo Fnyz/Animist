@@ -16,20 +16,50 @@ const HIDE_YOUTUBE_UI = [
   '#player-controls', '#player-control-overlay', '[class*="PlayerControls"]', '[class*="ytmCustomControl"]',
 ].join(',');
 
-// Runs inside the YouTube page: hides its UI, starts playback and reports status every 400 ms.
-const PAGE_SCRIPT = `
+// The page's look: no scrolling, ever (the page must always fit the player exactly); the video
+// fills the player box and always shows the whole frame ("contain"); and everything in YouTube's
+// player except the video itself (titles, buttons, logos, overlays) is hidden, whatever YouTube
+// names it, desktop or mobile layout.
+const PAGE_CSS =
+  `${HIDE_YOUTUBE_UI}{display:none!important;}` +
+  ' html,body{background:#000!important;overflow:hidden!important;height:100%!important;margin:0!important;overscroll-behavior:none!important;touch-action:none!important;}' +
+  ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;}' +
+  ' video.html5-main-video{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}' +
+  ' .html5-video-player > :not(.html5-video-container){display:none!important;}';
+
+// Adds PAGE_CSS to the page once (both scripts below call it).
+const ADD_CSS = `
+  function addAnimistCss() {
+    if (document.getElementById('animist-css')) return true;
+    var root = document.head || document.documentElement;
+    if (!root) return false;
+    var style = document.createElement('style');
+    style.id = 'animist-css';
+    style.textContent = ${JSON.stringify(PAGE_CSS)};
+    root.appendChild(style);
+    return true;
+  }
+`;
+
+// Runs before YouTube's page has any content, so its own controls never show, not even for a
+// moment on a slow connection (PAGE_SCRIPT only runs once the page has loaded).
+export const EARLY_SCRIPT = `
 (function () {
-  var style = document.createElement('style');
-  // No scrolling, ever: the page must always fit the player exactly.
-  // The video fills the player box and always shows the whole frame ("contain").
-  style.textContent = '${HIDE_YOUTUBE_UI}{display:none!important;}'
-    + ' html,body{background:#000!important;overflow:hidden!important;height:100%!important;margin:0!important;overscroll-behavior:none!important;touch-action:none!important;}'
-    + ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;inset:0!important;width:100%!important;height:100%!important;}'
-    + ' video.html5-main-video{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}'
-    // Everything in YouTube's player except the video itself (titles, buttons, logos, overlays),
-    // whatever YouTube names them, desktop or mobile layout.
-    + ' .html5-video-player > :not(.html5-video-container){display:none!important;}';
-  document.head.appendChild(style);
+  ${ADD_CSS}
+  if (!addAnimistCss()) {
+    var timer = setInterval(function () { if (addAnimistCss()) clearInterval(timer); }, 10);
+  }
+  document.addEventListener('DOMContentLoaded', addAnimistCss);
+})();
+true;
+`;
+
+// Runs inside the YouTube page once it has loaded: hides its UI (again, in case the early script
+// couldn't run), starts playback and reports status every 400 ms.
+export const PAGE_SCRIPT = `
+(function () {
+  ${ADD_CSS}
+  addAnimistCss();
 
   function post(message) { window.ReactNativeWebView.postMessage(JSON.stringify(message)); }
   function video() { return document.querySelector('video'); }
@@ -134,6 +164,7 @@ const YouTubeView = forwardRef(({ videoId, start = 0, onStatus, onError, onMuted
       ref={web}
       source={{ uri: embedUrl(videoId, start), headers: { Referer: APP_REFERER } }}
       style={[{ backgroundColor: '#000' }, style]}
+      injectedJavaScriptBeforeContentLoaded={EARLY_SCRIPT}
       injectedJavaScript={PAGE_SCRIPT}
       onMessage={onMessage}
       allowsInlineMediaPlayback
