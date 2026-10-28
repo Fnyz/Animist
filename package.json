@@ -62,5 +62,12 @@
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.6"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "expo"
+      ]
+    }
   }
 }
