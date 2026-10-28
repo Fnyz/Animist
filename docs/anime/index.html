@@ -127,7 +127,10 @@
         $('poster').alt = 'Poster of ' + title;
         $('meta').textContent = [formats[m.format] || m.format, m.seasonYear, m.episodes ? m.episodes + (m.episodes === 1 ? ' episode' : ' episodes') : null]
           .concat((m.genres || []).slice(0, 3)).filter(Boolean).join(' · ');
-        var about = String(m.description || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        // The browser's parser turns the description into plain text (it never runs anything in it);
+        // it's shown with textContent, never as HTML.
+        var parsed = new DOMParser().parseFromString(String(m.description || ''), 'text/html');
+        var about = (parsed.body.textContent || '').replace(/\s+/g, ' ').trim();
         $('about').textContent = about.length > 280 ? about.slice(0, 277).replace(/\s+\S*$/, '') + '…' : about;
         $('anime').hidden = false;
       })

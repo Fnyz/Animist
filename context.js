@@ -3,7 +3,7 @@ import { createContext, useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, Auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { offerEpisodeNotifications } from './notifications';
 import { DEFAULT_STATUS } from './listStatus';
 

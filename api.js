@@ -77,11 +77,21 @@ const decodeEntities = (text) =>
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCodePoint(parseInt(n, 16)))
     .replace(/&([A-Za-z]+);/g, (whole, name) => NAMED_ENTITIES[name] ?? whole);
 
-// AniList sends null for anime without a description yet (brand-new entries).
+// Removes HTML tags until none are left (one pass could turn "<scr<b>ipt>" into "<script>").
+const stripTags = (text) => {
+  let out = text;
+  let before;
+  do {
+    before = out;
+    out = out.replace(/<[^<>]*>/g, '');
+  } while (out !== before);
+  return out.replace(/[<>]/g, '');
+};
+
+// AniList sends null for anime without a description yet (brand-new entries). Tags go first, then
+// character codes become letters; the result is plain text (shown in <Text>, never as HTML).
 const cleanDescription = (text) =>
-  decodeEntities(String(text ?? ''))
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
+  decodeEntities(stripTags(String(text ?? '').replace(/<br\s*\/?>/gi, '\n')))
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 

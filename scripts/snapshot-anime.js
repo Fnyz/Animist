@@ -111,7 +111,12 @@ const page = (filter, perPage) => `{
   }
 
   // A much smaller answer than last time means AniList had a problem, not that anime vanished.
-  const before = fs.existsSync(OUT) ? Object.keys(JSON.parse(fs.readFileSync(OUT, 'utf8')).media ?? {}).length : 0;
+  let before = 0;
+  try {
+    before = Object.keys(JSON.parse(fs.readFileSync(OUT, 'utf8')).media ?? {}).length;
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e; // no snapshot yet is fine; a broken one isn't
+  }
   const after = Object.keys(media).length;
   if (before && after < before * 0.8) {
     throw new Error(`only ${after} anime instead of ${before}; kept the old snapshot`);

@@ -316,3 +316,13 @@ describe('descriptions', () => {
     expect(toAnime(media).description).toBe('A girl named Éclair—she’s back & more\u2003A.\nNext');
   });
 });
+
+describe('description cleaning', () => {
+  it('leaves no tags behind, even nested ones', () => {
+    const media = { id: 3, title: { romaji: 'X' }, description: 'Hi <scr<b>ipt>alert(1)</scr</b>ipt> there<br>next', genres: [] };
+    const text = toAnime(media).description;
+    expect(text).not.toMatch(/<|>/);
+    expect(text).toContain('Hi ');
+    expect(text).toContain('\nnext');
+  });
+});
