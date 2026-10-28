@@ -1,7 +1,7 @@
 import "./devLogger";
 import { withSentry } from "./sentry";
-import React, { useContext } from 'react';
-import { View, ActivityIndicator, StatusBar } from 'react-native';
+import React, { useContext, useEffect } from 'react';
+import { View, ActivityIndicator, StatusBar, AppState } from 'react-native';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -17,6 +17,8 @@ import { GlobalProvider, myContext } from './context';
 import { colors, fonts } from './theme';
 import OfflineBanner from './components/OfflineBanner';
 import { FullscreenHost } from './components/FullscreenHost';
+import { refreshDownloadedData } from './episodeData';
+import { linking } from './shareLinks';
 import UpdateNotice from './components/UpdateNotice';
 import NotificationBridge from './components/NotificationBridge';
 import { navigationRef } from './navigationRef';
@@ -34,6 +36,7 @@ import EditProfileScreen from './screens/EditProfileScreen';
 import ChangePasswordScreen from './screens/ChangePasswordScreen';
 import ForgotPasswordScreen from './screens/ForgotPasswordScreen';
 import DeleteAccountScreen from './screens/DeleteAccountScreen';
+import ImportAniListScreen from './screens/ImportAniListScreen';
 
 const Stack = createNativeStackNavigator();
 const Tabs = createBottomTabNavigator();
@@ -100,6 +103,7 @@ const RootNavigator = () => {
       <Stack.Screen name="Settings" component={EditProfileScreen} />
       <Stack.Screen name="UpdatePass" component={ChangePasswordScreen} />
       <Stack.Screen name="DeleteAccount" component={DeleteAccountScreen} />
+      <Stack.Screen name="ImportAniList" component={ImportAniListScreen} />
       <Stack.Screen name="SignUpAndSignIn" component={AuthScreen} options={{ animation: 'slide_from_bottom' }} />
       <Stack.Screen name="ForgetPass" component={ForgotPasswordScreen} />
     </Stack.Navigator>
@@ -107,6 +111,16 @@ const RootNavigator = () => {
 };
 
 function App() {
+  // Downloads a newer episode list and AniList snapshot when GitHub has them: at start and when the
+  // app comes back to the front (at most every few hours; see episodeData.js).
+  useEffect(() => {
+    refreshDownloadedData();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') refreshDownloadedData();
+    });
+    return () => sub.remove();
+  }, []);
+
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_600SemiBold,
     BricolageGrotesque_800ExtraBold,
@@ -122,7 +136,7 @@ function App() {
         <StatusBar barStyle="light-content" backgroundColor={colors.bg} />
         {fontsLoaded ? (
           <CrashBoundary>
-            <NavigationContainer theme={navTheme} ref={navigationRef}>
+            <NavigationContainer theme={navTheme} ref={navigationRef} linking={linking}>
               <FullscreenHost>
                 <RootNavigator />
                 <OfflineBanner />

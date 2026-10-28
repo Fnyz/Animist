@@ -32,22 +32,27 @@ const Part = ({ part, onOpen }) => (
   </Pressable>
 );
 
-const Shelf = ({ title, parts, onOpen }) => (
-  <View style={{ gap: space.md }}>
-    <Text style={styles.heading}>{title}</Text>
-    <FlatList
-      horizontal
-      data={parts}
-      keyExtractor={(p) => String(p.id)}
-      renderItem={({ item }) => <Part part={item} onOpen={onOpen} />}
-      contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.md }}
-      showsHorizontalScrollIndicator={false}
-      // Starts at the anime being viewed, so long franchises open where you are.
-      initialScrollIndex={Math.max(0, parts.findIndex((p) => p.current))}
-      getItemLayout={(_, i) => ({ length: CARD + space.md, offset: (CARD + space.md) * i, index: i })}
-    />
-  </View>
-);
+const Shelf = ({ title, parts, onOpen }) => {
+  // Long franchises open at the anime being viewed; short rows (and the first cards) simply start
+  // at the left, however few cards there are.
+  const current = parts.findIndex((p) => p.current);
+  return (
+    <View style={styles.shelf}>
+      <Text style={styles.heading}>{title}</Text>
+      <FlatList
+        horizontal
+        data={parts}
+        keyExtractor={(p) => String(p.id)}
+        renderItem={({ item }) => <Part part={item} onOpen={onOpen} />}
+        style={styles.shelfList}
+        contentContainerStyle={styles.shelfContent}
+        showsHorizontalScrollIndicator={false}
+        initialScrollIndex={current > 1 ? current : undefined}
+        getItemLayout={(_, i) => ({ length: CARD + space.md, offset: (CARD + space.md) * i, index: i })}
+      />
+    </View>
+  );
+};
 
 // An anime page's other parts: its seasons in release order, then movies, OVAs and specials.
 // Nothing when the anime stands alone.
@@ -67,6 +72,9 @@ const SeasonsRow = ({ animeId, onOpen }) => {
 
 const styles = StyleSheet.create({
   wrap: { paddingTop: space.xxl, gap: space.xl },
+  shelf: { gap: space.md, alignSelf: 'stretch' },
+  shelfList: { alignSelf: 'stretch', flexGrow: 0 },
+  shelfContent: { flexGrow: 1, justifyContent: 'flex-start', paddingHorizontal: space.xl, gap: space.md },
   heading: { fontFamily: fonts.displaySemi, fontSize: 19, color: colors.text, paddingHorizontal: space.xl },
   card: { width: CARD, gap: 4 },
   cover: { width: CARD, height: CARD * 1.42, borderRadius: radius.md, overflow: 'hidden', backgroundColor: colors.surface2, marginBottom: 4 },

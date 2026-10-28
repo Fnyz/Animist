@@ -12,6 +12,8 @@ const EPISODES = path.join(__dirname, '..', 'data', 'episodes.json');
 
 const { MEDIA_FIELDS } = require('./anilistFields');
 
+const SNAPSHOT_FORMAT = 1;
+
 const LISTS = {
   trending: 'sort: [TRENDING_DESC, POPULARITY_DESC]',
   airing: 'sort: [POPULARITY_DESC], status: RELEASING',
@@ -116,7 +118,10 @@ const page = (filter, perPage) => `{
   }
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, JSON.stringify({ savedAt: new Date().toISOString(), lists, recent, schedule, genres, media }));
+  // `format` changes only when the file's shape changes in a way older apps can't read; apps that
+  // download the snapshot (episodeData.js) ignore a format they don't know and keep their own copy.
+  const snapshot = { format: SNAPSHOT_FORMAT, savedAt: new Date().toISOString(), lists, recent, schedule, genres, media };
+  fs.writeFileSync(OUT, JSON.stringify(snapshot));
   console.log(`\nSaved ${Object.keys(media).length} anime to ${path.relative(process.cwd(), OUT)}`);
 })().catch((err) => {
   console.error('\nSnapshot failed:', err.message);

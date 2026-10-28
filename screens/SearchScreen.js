@@ -7,6 +7,8 @@ import { searchAnime } from '../api';
 import { myContext } from '../context';
 import { useRequireAccount } from '../requireAccount';
 import { Chip, EmptyState, ErrorState, WatchBadge } from '../components/ui';
+import FilterSheet from '../components/FilterSheet';
+import { activeFilterCount, filterChips, NO_FILTERS, withoutFilter } from '../searchFilters';
 import { colors, fonts, space } from '../theme';
 
 // Genres and AniList tags people can browse without typing.
@@ -54,39 +56,45 @@ const SearchScreen = ({ navigation }) => {
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [filters, setFilters] = useState(NO_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const latest = useRef('');
+  const filterCount = activeFilterCount(filters);
 
   const run = async (q, nextPage = 1) => {
-    latest.current = q;
+    const key = `${q}|${JSON.stringify(filters)}`;
+    latest.current = key;
     setLoading(true);
     setError(null);
     try {
-      const res = await searchAnime(q, nextPage);
-      if (latest.current !== q) return; // a newer search started
+      const res = await searchAnime(q, nextPage, 20, filters);
+      if (latest.current !== key) return; // a newer search started
       setResults((prev) => (nextPage === 1 ? res.results : [...prev, ...res.results]));
       setPage(nextPage);
       setHasMore(res.hasNextPage);
     } catch (e) {
       setError(e.message);
     } finally {
-      if (latest.current === q) setLoading(false);
+      if (latest.current === key) setLoading(false);
     }
   };
 
-  // Search 400 ms after the person stops typing.
+  // Search 400 ms after the person stops typing (or right after filters change). With filters, an
+  // empty search box lists the most popular matches.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 2) {
+    if (q.length < 2 && !filterCount) {
       // Too short to search; the genre grid shows instead of results.
       latest.current = '';
       return undefined;
     }
-    const t = setTimeout(() => run(q), 400);
+    const t = setTimeout(() => run(q.length < 2 ? '' : q), 400);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, filters]);
 
   const openAnime = (anime) => navigation.navigate('AnimeDetail', { animeId: anime.id });
-  const searching = query.trim().length >= 2;
+  const searching = query.trim().length >= 2 || filterCount > 0;
+  const searchText = query.trim().length >= 2 ? query.trim() : '';
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
@@ -110,8 +118,47 @@ const SearchScreen = ({ navigation }) => {
               <Ionicons name="close-circle" size={20} color={colors.muted} />
             </Pressable>
           ) : null}
+          <Pressable
+            onPress={() => setSheetOpen(true)}
+            hitSlop={8}
+            style={styles.filterButton}
+            accessibilityRole="button"
+            accessibilityLabel={filterCount ? `Filters, ${filterCount} on` : 'Filters'}
+          >
+            <Ionicons name="options-outline" size={20} color={filterCount ? colors.accent : colors.textSoft} />
+            {filterCount ? (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>{filterCount}</Text>
+              </View>
+            ) : null}
+          </Pressable>
         </View>
+        {filterCount ? (
+          <View style={styles.activeFilters}>
+            {filterChips(filters).map((c) => (
+              <Pressable
+                key={c.key}
+                onPress={() => setFilters((f) => withoutFilter(f, c.key))}
+                style={styles.activeChip}
+                accessibilityRole="button"
+                accessibilityLabel={`Remove filter ${c.label}`}
+              >
+                <Text style={styles.activeChipText}>{c.label}</Text>
+                <Ionicons name="close" size={14} color={colors.onAccent} />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
       </View>
+      <FilterSheet
+        visible={sheetOpen}
+        filters={filters}
+        onClose={() => setSheetOpen(false)}
+        onApply={(next) => {
+          setFilters(next);
+          setSheetOpen(false);
+        }}
+      />
 
       {!searching ? (
         <View style={{ paddingHorizontal: space.xl, gap: space.md }}>
@@ -123,7 +170,7 @@ const SearchScreen = ({ navigation }) => {
           </View>
         </View>
       ) : error ? (
-        <ErrorState message={error} onRetry={() => run(query.trim())} />
+        <ErrorState message={error} onRetry={() => run(searchText)} />
       ) : (
         <FlatList
           data={results}
@@ -131,14 +178,22 @@ const SearchScreen = ({ navigation }) => {
           renderItem={({ item }) => <ResultRow anime={item} onOpen={openAnime} />}
           contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: space.xxl, gap: space.md }}
           keyboardShouldPersistTaps="handled"
-          onEndReached={() => hasMore && !loading && run(query.trim(), page + 1)}
+          onEndReached={() => hasMore && !loading && run(searchText, page + 1)}
           onEndReachedThreshold={0.5}
           ListHeaderComponent={
             results.length ? <Text style={styles.count}>{results.length}{hasMore ? '+' : ''} {results.length === 1 && !hasMore ? 'result' : 'results'}</Text> : null
           }
           ListEmptyComponent={
             loading ? null : (
-              <EmptyState icon="search-outline" title="No matches" message={`Nothing found for "${query.trim()}". Try another title.`} />
+              <EmptyState
+                icon="search-outline"
+                title="No matches"
+                message={
+                  searchText
+                    ? `Nothing found for "${searchText}"${filterCount ? ' with these filters' : ''}. Try another title${filterCount ? ' or fewer filters' : ''}.`
+                    : 'Nothing matches these filters. Try removing one.'
+                }
+              />
             )
           }
           ListFooterComponent={loading ? <ActivityIndicator color={colors.accent} style={{ padding: space.xl }} /> : null}
@@ -164,6 +219,31 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   input: { flex: 1, height: '100%', fontFamily: fonts.bodyMedium, fontSize: 15, color: colors.text },
+  filterButton: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center', marginRight: -8 },
+  filterBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    minWidth: 16,
+    height: 16,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.accent,
+  },
+  filterBadgeText: { fontFamily: fonts.bodyBold, fontSize: 10, color: colors.onAccent },
+  activeFilters: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  activeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    height: 30,
+    paddingHorizontal: 12,
+    borderRadius: 15,
+    backgroundColor: colors.accent,
+  },
+  activeChipText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.onAccent },
   sectionLabel: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.muted },
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   count: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, paddingBottom: 4 },

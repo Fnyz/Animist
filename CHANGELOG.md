@@ -12,15 +12,32 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - My List statuses: Watching, Plan to watch, Completed and Dropped, with filters. Starting an episode marks an anime Watching, and finishing the last episode of a finished show marks it Completed.
 - A Schedule tab: what airs each day this week, in your time zone, with countdowns, and a filter for anime on your list.
 - Seasons on anime pages: every season in release order, plus movies and specials (like Jujutsu Kaisen 0), with ▶ on the ones you can watch free. Refreshed daily.
-- Trailer clips on Home: the top banners are now full width and play their trailer muted, one at a time. They fall back to the poster if a trailer won't load; turn them off in Profile to save data. The banner button is now "Watch free" (or your next episode) for anime with free episodes, and "Details" for the rest.
+- Trailer clips on Home: the top banners are now full width and play their trailer muted, one at a time. They fall back to the poster if a trailer won't load; turn them off in Profile to save data. The banner button is now "Watch now" (or your next episode) for anime with free episodes, and "Details" for the rest.
 - Video player: ⟲10 / ⟳10 buttons beside play/pause to skip back or forward 10 seconds.
 - Fullscreen: swipe up or down on the left side of the video to brighten or dim the picture (50–150%), and on the right side to turn the video's volume up or down. Both levels stay for the next episode.
+- Trailer clips on Home play on Wi-Fi only by default, so they don't use mobile data (or a phone's hotspot). Profile now has Wi-Fi only, Always or Off. Needs the 1.4.0 APK.
+- New episodes and fresh AniList data (Home lists, Schedule, genres) download by themselves from the daily update, saved on the phone, so they reach every app version from 1.4.0 on without an app update. A check costs no data when nothing changed.
+- Search and genre pages look through all of AniList when you're online (not only the anime saved in the app), and fall back to the saved data offline.
+- Anime pages show the saved data at once, then AniList's latest status and next episode.
+- Import from AniList (Profile): enter a username and their public anime list comes into My List with its statuses (Watching, Plan to watch, Completed, Dropped). Anime already on My List stay as they are.
+- Search filters: format, season, year and "Free to watch only", from the button next to the search box. Filters work without typing too (e.g. every movie from 2025).
+- Your stats on Profile: episodes and hours watched, anime on My List, completed, and your favorite genres.
+- Full movies: when an official channel uploads a whole anime movie for free, it plays in the app like an episode (the first run found 5, including That Time I Got Reincarnated as a Slime the Movie: Scarlet Bond). Movie pages say "Movie", and say so when there's no free official upload yet.
+- Share links: Share on an anime page sends a link that opens the anime in Animist, or shows it with a download button when the app isn't installed. Needs the 1.4.0 APK to open links in the app.
+- "New on Animist" on Home: what the daily update added this week, with NEW (just became free), MOVIE and +N EP badges, and a line like "Today: 2 new anime, 5 new movies, 7 new episodes".
+
+### Changed
+- Expo SDK 58 updated to the latest patch (58.0.20).
+- Removed the unused comment code; old comments can no longer be added to (account deletion still removes them).
 
 ### Fixed
 - "Change password" is no longer shown for Google accounts, which have no Animist password.
 - Episodes that aren't free yet show buttons for the anime's official services (and "Check for new episodes"), instead of a dead end.
 - Fullscreen video no longer cuts off the bottom and right edge of the picture on some phones, so subtitles near the bottom show in full.
 - Fullscreen video now really hides the status bar (time, Wi-Fi, battery) and the bottom bar; they only show for a moment when you swipe from the edge.
+- Brand-new anime without a description on AniList no longer break Home and their page.
+- Descriptions show accented letters and dashes properly ("Éclair" instead of "&Eacute;clair").
+- Seasons rows start at the left, even with a single card.
 
 ## [1.3.0] - 2026-10-27
 

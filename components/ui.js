@@ -113,15 +113,19 @@ export const Poster = ({ anime, width = 112, onPress, badge, showMeta = true }) 
   </Pressable>
 );
 
-export const PosterRow = ({ title, items, onSeeAll, onPressItem, badgeFor }) => (
+// `note`: a line under the title (e.g. what's new today).
+export const PosterRow = ({ title, note, items, onSeeAll, onPressItem, badgeFor }) => (
   <View style={{ gap: space.md }}>
-    <View style={styles.rowHeader}>
-      <Text style={styles.rowTitle}>{title}</Text>
-      {onSeeAll && (
-        <Pressable onPress={onSeeAll} hitSlop={10}>
-          <Text style={styles.seeAll}>See all</Text>
-        </Pressable>
-      )}
+    <View style={{ gap: 2 }}>
+      <View style={styles.rowHeader}>
+        <Text style={styles.rowTitle}>{title}</Text>
+        {onSeeAll && (
+          <Pressable onPress={onSeeAll} hitSlop={10}>
+            <Text style={styles.seeAll}>See all</Text>
+          </Pressable>
+        )}
+      </View>
+      {note ? <Text style={styles.rowNote}>{note}</Text> : null}
     </View>
     <FlatList
       horizontal
@@ -280,6 +284,7 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     paddingHorizontal: space.xl,
   },
+  rowNote: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, paddingHorizontal: space.xl },
   rowTitle: { fontFamily: fonts.displaySemi, fontSize: 19, color: colors.text },
   seeAll: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.accent },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },

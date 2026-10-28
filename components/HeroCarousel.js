@@ -136,7 +136,7 @@ const HeroSlide = ({ anime, rank, onOpen, onWatch, clip, cardWidth, onClipState 
         <View style={{ flexDirection: 'row', gap: 10, paddingTop: 4 }}>
           {startEp ? (
             <Button
-              title={record ? `Episode ${startEp}` : 'Watch free'}
+              title={record ? `Episode ${startEp}` : 'Watch now'}
               icon="play"
               onPress={() => onWatch(anime, startEp)}
               style={{ flex: 1 }}

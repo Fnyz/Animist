@@ -3,7 +3,7 @@ import { createContext, useState, useRef, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db, Auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, orderBy, serverTimestamp } from 'firebase/firestore';
+import { where, query, onSnapshot, collection, addDoc, deleteDoc, doc, setDoc, updateDoc, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { offerEpisodeNotifications } from './notifications';
 import { DEFAULT_STATUS } from './listStatus';
 
@@ -16,7 +16,6 @@ const GlobalProvider = ({children}) => {
     const [allLikeData, setAllLikeData] = useState([]);
     const [episodeId, setEpisodeId] = useState(null);
     const [userWatchList, setUserWatch] = useState([]);
-    const [allComments, setAllComments] = useState([]);
     const [historyRecords , setHistoryRecords] = useState([]);
     const [profile, setProfile] = useState(null);
     // Firebase sign-in state. Anyone can browse and watch; saving a list, history and progress
@@ -29,12 +28,11 @@ const GlobalProvider = ({children}) => {
     const likesUnsubRef = useRef(null);
     const allLikesUnsubRef = useRef(null);
     const watchListUnsubRef = useRef(null);
-    const commentsUnsubRef = useRef(null);
     const historyUnsubRef = useRef(null);
     const profileUnsubRef = useRef(null);
 
     const stopListeners = () => {
-      for (const ref of [likesUnsubRef, allLikesUnsubRef, watchListUnsubRef, commentsUnsubRef, historyUnsubRef, profileUnsubRef]) {
+      for (const ref of [likesUnsubRef, allLikesUnsubRef, watchListUnsubRef, historyUnsubRef, profileUnsubRef]) {
         if (ref.current) ref.current();
         ref.current = null;
       }
@@ -95,6 +93,34 @@ const addToWatchList = async (anime, status = DEFAULT_STATUS) => {
   });
   offerEpisodeNotifications(userData.id);
   return added;
+};
+
+// Adds many anime at once (an AniList import): items [{ anime, status }]. Saved in batches (Firestore
+// takes up to 500 writes in one), so a big list is a few requests, not hundreds. onProgress(saved).
+const IMPORT_BATCH = 400;
+const importToWatchList = async (items, onProgress) => {
+  let saved = 0;
+  for (let i = 0; i < items.length; i += IMPORT_BATCH) {
+    const batch = writeBatch(db);
+    for (const { anime, status } of items.slice(i, i + IMPORT_BATCH)) {
+      batch.set(doc(collection(db, 'watchList')), {
+        name: userData?.user ?? '',
+        userId: userData.id,
+        titleId: anime.id,
+        title: anime.title,
+        image: anime.image,
+        type: anime.type ?? null,
+        status,
+        source: 'anilist',
+        createdAt: serverTimestamp(),
+      });
+    }
+    await batch.commit();
+    saved = Math.min(i + IMPORT_BATCH, items.length);
+    onProgress?.(saved);
+  }
+  if (saved) offerEpisodeNotifications(userData.id);
+  return saved;
 };
 
 const removeFromWatchList = (docId) => deleteDoc(doc(db, 'watchList', docId));
@@ -189,23 +215,6 @@ const getAllLikes = (epID) => {
   }
 }
 
-const getAllComments = (epId) => {
-  if (commentsUnsubRef.current) commentsUnsubRef.current();
-  try {
-    const docs = collection(db, 'comments');
-    const ref = query(docs, where('animeId', '==', epId), orderBy('createdAt', 'asc'));
-    commentsUnsubRef.current = onSnapshot(ref, (list) => {
-      let value = [];
-      list.docs.forEach(element => {
-        value.push({ data: element.data(), id: element.id });
-      });
-      setAllComments(value);
-    });
-  } catch {
-    console.log('error fetching comments')
-  }
-}
-
 const fetchHistory = (id) => {
   if (historyUnsubRef.current) historyUnsubRef.current();
   const docs = collection(db, 'history');
@@ -267,8 +276,6 @@ const getUserProfile = (id) => {
      allLikeData,
      getUserWatchList,
      userWatchList,
-     getAllComments,
-     allComments,
      historyRecords,
      setUserIdhere,
      episodeId,
@@ -282,6 +289,7 @@ const getUserProfile = (id) => {
      refreshUser,
      findInWatchList,
      addToWatchList,
+     importToWatchList,
      removeFromWatchList,
      setListStatus,
      recordWatch,

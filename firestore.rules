@@ -56,11 +56,10 @@ service cloud.firestore {
       allow delete: if ownsDoc();
     }
 
+    // The app has no comment section anymore. Old comments can only be read and deleted by their
+    // owner (account deletion removes them); nobody can write new ones.
     match /comments/{id} {
-      allow read: if signedIn();
-      allow create: if writesOwn();
-      allow update: if ownsDoc() && writesOwn();
-      allow delete: if ownsDoc();
+      allow read, delete: if ownsDoc();
     }
   }
 }

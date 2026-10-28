@@ -3,7 +3,7 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Linking, useWindowDimens
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getAnimeInfo } from '../api';
+import { useDataVersion, getAnimeInfo, refreshAnimeLive } from '../api';
 import { myContext } from '../context';
 import { formatTime, isFinished, progressFraction, progressLabel, resumePoint } from '../progress';
 import { statusAfterWatching, statusOf } from '../listStatus';
@@ -46,9 +46,16 @@ const WatchScreen = ({ route, navigation }) => {
     }
   }, [animeId]);
 
+  // Loads again when newer data arrives (a downloaded list or snapshot, live AniList details).
+  const dataVersion = useDataVersion();
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, dataVersion]);
+
+  // The saved data shows at once; AniList's latest (status, next episode) follows when it differs.
+  useEffect(() => {
+    refreshAnimeLive(animeId);
+  }, [animeId]);
 
   const episode = anime?.episodes.find((e) => e.number === number);
 
@@ -122,6 +129,7 @@ const WatchScreen = ({ route, navigation }) => {
   }
 
   const total = anime.episodes.length;
+  const isMovie = anime.type === 'Movie' && total === 1;
   const playerWidth = width - space.xl * 2;
   const hasPrev = number > 1;
   const hasNext = number < total;
@@ -217,7 +225,7 @@ const WatchScreen = ({ route, navigation }) => {
 
         {episode ? (
           <View style={{ gap: 6 }}>
-            <Text style={styles.epLabel}>Episode {episode.number} of {total}</Text>
+            <Text style={styles.epLabel}>{isMovie ? 'Movie' : `Episode ${episode.number} of ${total}`}</Text>
             {episode.title ? <Text style={styles.epTitle}>{episode.title}</Text> : null}
             {episode.source === 'youtube' ? (
               <View style={styles.badge}>
@@ -230,47 +238,52 @@ const WatchScreen = ({ route, navigation }) => {
           </View>
         ) : null}
 
-        <View style={{ flexDirection: 'row', gap: space.md }}>
-          <Button title="Previous" icon="play-back" variant="ghost" onPress={() => goTo(number - 1)} disabled={!hasPrev} style={{ flex: 1 }} />
-          <Button title="Next" icon="play-forward" onPress={() => goTo(number + 1)} disabled={!hasNext} style={{ flex: 1 }} />
-        </View>
+        {/* A movie is a single video: no Previous / Next or episode list. */}
+        {!isMovie && (
+          <>
+            <View style={{ flexDirection: 'row', gap: space.md }}>
+              <Button title="Previous" icon="play-back" variant="ghost" onPress={() => goTo(number - 1)} disabled={!hasPrev} style={{ flex: 1 }} />
+              <Button title="Next" icon="play-forward" onPress={() => goTo(number + 1)} disabled={!hasNext} style={{ flex: 1 }} />
+            </View>
 
-        <View style={{ gap: space.sm }}>
-          <Text style={styles.sectionTitle}>Episodes</Text>
-          {anime.episodes.map((ep) => {
-            const current = ep.number === number;
-            const progress = watchProgress(anime.id, ep.number);
-            const fraction = progressFraction(progress);
-            const label = progressLabel(progress);
-            return (
-              <Pressable
-                key={ep.id}
-                onPress={() => goTo(ep.number)}
-                style={[styles.row, current && styles.rowCurrent]}
-                accessibilityState={{ selected: current }}
-              >
-                <View style={styles.rowThumb}>
-                  {ep.thumbnail ? <Image source={{ uri: ep.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
-                  <Text style={styles.rowNum}>{ep.number}</Text>
-                  {fraction > 0 && (
-                    <View style={styles.thumbBar}>
-                      <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+            <View style={{ gap: space.sm }}>
+              <Text style={styles.sectionTitle}>Episodes</Text>
+              {anime.episodes.map((ep) => {
+                const current = ep.number === number;
+                const progress = watchProgress(anime.id, ep.number);
+                const fraction = progressFraction(progress);
+                const label = progressLabel(progress);
+                return (
+                  <Pressable
+                    key={ep.id}
+                    onPress={() => goTo(ep.number)}
+                    style={[styles.row, current && styles.rowCurrent]}
+                    accessibilityState={{ selected: current }}
+                  >
+                    <View style={styles.rowThumb}>
+                      {ep.thumbnail ? <Image source={{ uri: ep.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
+                      <Text style={styles.rowNum}>{ep.number}</Text>
+                      {fraction > 0 && (
+                        <View style={styles.thumbBar}>
+                          <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+                        </View>
+                      )}
                     </View>
-                  )}
-                </View>
-                <View style={{ flex: 1, gap: 2 }}>
-                  <Text style={[styles.rowTitle, current && { color: colors.accent }]} numberOfLines={1}>
-                    {ep.title ?? `Episode ${ep.number}`}
-                  </Text>
-                  <Text style={styles.muted} numberOfLines={1}>
-                    {label ?? (ep.source === 'youtube' ? 'Plays in the app' : ep.source === 'link' ? `Opens ${ep.link.site}` : 'Not available yet')}
-                  </Text>
-                </View>
-                <Ionicons name={SOURCE_ICON[ep.source]} size={18} color={ep.source === 'none' ? colors.muted : colors.text} />
-              </Pressable>
-            );
-          })}
-        </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={[styles.rowTitle, current && { color: colors.accent }]} numberOfLines={1}>
+                        {ep.title ?? `Episode ${ep.number}`}
+                      </Text>
+                      <Text style={styles.muted} numberOfLines={1}>
+                        {label ?? (ep.source === 'youtube' ? 'Plays in the app' : ep.source === 'link' ? `Opens ${ep.link.site}` : 'Not available yet')}
+                      </Text>
+                    </View>
+                    <Ionicons name={SOURCE_ICON[ep.source]} size={18} color={ep.source === 'none' ? colors.muted : colors.text} />
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

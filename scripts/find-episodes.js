@@ -15,12 +15,14 @@
 // 15-40 minutes, because AniList allows about 30 requests a minute.
 const fs = require('fs');
 const path = require('path');
+const EPISODES_FORMAT = 1;
 const {
   matchPlaylists, scorePlaylist, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor, OTHER_LANGUAGES,
 } = require('./episodeMatching');
 const { MEDIA_FIELDS } = require('./anilistFields');
 const { CHANNELS, MIN_MINUTES } = require('./channels');
-const { sameContent, suspiciousDrop, summarizeChanges, summaryMarkdown } = require('./episodeDiff');
+const { sameContent, suspiciousDrop, summarizeChanges, summaryMarkdown, recentAdditions } = require('./episodeDiff');
+const { findMovies } = require('./findMovies');
 
 const args = process.argv.slice(2);
 const QUICK = args.includes('--quick');
@@ -78,20 +80,20 @@ const all = async (endpoint, params, maxPages = Infinity) => {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// AniList search, spaced out for its ~30 requests/minute limit.
-const anilistSearch = async (search) => {
+// AniList search, spaced out for its ~30 requests/minute limit. `format` narrows it (e.g. MOVIE).
+const anilistSearch = async (search, format = null) => {
   await sleep(2200);
   const res = await fetch('https://graphql.anilist.co', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
-      query: `query ($search: String) { Page(perPage: 8) { media(search: $search, type: ANIME, isAdult: false) { ${MEDIA_FIELDS} } } }`,
-      variables: { search },
+      query: `query ($search: String, $format: MediaFormat) { Page(perPage: 8) { media(search: $search, type: ANIME, isAdult: false, format: $format) { ${MEDIA_FIELDS} } } }`,
+      variables: { search, ...(format ? { format } : {}) },
     }),
   });
   if (res.status === 429) {
     await sleep(60000);
-    return anilistSearch(search);
+    return anilistSearch(search, format);
   }
   const json = await res.json();
   return json.data?.Page?.media ?? [];
@@ -163,6 +165,7 @@ const seasonLength = (media) =>
     searches: saved.version === CACHE_VERSION ? saved.searches ?? {} : {},
     media: saved.media ?? {},
     rejected: saved.rejected ?? {},
+    movieSearches: saved.movieSearches ?? {},
   };
   for (const m of Object.values(previous?.media ?? {})) cache.media[m.id] ??= m;
   // Videos already in the app, with the countries saved for them (quick runs reuse these).
@@ -176,15 +179,17 @@ const seasonLength = (media) =>
 
   // 1) Every playlist from the official channels, and its videos (read once).
   const channels = [];
+  const channelInfo = []; // with each channel's uploads list, for step 4 (movies)
   const playlists = [];
   for (const { handle, english = false, skip = null } of CHANNELS) {
-    const channel = (await yt('channels', { part: 'snippet', forHandle: handle })).items?.[0];
+    const channel = (await yt('channels', { part: 'snippet,contentDetails', forHandle: handle })).items?.[0];
     if (!channel) {
       console.warn(`Channel ${handle} not found, skipping.`);
       continue;
     }
     const title = channel.snippet.title;
     channels.push({ handle, id: channel.id, title });
+    channelInfo.push({ handle, title, english, skip, uploadsId: channel.contentDetails?.relatedPlaylists?.uploads });
     const lists = await all('playlists', { part: 'snippet,contentDetails', channelId: channel.id });
     const usable = lists.filter(
       (pl) => (pl.contentDetails?.itemCount ?? 0) > 0 && !OTHER_LANGUAGES.test(pl.snippet.title) && !skip?.test(pl.snippet.title)
@@ -310,6 +315,29 @@ const seasonLength = (media) =>
     anime[mediaId] = compact({ channel: main.channel, playlistId: main.id, playlistTitle: main.title, episodes });
   }
 
+  // 4) Full movies the channels uploaded (often outside any playlist), stored as one-episode anime
+  //    (the app plays a movie as episode 1). An anime already filled from playlists keeps those.
+  const movies = await findMovies({
+    channels: channelInfo,
+    playlists,
+    playlistItems: items,
+    movies: allMedia.filter((m) => m.format === 'MOVIE'),
+    all,
+    yt,
+    searchMovies: (text) => anilistSearch(text, 'MOVIE'),
+    minutesOf,
+    cache,
+    quick: QUICK,
+    log: console.log,
+  });
+  for (const [id, { media: movie, videos }] of movies) {
+    if (anime[id]) continue;
+    const [main, ...alts] = videos;
+    const strip = (v) => (v.channel === main.channel ? { ...v, channel: undefined } : v);
+    anime[id] = compact({ channel: main.channel, kind: 'movie', episodes: { 1: { ...strip(main), alts: alts.map(strip) } } });
+    byId.set(id, movie);
+  }
+
   // AniList data for anime that aren't in the snapshot, so the app can show them.
   const media = {};
   for (const id of Object.keys(anime)) if (!knownIds.has(Number(id))) media[id] = byId.get(Number(id));
@@ -317,8 +345,12 @@ const seasonLength = (media) =>
   // Saved even when the episodes didn't change, so the next quick run can skip this run's lookups.
   fs.writeFileSync(CACHE, JSON.stringify(cache) + '\n');
 
-  const result = { generatedAt: new Date().toISOString(), channels, anime, media };
+  // `format` changes only when the file's shape changes in a way older apps can't read; apps that
+  // download the list (episodeData.js) ignore a format they don't know and keep their own list.
+  const result = { format: EPISODES_FORMAT, generatedAt: new Date().toISOString(), channels, anime, media };
   const changes = summarizeChanges(previous, result);
+  // What this run added, kept a week, for the app's "New on Animist" row on Home.
+  result.added = recentAdditions(previous?.added, changes, Date.now(), (id) => anime[id]?.kind === 'movie');
   console.log(`YouTube API quota used: about ${unitsUsed} of 10,000 units.`);
 
   if (previous && sameContent(previous, result)) {

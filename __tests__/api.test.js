@@ -1,6 +1,6 @@
 import axios from 'axios';
 import {
-  USE_STATIC_DATA, hasFreeEpisodes, episodeVideos, getSeasons, freeEpisodeToStart, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
+  USE_STATIC_DATA, hasFreeEpisodes, episodeVideos, refreshAnimeLive, getSeasons, freeEpisodeToStart, getHomeData, getList, getRecentEpisodes, searchAnime, getByGenre, getAnimeInfo, genreFilter, toAnime,
 } from '../api';
 
 // These tests use the saved snapshot, so they run offline and give the same results every time.
@@ -47,23 +47,69 @@ describe('api (static snapshot)', () => {
     for (const ep of results) expect(ep.episodeNumber).toBeGreaterThan(0);
   });
 
-  it('finds anime by any title, ignoring case', async () => {
+  // Offline: search and genres fall back to the saved data.
+  const offline = (fn) => async () => {
+    const post = jest.spyOn(axios, 'post').mockRejectedValue(new Error('Network Error'));
+    try {
+      await fn();
+    } finally {
+      post.mockRestore();
+    }
+  };
+
+  it('finds anime by any title, ignoring case (offline)', offline(async () => {
     const { results } = await searchAnime('one piece');
     expect(results.map((a) => a.title)).toContain('ONE PIECE');
-  });
+  }));
 
-  it('returns no results for nonsense searches', async () => {
+  it('returns no results for nonsense searches (offline)', offline(async () => {
     const { results } = await searchAnime('zzqqxx-not-an-anime');
     expect(results).toEqual([]);
-  });
+  }));
 
-  it('filters by genre and by tag', async () => {
+  it('filters by genre and by tag (offline)', offline(async () => {
     const action = await getByGenre('Action');
     expect(action.results.length).toBeGreaterThan(0);
     expect(action.results.every((a) => a.genres.includes('Action'))).toBe(true);
 
     const martialArts = await getByGenre('Martial-Arts');
     expect(martialArts.results.length).toBeGreaterThan(0);
+  }));
+
+  it('searches all of AniList when online, and opens those anime without another request', async () => {
+    const media = { id: 777001, title: { english: 'Only On AniList' }, coverImage: { large: 'https://img/x.jpg' }, genres: ['Drama'], format: 'TV', status: 'FINISHED', episodes: 12, isAdult: false };
+    const post = jest.spyOn(axios, 'post').mockResolvedValue({ data: { data: { Page: { pageInfo: { currentPage: 1, hasNextPage: false }, media: [media] } } } });
+    try {
+      const { results } = await searchAnime('only on anilist');
+      expect(results.map((a) => a.title)).toEqual(['Only On AniList']);
+      post.mockRejectedValue(new Error('Network Error'));
+      await expect(getAnimeInfo(777001)).resolves.toMatchObject({ title: 'Only On AniList' });
+    } finally {
+      post.mockRestore();
+    }
+  });
+
+  it('updates an anime page with live AniList data when it changed', async () => {
+    const [first] = (await getList('trending', 1, 1)).results;
+    const before = await getAnimeInfo(first.id);
+    const live = { id: first.id, title: { english: before.title }, coverImage: { large: before.image }, genres: [], format: 'TV', status: 'FINISHED', episodes: 99, isAdult: false };
+    const post = jest.spyOn(axios, 'post').mockResolvedValue({ data: { data: { Media: live } } });
+    try {
+      await expect(refreshAnimeLive(first.id)).resolves.toBe(true);
+      expect((await getAnimeInfo(first.id)).status).toBe('Completed');
+      await expect(refreshAnimeLive(first.id)).resolves.toBe(false); // nothing new the second time
+    } finally {
+      post.mockRestore();
+    }
+  });
+
+  it('keeps the saved data when AniList is unreachable', async () => {
+    const post = jest.spyOn(axios, 'post').mockRejectedValue(new Error('Network Error'));
+    try {
+      await expect(refreshAnimeLive(21)).resolves.toBe(false);
+    } finally {
+      post.mockRestore();
+    }
   });
 
   it('loads details with streaming links', async () => {
@@ -249,5 +295,24 @@ describe('freeEpisodeToStart', () => {
 
   it('is null for anime without free episodes', () => {
     expect(freeEpisodeToStart(999999999, 1)).toBeNull();
+  });
+});
+
+describe('every anime in the data', () => {
+  it('can be shown, even with missing AniList fields (no description, cover or dates)', () => {
+    const episodes = require('../data/episodes.json');
+    const snapshot = require('../data/animeSnapshot.json');
+    const all = [...Object.values(snapshot.media), ...Object.values(episodes.media ?? {})];
+    expect(all.length).toBeGreaterThan(100);
+    for (const media of all) expect(() => toAnime(media)).not.toThrow();
+    const bare = { id: 1, title: { romaji: 'Bare' }, description: null, coverImage: null, genres: null, startDate: null };
+    expect(() => toAnime(bare)).not.toThrow();
+  });
+});
+
+describe('descriptions', () => {
+  it('turns HTML character codes into letters', () => {
+    const media = { id: 2, title: { romaji: 'X' }, description: 'A girl named &Eacute;clair&mdash;she&rsquo;s back &amp; more&#8195;&#x41;.<br>Next', genres: [] };
+    expect(toAnime(media).description).toBe('A girl named Éclair—she’s back & more\u2003A.\nNext');
   });
 });
