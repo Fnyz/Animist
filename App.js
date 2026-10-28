@@ -16,6 +16,7 @@ import {
 import { GlobalProvider, myContext } from './context';
 import { colors, fonts } from './theme';
 import OfflineBanner from './components/OfflineBanner';
+import { FullscreenHost } from './components/FullscreenHost';
 import UpdateNotice from './components/UpdateNotice';
 import NotificationBridge from './components/NotificationBridge';
 import { navigationRef } from './navigationRef';
@@ -122,10 +123,12 @@ function App() {
         {fontsLoaded ? (
           <CrashBoundary>
             <NavigationContainer theme={navTheme} ref={navigationRef}>
-              <RootNavigator />
-              <OfflineBanner />
-              <UpdateNotice />
-              <NotificationBridge />
+              <FullscreenHost>
+                <RootNavigator />
+                <OfflineBanner />
+                <UpdateNotice />
+                <NotificationBridge />
+              </FullscreenHost>
             </NavigationContainer>
           </CrashBoundary>
         ) : (

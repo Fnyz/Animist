@@ -1,10 +1,11 @@
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { View, Text, StyleSheet, Linking, Pressable, Modal, StatusBar, Dimensions, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Linking, Pressable, StatusBar, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import YouTubeView from './YouTubeView';
+import { FullscreenLayer } from './FullscreenHost';
 import { fullscreenBox } from './fullscreenBox';
 import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
 import { Button } from './ui';
@@ -499,6 +500,16 @@ const VideoPlayer = ({
   }
   if (!offlineError && retriedOnline) setRetriedOnline(false);
 
+  // Back leaves fullscreen.
+  useEffect(() => {
+    if (!fullscreen) return undefined;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      toggleFullscreen();
+      return true;
+    });
+    return () => sub.remove();
+  });
+
   if (error) {
     return (
       <View style={{ width, gap: space.md }}>
@@ -543,6 +554,12 @@ const VideoPlayer = ({
     }
   };
 
+  // Remembers where the video is (for fullscreen switches and retries) and reports progress.
+  const saveProgress = (s) => {
+    position.current = s.current;
+    if (s.duration > 0) onProgress?.({ position: s.current, duration: s.duration });
+  };
+
   const core = (isFullscreen) => (
     <PlayerCore
       key={session.id}
@@ -553,10 +570,7 @@ const VideoPlayer = ({
       label={label}
       fullscreen={isFullscreen}
       onToggleFullscreen={toggleFullscreen}
-      onProgress={(s) => {
-        position.current = s.current;
-        if (s.duration > 0) onProgress?.({ position: s.current, duration: s.duration });
-      }}
+      onProgress={saveProgress}
       onEnded={onEnded}
       onError={onPlayError}
       quality={quality}
@@ -582,20 +596,17 @@ const VideoPlayer = ({
         core(false)
       )}
 
-      <Modal
-        visible={fullscreen}
-        animationType="fade"
-        statusBarTranslucent
-        navigationBarTranslucent
-        supportedOrientations={['landscape', 'portrait']}
-        onRequestClose={() => toggleFullscreen()}
-      >
-        <StatusBar hidden />
-        <View style={styles.fullscreenRoot} onLayout={(e) => setRoot(e.nativeEvent.layout)}>
-          {/* Without screen rotation (older APKs) the video plays fullscreen in portrait. */}
-          {fullscreen && (landscape || !ScreenOrientation) && root ? core(true) : null}
-        </View>
-      </Modal>
+      {/* Fullscreen plays in a layer above the app, in the app's own window, so the status bar
+          and navigation bar really hide (see FullscreenHost). */}
+      {fullscreen ? (
+        <FullscreenLayer>
+          <View style={styles.fullscreenRoot} onLayout={(e) => setRoot(e.nativeEvent.layout)}>
+            <StatusBar hidden />
+            {/* Without screen rotation (older APKs) the video plays fullscreen in portrait. */}
+            {(landscape || !ScreenOrientation) && root ? core(true) : null}
+          </View>
+        </FullscreenLayer>
+      ) : null}
     </>
   );
 };
