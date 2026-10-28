@@ -430,9 +430,14 @@ export const getSchedule = async () => {
     .map((s) => ({ anime: toAnime(s.media), episode: s.episode, airingAt: s.airingAt }));
 };
 
-// A named list: 'trending' | 'airing' | 'popular' | 'movies' | 'free' (episodes play in the app).
+// Full movies that play in the app (official uploads), most popular first.
+const freeMovieIds = () => freeToWatchIds().filter((id) => staticMedia(id)?.format === 'MOVIE');
+
+// A named list: 'trending' | 'airing' | 'popular' | 'movies' | 'free' (episodes play in the app) |
+// 'freeMovies' (full movies that play in the app).
 export const getList = async (kind, page = 1, perPage = 20) => {
   if (kind === 'free') return mediaPage(freeToWatchIds(), page, perPage);
+  if (kind === 'freeMovies') return mediaPage(freeMovieIds(), page, perPage);
   if (USE_STATIC_DATA) return mediaPage(snapshot.lists[kind] ?? [], page, perPage);
   const data = await request(LIST_QUERY, { page, perPage, ...LISTS[kind] });
   return pageOf(data.Page, data.Page.media.map(toAnime));
@@ -440,8 +445,9 @@ export const getList = async (kind, page = 1, perPage = 20) => {
 
 // Everything the Home screen shows, in one request.
 export const getHomeData = async () => {
-  const [free, recent, trending, airing, popular, movies] = await Promise.all([
+  const [free, freeMovies, recent, trending, airing, popular, movies] = await Promise.all([
     getList('free', 1, 10),
+    getList('freeMovies', 1, 10),
     getRecentEpisodes(1, 10),
     getList('trending', 1, 10),
     getList('airing', 1, 10),
@@ -451,6 +457,7 @@ export const getHomeData = async () => {
   return {
     newOnAnimist: getNewOnAnimist(),
     free: free.results,
+    freeMovies: freeMovies.results,
     recent: recent.results,
     trending: trending.results,
     airing: airing.results,

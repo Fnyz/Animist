@@ -25,6 +25,8 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - Full movies: when an official channel uploads a whole anime movie for free, it plays in the app like an episode (the first run found 5, including That Time I Got Reincarnated as a Slime the Movie: Scarlet Bond). Movie pages say "Movie", and say so when there's no free official upload yet.
 - Share links: Share on an anime page sends a link that opens the anime in Animist, or shows it with a download button when the app isn't installed. Needs the 1.4.0 APK to open links in the app.
 - "New on Animist" on Home: what the daily update added this week, with NEW (just became free), MOVIE and +N EP badges, and a line like "Today: 2 new anime, 5 new movies, 7 new episodes".
+- "Free movies" row on Home (and a See all list): every full anime movie that plays in the app.
+- The daily update also searches all of YouTube for free full movies, 30 a day. Uploads from the official channels go into the app; full uploads from unknown channels are only listed for review in the update's pull request, never added.
 
 ### Changed
 - Expo SDK 58 updated to the latest patch (58.0.20).

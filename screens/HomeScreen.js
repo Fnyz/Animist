@@ -152,6 +152,17 @@ const HomeScreen = ({ navigation }) => {
             onPressItem={openAnime}
             onSeeAll={() => seeAll('popular', 'All-time popular')}
           />
+          {/* Full movies that play in the app, free from official channels. */}
+          {data.freeMovies?.length > 0 && (
+            <PosterRow
+              title="Free movies"
+              note="Full anime movies, free from official channels"
+              items={data.freeMovies}
+              onPressItem={openAnime}
+              onSeeAll={() => seeAll('freeMovies', 'Free movies')}
+              badgeFor={() => '▶ Movie'}
+            />
+          )}
           <PosterRow
             title="Top movies"
             items={data.movies}

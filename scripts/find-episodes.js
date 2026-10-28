@@ -338,6 +338,22 @@ const seasonLength = (media) =>
     byId.set(id, movie);
   }
 
+  // Movies the daily YouTube search found (scripts/search-movies.js), kept until a channel scan
+  // finds the same anime itself.
+  let searched = {};
+  try {
+    searched = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'movieSearch.json'), 'utf8')).found ?? {};
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e;
+  }
+  for (const [id, { media: movie, videos }] of Object.entries(searched)) {
+    if (anime[id] || !videos?.length || !movie) continue;
+    const [main, ...alts] = videos;
+    const strip = (v) => (v.channel === main.channel ? { ...v, channel: undefined } : v);
+    anime[id] = compact({ channel: main.channel, kind: 'movie', episodes: { 1: { ...strip(main), alts: alts.map(strip) } } });
+    byId.set(Number(id), movie);
+  }
+
   // AniList data for anime that aren't in the snapshot, so the app can show them.
   const media = {};
   for (const id of Object.keys(anime)) if (!knownIds.has(Number(id))) media[id] = byId.get(Number(id));

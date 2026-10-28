@@ -61,6 +61,7 @@ const ListScreen = ({ route, navigation }) => {
   const badgeFor = (a) => {
     if (route.params.kind === 'recent') return `EP ${a.episodeNumber}`;
     if (route.params.kind === 'movies') return 'Movie';
+    if (route.params.kind === 'freeMovies') return '▶ Movie';
     if (route.params.kind === 'free') return `▶ ${a.episodes.filter((e) => e.source === 'youtube').length} eps`;
     return null;
   };
