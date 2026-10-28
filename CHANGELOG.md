@@ -5,7 +5,7 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
-## [Unreleased]
+## [1.4.0] - 2026-10-28
 
 ### New
 - Delete your account from Profile: everything you stored (My List, history, likes, comments, notifications) is removed, after confirming with your password or Google account.
