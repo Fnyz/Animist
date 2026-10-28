@@ -1,5 +1,5 @@
 import React, { useContext, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ScrollView, Switch } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,9 +10,10 @@ import { signOutGoogle } from '../googleAuth';
 import { stopEpisodeNotifications } from '../notifications';
 import { signInMethod } from '../accountDeletion';
 import { myContext } from '../context';
-import { Button } from '../components/ui';
-import { USE_STATIC_DATA } from '../api';
-import { useHeroClips } from '../heroClips';
+import { Button, Chip } from '../components/ui';
+import { CLIP_MODES, useHeroClips } from '../heroClips';
+import { animeGenres } from '../api';
+import { computeStats } from '../stats';
 import { avatarFor, AVATAR_CREDIT } from '../avatars';
 import { colors, fonts, radius, space } from '../theme';
 
@@ -27,31 +28,33 @@ const Row = ({ icon, label, detail, onPress, danger }) => (
   </Pressable>
 );
 
-const SwitchRow = ({ icon, label, detail, value, onChange }) => (
-  <Pressable onPress={() => onChange(!value)} style={styles.row} accessibilityRole="switch" accessibilityState={{ checked: value }}>
+// A setting with a few choices, shown as chips under its label.
+const ChoiceRow = ({ icon, label, detail, options, value, onChange }) => (
+  <View style={[styles.row, { alignItems: 'flex-start' }]}>
     <View style={styles.rowIcon}>
       <Ionicons name={icon} size={19} color={colors.accent} />
     </View>
-    <View style={{ flex: 1, gap: 2 }}>
-      <Text style={[styles.rowLabel, { flex: 0 }]}>{label}</Text>
-      {detail ? <Text style={styles.switchDetail}>{detail}</Text> : null}
+    <View style={{ flex: 1, gap: space.sm }}>
+      <View style={{ gap: 2 }}>
+        <Text style={[styles.rowLabel, { flex: 0 }]}>{label}</Text>
+        {detail ? <Text style={styles.switchDetail}>{detail}</Text> : null}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel={label}>
+        {options.map((o) => (
+          <Chip key={o.key} label={o.label} active={value === o.key} onPress={() => onChange(o.key)} />
+        ))}
+      </View>
     </View>
-    <Switch
-      value={value}
-      onValueChange={onChange}
-      trackColor={{ false: colors.line, true: colors.accent }}
-      thumbColor={colors.text}
-      importantForAccessibility="no"
-    />
-  </Pressable>
+  </View>
 );
 
 const ProfileScreen = ({ navigation }) => {
-  const { profile, userWatchList, authUser, signedIn } = useContext(myContext);
+  const { profile, userWatchList, historyRecords, authUser, signedIn } = useContext(myContext);
   const [signingOut, setSigningOut] = useState(false);
   const [clips, setClips] = useHeroClips();
   const me = profile?.[0]?.data ?? {};
   const fullName = [me.firstname, me.lastname].filter(Boolean).join(' ') || 'Anime fan';
+  const stats = computeStats(historyRecords ?? [], userWatchList, animeGenres);
 
   const logOut = async () => {
     setSigningOut(true);
@@ -68,14 +71,15 @@ const ProfileScreen = ({ navigation }) => {
 
   const appInfo = (
     <View style={styles.group}>
-      <SwitchRow
+      <ChoiceRow
         icon="film-outline"
         label="Trailer clips on Home"
-        detail="Plays muted trailers in the top banners. Uses mobile data when you're not on Wi-Fi."
+        detail="Muted trailers in the top banners. Wi-Fi only saves your mobile data."
+        options={CLIP_MODES}
         value={clips}
         onChange={setClips}
       />
-      <Row icon="server-outline" label="Anime data" detail={USE_STATIC_DATA ? 'Offline snapshot' : 'AniList (live)'} />
+      <Row icon="server-outline" label="Anime data" detail="AniList · updated daily + live" />
       <Row icon="information-circle-outline" label="Version" detail={Constants.expoConfig?.version ?? '1.0.0'} />
     </View>
   );
@@ -128,11 +132,43 @@ const ProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        <View style={styles.stats}>
-          <View style={styles.stat}>
-            <Text style={styles.statValue}>{userWatchList.length}</Text>
-            <Text style={styles.statLabel}>In My List</Text>
+        {/* Your stats: from the watch history and My List. */}
+        <View style={{ gap: space.md }}>
+          <Text style={styles.sectionTitle}>Your stats</Text>
+          <View style={styles.stats}>
+            {[
+              [stats.episodesWatched, stats.episodesWatched === 1 ? 'Episode watched' : 'Episodes watched'],
+              [stats.hoursWatched, stats.hoursWatched === 1 ? 'Hour watched' : 'Hours watched'],
+            ].map(([value, label]) => (
+              <View key={label} style={styles.stat}>
+                <Text style={styles.statValue}>{value}</Text>
+                <Text style={styles.statLabel}>{label}</Text>
+              </View>
+            ))}
           </View>
+          <View style={styles.stats}>
+            {[
+              [stats.onList, 'On My List'],
+              [stats.completed, 'Completed'],
+            ].map(([value, label]) => (
+              <View key={label} style={styles.stat}>
+                <Text style={styles.statValue}>{value}</Text>
+                <Text style={styles.statLabel}>{label}</Text>
+              </View>
+            ))}
+          </View>
+          {stats.topGenres.length ? (
+            <View style={styles.genres}>
+              <Text style={styles.statLabel}>Favorite genres</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+                {stats.topGenres.map((g, i) => (
+                  <View key={g} style={[styles.genre, i === 0 && styles.genreTop]}>
+                    <Text style={[styles.genreText, i === 0 && { color: colors.onAccent }]}>{g}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.group}>
@@ -142,6 +178,7 @@ const ProfileScreen = ({ navigation }) => {
             <Row icon="key-outline" label="Change password" onPress={() => navigation.navigate('UpdatePass')} />
           )}
           <Row icon="bookmark-outline" label="My List" onPress={() => navigation.navigate('MyList')} />
+          <Row icon="download-outline" label="Import from AniList" onPress={() => navigation.navigate('ImportAniList')} />
         </View>
 
         {appInfo}
@@ -186,6 +223,11 @@ const styles = StyleSheet.create({
   handle: { fontFamily: fonts.bodySemi, fontSize: 14, color: colors.accent },
   email: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },
   stats: { flexDirection: 'row', gap: space.md },
+  sectionTitle: { fontFamily: fonts.displaySemi, fontSize: 19, color: colors.text },
+  genres: { gap: space.sm, padding: space.lg, borderRadius: radius.md, backgroundColor: colors.surface },
+  genre: { paddingHorizontal: 12, height: 30, borderRadius: 15, justifyContent: 'center', backgroundColor: colors.surface2 },
+  genreTop: { backgroundColor: colors.accent },
+  genreText: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.text },
   stat: { flex: 1, padding: space.lg, borderRadius: radius.md, backgroundColor: colors.surface, gap: 2 },
   statValue: { fontFamily: fonts.display, fontSize: 26, color: colors.text },
   statLabel: { fontFamily: fonts.body, fontSize: 13, color: colors.muted },

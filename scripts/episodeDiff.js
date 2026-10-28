@@ -71,4 +71,26 @@ const summaryMarkdown = (changes, titleOf) => {
   return lines.join('\n');
 };
 
-module.exports = { episodeTotal, sameContent, suspiciousDrop, summarizeChanges, episodeRanges, summaryMarkdown };
+// The "New on Animist" list the app shows on Home: what each run added, kept for `keepDays`.
+// previous: the last list ([{ id, kind, episodes?, at }]); changes: summarizeChanges(); `isMovie(id)`.
+// kind: 'new' (an anime that just got free episodes), 'movie' (a newly found full movie) or
+// 'episodes' (new episodes for an anime that had some; `episodes` lists them). Newest first; an
+// anime appears once, with everything added to it in that time.
+const recentAdditions = (previous, changes, now, isMovie = () => false, keepDays = 7, max = 40) => {
+  const at = new Date(now).toISOString();
+  const cutoff = new Date(now).getTime() - keepDays * 86400000;
+  const kept = (previous ?? []).filter((a) => Date.parse(a.at) >= cutoff);
+  const byId = new Map(kept.map((a) => [String(a.id), a]));
+  const fresh = [];
+  for (const id of changes.newAnime) fresh.push({ id: Number(id), kind: isMovie(id) ? 'movie' : 'new', at });
+  for (const { id, added } of changes.updated) {
+    const earlier = byId.get(String(id));
+    // Episodes added to something that was itself new this week keep it "new".
+    if (earlier && earlier.kind !== 'episodes') fresh.push({ ...earlier, at });
+    else fresh.push({ id: Number(id), kind: 'episodes', episodes: [...new Set([...(earlier?.episodes ?? []), ...added])].sort((a, b) => a - b), at });
+  }
+  const freshIds = new Set(fresh.map((a) => String(a.id)));
+  return [...fresh, ...kept.filter((a) => !freshIds.has(String(a.id)))].slice(0, max);
+};
+
+module.exports = { episodeTotal, sameContent, suspiciousDrop, summarizeChanges, episodeRanges, summaryMarkdown, recentAdditions };

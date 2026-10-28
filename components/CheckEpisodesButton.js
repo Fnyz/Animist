@@ -5,23 +5,25 @@ import * as Updates from 'expo-updates';
 import { Button } from './ui';
 import { formatTime } from '../progress';
 import { cooldownLeft } from '../checkCooldown';
+import { refreshDownloadedData } from '../episodeData';
 import { colors, fonts, space } from '../theme';
 
 const MESSAGES = {
   latest: 'You have the newest episode list. New episodes from the official channels are added every day.',
-  found: 'New episodes found. Restarting to load them…',
-  dev: 'Checking for new episodes works in the installed app, not in Expo Go.',
+  updated: 'New episodes found and added.',
+  found: 'An app update is ready. Restarting to load it…',
   error: "Couldn't check right now. Check your internet connection and try again.",
 };
 
 // Where the last check's { at, result } is saved on the phone.
 const STORAGE_KEY = 'animist.episodeCheck';
 
-// New episodes reach the app as over-the-air updates (published by the daily episode workflow).
-// This checks for one now instead of waiting for the next app start, and loads it right away.
+// New episodes reach the app as a downloaded episode list (episodeData.js) and in over-the-air
+// updates. This checks for both now instead of waiting: a newer list is used right away; an
+// update restarts the app to load it.
 // After a check it rests for a while (saved on the phone, so leaving the screen doesn't reset it).
 const CheckEpisodesButton = () => {
-  const [state, setState] = useState('idle'); // idle | checking | latest | found | dev | error
+  const [state, setState] = useState('idle'); // idle | checking | updated | latest | found | error
   const [last, setLast] = useState(null); // { at, result } of the last finished check
   const [now, setNow] = useState(() => Date.now());
 
@@ -55,16 +57,17 @@ const CheckEpisodesButton = () => {
 
   const check = async () => {
     if (left > 0) return;
+    setState('checking');
+    const list = await refreshDownloadedData({ force: true });
     // Expo Go and development builds can't load updates (__DEV__ is false in the installed APK).
     if (__DEV__ || !Updates.isEnabled) {
-      setState('dev');
+      finish(list);
       return;
     }
-    setState('checking');
     try {
       const { isAvailable } = await Updates.checkForUpdateAsync();
       if (!isAvailable) {
-        finish('latest');
+        finish(list);
         return;
       }
       setState('found');

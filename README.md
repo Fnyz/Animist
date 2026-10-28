@@ -33,7 +33,8 @@ Browse trending and airing anime, watch thousands of free episodes from official
 ## Features
 
 **Watch**
-- ▶️ **Free episodes inside the app** from official YouTube channels, with the app's own player: play/pause, a draggable seek bar, mute, a quality picker and true 16:9 fullscreen
+- ▶️ **Free episodes inside the app** from official YouTube channels, with the app's own player: play/pause, ⟲10 / ⟳10 skip, a draggable seek bar, mute, a quality picker and true 16:9 fullscreen with swipes for picture brightness (left) and volume (right)
+- 🎞️ **Full movies** too, when an official channel uploads a whole film for free
 - ⏯️ **Resume where you left off** on any device you sign in to, with a "Start over" option
 - ⏭️ **Up next countdown** at the end of each episode, and fullscreen carries on into the next one
 - 🔁 **Automatic backups**: if YouTube blocks a video in your country, the player switches to the same episode from another official channel
@@ -43,19 +44,24 @@ Browse trending and airing anime, watch thousands of free episodes from official
 - 🏠 **Home feed**: full-width trending banners that play muted trailer clips, Continue watching, Free to watch, new episodes, airing this season, all-time popular and top movies
 - 📅 **Schedule**: what airs each day this week in your time zone, with countdowns
 - 🧩 **Seasons**: every season of an anime in release order, plus its movies and specials
-- 🔍 **Search as you type** and **browse by genre**
+- 🔍 **Search all of AniList** as you type, with **filters** (format, season, year, free to watch only), and **browse by genre**
 - 📄 **Details** for every anime: synopsis, genres, score, trailer, seasons and where to watch it officially
 - 🎬 **Trailers** play inside the app
+- 🔗 **Share links** that open the anime in Animist, or a page with the download when it isn't installed
 
 **Your account**
 - 👀 **No account needed** to browse and watch; signing in keeps your list, history and progress
 - 🔐 **Continue with Google**, or email sign-up with verification, password reset and password change
 - 📋 **My List** with statuses (Watching, Plan to watch, Completed, Dropped) that update as you watch, and **watch history** with progress bars, synced with Firestore
+- 📥 **Import from AniList**: bring a public AniList list into My List with its statuses
+- 📊 **Your stats**: episodes and hours watched, completed anime and favorite genres
 - 🔔 **New-episode notifications** for anime on your list
 - 👤 Profile with avatars, and **Delete account** that removes everything you stored
 
 **Always up to date**
 - 📦 New episodes and fixes arrive **over the air**, without reinstalling; an in-app prompt announces new versions
+- ⬇️ The **episode list and AniList data download by themselves** from the daily update (no data used when nothing changed), so they reach older app versions too; anime pages also refresh live from AniList
+- 📶 Trailer clips on Home play on **Wi-Fi only** by default (or always, or never)
 - 📶 Offline banner, a player that restarts when the connection is back, and crash reporting with Sentry
 
 ---
@@ -81,6 +87,8 @@ A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) kee
 1. **Every day at about 06:00 Philippine time** it refreshes the AniList data behind Home (trending, airing, new episodes, the schedule) and each anime's seasons ([`scripts/seasons.js`](scripts/seasons.js)), and reads each channel's RSS feed ([`scripts/check-feeds.js`](scripts/check-feeds.js)). Both are free and use no YouTube quota.
 2. **Only when there are new episodes**, it runs a quick search, about 5 minutes. It skips everything already in the app: known videos keep their saved details, and AniList is only searched for playlists it hasn't seen ([`data/finderCache.json`](data/finderCache.json) remembers earlier lookups).
 3. **On Sundays** it runs the full search, which re-checks every video, in case one was removed or blocked.
+   It also looks through every upload on the channels for **full movies** (a single video of 45 minutes or more whose title matches an AniList movie); quick runs only check the newest uploads.
+5. **Every day it also searches all of YouTube for 30 movies** ([`scripts/search-movies.js`](scripts/search-movies.js), about 3,000 quota units), most popular first, round and round. Only uploads from the official channels in [`scripts/channels.js`](scripts/channels.js) go into the app. Full uploads from other channels with 10,000+ subscribers are listed under **Channels to review** in the pull request: add a channel to `channels.js` only if it's an official licensor (most aren't). Progress and finds are kept in [`data/movieSearch.json`](data/movieSearch.json).
 4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
 
 You can also run it by hand: **Actions → Refresh episodes → Run workflow**, then choose:
@@ -309,9 +317,9 @@ Animist/
 - [x] **Fresh episodes automatically**: daily RSS check, pull requests with new episodes
 - [x] **Browse without an account**, Google Sign-In, new-episode notifications
 - [x] **Daily AniList data** refresh (trending, airing, new episodes)
-- [ ] **AniList list import**
-- [ ] **UI tests** with Maestro
-- [ ] **Later**: Google Play release, comment reporting and spoiler tags, in-app account deletion
+- [x] **1.4.0**: AniList list import, search filters, stats, full movies, share links, live AniList search, self-updating episode list and data, Wi-Fi-only trailer clips
+- [ ] **Readable crash reports** in Sentry (source maps)
+- [ ] **Later**: Google Play release, UI tests with Maestro
 
 See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 

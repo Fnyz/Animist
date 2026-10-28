@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet, Share, Linking, Animated } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getAnimeInfo } from '../api';
+import { useDataVersion, getAnimeInfo, refreshAnimeLive } from '../api';
+import { shareMessage } from '../shareLinks';
 import { myContext } from '../context';
 import { useRequireAccount } from '../requireAccount';
 import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
@@ -44,9 +45,16 @@ const DetailsScreen = ({ route, navigation }) => {
     load();
   };
 
+  // Loads again when newer data arrives (a downloaded list or snapshot, live AniList details).
+  const dataVersion = useDataVersion();
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, dataVersion]);
+
+  // The saved data shows at once; AniList's latest (status, next episode) follows when it differs.
+  useEffect(() => {
+    refreshAnimeLive(animeId);
+  }, [animeId]);
 
   const back = (
     <IconButton icon="chevron-back" label="Back" onPress={() => navigation.goBack()} style={[styles.floating, { top: insets.top + 8, left: 16 }]} />
@@ -88,9 +96,10 @@ const DetailsScreen = ({ route, navigation }) => {
     action().catch((e) => console.warn('watchlist update failed', e));
   };
 
-  const share = () =>
-    Share.share({ message: `${anime.title} — https://anilist.co/anime/${anime.id}` }).catch(() => {});
+  // A link that opens this anime in Animist, or a page with the download when it isn't installed.
+  const share = () => Share.share({ message: shareMessage(anime) }).catch(() => {});
 
+  const isMovie = anime.type === 'Movie' && anime.episodes.length <= 1;
   const episodes = allEpisodes ? anime.episodes : anime.episodes.slice(0, EPISODES_SHOWN);
   const tags = [anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episode${anime.totalEpisodes === 1 ? '' : 's'}` : null, anime.status, ...anime.genres].filter(Boolean);
 
@@ -172,9 +181,11 @@ const DetailsScreen = ({ route, navigation }) => {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Episodes</Text>
+            <Text style={styles.sectionTitle}>{isMovie ? 'Movie' : 'Episodes'}</Text>
             <Text style={styles.muted}>
-              {anime.nextEpisode
+              {isMovie
+                ? ''
+                : anime.nextEpisode
                 ? `EP ${anime.nextEpisode.episode} airs ${new Date(anime.nextEpisode.airingAt * 1000).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}`
                 : `${anime.episodes.length} released`}
             </Text>
@@ -183,11 +194,16 @@ const DetailsScreen = ({ route, navigation }) => {
             const onYouTube = anime.episodes.filter((e) => e.source === 'youtube');
             const linked = anime.episodes.find((e) => e.source === 'link');
             const channels = [...new Set(onYouTube.map((e) => e.youtube.channel))].join(' and ');
-            const message = onYouTube.length
-              ? `${onYouTube.length} episode${onYouTube.length > 1 ? 's play' : ' plays'} in the app, free from ${channels} on YouTube.`
-              : linked
-                ? `Episodes open on ${linked.link.site}, the official streaming service.`
-                : 'No free official episodes yet. Try the services above.';
+            // Movies: official channels sometimes upload the whole film for free (found daily).
+            const message = isMovie
+              ? onYouTube.length
+                ? `The full movie plays in the app, free from ${channels} on YouTube.`
+                : 'No free official upload of this movie yet. Try the services above.'
+              : onYouTube.length
+                ? `${onYouTube.length} episode${onYouTube.length > 1 ? 's play' : ' plays'} in the app, free from ${channels} on YouTube.`
+                : linked
+                  ? `Episodes open on ${linked.link.site}, the official streaming service.`
+                  : 'No free official episodes yet. Try the services above.';
             return (
               <View style={[styles.notice, onYouTube.length > 0 && styles.noticeGood]}>
                 <Ionicons
@@ -216,7 +232,7 @@ const DetailsScreen = ({ route, navigation }) => {
               >
                 <View style={styles.episodeThumb}>
                   {ep.thumbnail ? <Image source={{ uri: ep.thumbnail }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
-                  <Text style={styles.episodeNum}>EP {ep.number}</Text>
+                  <Text style={styles.episodeNum}>{isMovie ? 'MOVIE' : `EP ${ep.number}`}</Text>
                   {fraction > 0 && (
                     <View style={styles.thumbBar}>
                       <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
@@ -224,7 +240,7 @@ const DetailsScreen = ({ route, navigation }) => {
                   )}
                 </View>
                 <View style={{ flex: 1, gap: 3 }}>
-                  <Text style={styles.episodeTitle} numberOfLines={1}>{ep.title ?? `Episode ${ep.number}`}</Text>
+                  <Text style={styles.episodeTitle} numberOfLines={1}>{isMovie ? 'Full movie' : ep.title ?? `Episode ${ep.number}`}</Text>
                   <Text style={styles.muted} numberOfLines={1}>
                     {label ?? (ep.source === 'youtube' ? 'Plays in the app' : ep.source === 'link' ? `Opens ${ep.link.site}` : 'Not available yet')}
                   </Text>

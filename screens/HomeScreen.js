@@ -3,13 +3,14 @@ import { View, ScrollView, RefreshControl, Pressable, StyleSheet, FlatList } fro
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getHomeData } from '../api';
+import { useDataVersion, getHomeData } from '../api';
 import { myContext } from '../context';
 import { Chip, Loading, ErrorState, PosterRow, Wordmark } from '../components/ui';
 import HeroCarousel from '../components/HeroCarousel';
 import ContinueRow from '../components/ContinueRow';
 import { avatarFor } from '../avatars';
-import { useHeroClips } from '../heroClips';
+import { newBadge, newNote } from '../newOnAnimist';
+import { useClipsAllowed } from '../heroClips';
 import { colors, space } from '../theme';
 
 export const HOME_GENRES = ['Action', 'Fantasy', 'Romance', 'Comedy', 'Sci-Fi', 'Slice of Life', 'Sports', 'Horror'];
@@ -19,7 +20,7 @@ const HomeScreen = ({ navigation }) => {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [clipsEnabled] = useHeroClips();
+  const clipsAllowed = useClipsAllowed();
   // The banner clips stop once the banner is mostly scrolled away.
   const [heroInView, setHeroInView] = useState(true);
 
@@ -37,9 +38,11 @@ const HomeScreen = ({ navigation }) => {
     load();
   };
 
+  // Loads again when newer data arrives (a downloaded list or snapshot, live AniList details).
+  const dataVersion = useDataVersion();
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, dataVersion]);
 
   const refresh = async () => {
     setRefreshing(true);
@@ -80,7 +83,7 @@ const HomeScreen = ({ navigation }) => {
               items={data.trending.slice(0, 5)}
               onOpen={openAnime}
               onWatch={(anime, episode) => navigation.navigate('View', { animeId: anime.id, episode })}
-              clips={clipsEnabled && heroInView}
+              clips={clipsAllowed && heroInView}
             />
           )}
 
@@ -100,6 +103,18 @@ const HomeScreen = ({ navigation }) => {
             historyRecords={historyRecords}
             onPlay={(animeId, episode) => navigation.navigate('View', { animeId, episode })}
           />
+
+          {/* What the daily update added this week: anime that just became free, new movies and
+              new episodes (newest first). */}
+          {data.newOnAnimist?.length > 0 && (
+            <PosterRow
+              title="New on Animist"
+              note={newNote(data.newOnAnimist)}
+              items={data.newOnAnimist.map((a) => a.anime)}
+              badgeFor={(_, i) => newBadge(data.newOnAnimist[i])}
+              onPressItem={openAnime}
+            />
+          )}
 
           {data.free?.length > 0 && (
             <PosterRow
@@ -137,6 +152,17 @@ const HomeScreen = ({ navigation }) => {
             onPressItem={openAnime}
             onSeeAll={() => seeAll('popular', 'All-time popular')}
           />
+          {/* Full movies that play in the app, free from official channels. */}
+          {data.freeMovies?.length > 0 && (
+            <PosterRow
+              title="Free movies"
+              note="Full anime movies, free from official channels"
+              items={data.freeMovies}
+              onPressItem={openAnime}
+              onSeeAll={() => seeAll('freeMovies', 'Free movies')}
+              badgeFor={() => '▶ Movie'}
+            />
+          )}
           <PosterRow
             title="Top movies"
             items={data.movies}

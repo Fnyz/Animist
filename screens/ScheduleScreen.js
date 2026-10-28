@@ -3,7 +3,7 @@ import { View, Text, FlatList, Pressable, ScrollView, StyleSheet } from 'react-n
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getSchedule } from '../api';
+import { getSchedule, useDataVersion } from '../api';
 import { myContext } from '../context';
 import { airTime, countdown, groupByDay, scheduleDays } from '../schedule';
 import { Chip, EmptyState, ErrorState, Loading, WatchBadge } from '../components/ui';
@@ -51,9 +51,11 @@ const ScheduleScreen = ({ navigation }) => {
     }
   }, []);
 
+  // Loads again when a newer snapshot arrives (episodeData.js).
+  const dataVersion = useDataVersion();
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, dataVersion]);
 
   // Keeps the countdowns current.
   useEffect(() => {

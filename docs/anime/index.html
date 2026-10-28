@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Animist · Shared anime</title>
+<meta name="description" content="An anime shared from Animist. Open it in the app, or download Animist for Android.">
+<meta property="og:title" content="Watch it on Animist">
+<meta property="og:description" content="An anime shared from Animist, the anime app with free official episodes.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+  :root {
+    --bg: #0E0F14; --surface: #181A22; --line: #2C2F3A; --text: #F2F2F5;
+    --soft: #C3C6D2; --muted: #A3A6B4; --accent: #FF7A59; --on-accent: #1A0E0A;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --body: Manrope, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.6;
+    padding: 32px max(20px, env(safe-area-inset-left)) 56px max(20px, env(safe-area-inset-right));
+  }
+  main { max-width: 760px; margin: 0 auto; display: grid; gap: 28px; }
+  .wordmark { font-family: var(--display); font-weight: 800; font-size: 28px; letter-spacing: -0.5px; margin: 0; text-decoration: none; color: var(--text); }
+  .wordmark span { color: var(--accent); }
+  .anime { display: grid; grid-template-columns: 200px 1fr; gap: 28px; align-items: start; }
+  .poster { width: 200px; aspect-ratio: 2 / 3; border-radius: 16px; background: var(--surface); object-fit: cover; display: block; }
+  .eyebrow { margin: 0 0 6px; font-weight: 700; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--accent); }
+  h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 6vw, 40px); line-height: 1.1; margin: 0 0 10px; }
+  .meta { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  .about { color: var(--soft); font-size: 15px; margin: 0 0 22px; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+  .button {
+    display: inline-flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 22px; border-radius: 12px;
+    font-weight: 700; font-size: 16px; text-decoration: none; border: 1px solid var(--line);
+  }
+  .primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+  .secondary { background: var(--surface); color: var(--text); }
+  .button:focus-visible, a:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+  .note { color: var(--muted); font-size: 13px; margin: 14px 0 0; }
+  .empty { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 28px; }
+  .empty h1 { font-size: 26px; }
+  footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 18px; }
+  footer a { color: var(--soft); }
+  [hidden] { display: none !important; }
+  @media (max-width: 600px) {
+    .anime { grid-template-columns: 1fr; }
+    .poster { width: 160px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <a class="wordmark" href="../">Ani<span>mist</span></a>
+
+  <section class="anime" id="anime" hidden>
+    <img class="poster" id="poster" alt="">
+    <div>
+      <p class="eyebrow">Shared from Animist</p>
+      <h1 id="title"></h1>
+      <p class="meta" id="meta"></p>
+      <p class="about" id="about"></p>
+      <div class="actions">
+        <a class="button primary" id="open" hidden>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+          Open in Animist
+        </a>
+        <a class="button secondary" href="../">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v12M6 10l6 6 6-6M5 20h14"/></svg>
+          Get Animist
+        </a>
+      </div>
+      <p class="note" id="note"></p>
+    </div>
+  </section>
+
+  <section class="empty" id="empty" hidden>
+    <h1 id="emptyTitle">This link doesn't point to an anime</h1>
+    <p class="about" id="emptyText">Ask for the link again, or get Animist and find it there.</p>
+    <a class="button primary" href="../">Get Animist</a>
+  </section>
+
+  <footer>Anime data from <a href="https://anilist.co">AniList</a>. Episodes in Animist come from official YouTube channels.</footer>
+</main>
+<script>
+  // Shows the shared anime (?id=<AniList id>) with AniList's data, and a button that opens it in
+  // Animist on Android (or goes to the download page when the app isn't installed).
+  (function () {
+    var id = new URLSearchParams(location.search).get('id');
+    var $ = function (x) { return document.getElementById(x); };
+    var showEmpty = function (title, text) {
+      if (title) $('emptyTitle').textContent = title;
+      if (text) $('emptyText').textContent = text;
+      $('empty').hidden = false;
+    };
+    if (!/^\d{1,9}$/.test(id || '')) { showEmpty(); return; }
+
+    var android = /android/i.test(navigator.userAgent);
+    var download = new URL('../', location.href).href;
+    if (android) {
+      // Chrome opens Animist if it's installed; otherwise it goes to the download page.
+      $('open').href = 'intent://anime/' + id + '#Intent;scheme=animist;package=com.fnyz.animist;S.browser_fallback_url=' + encodeURIComponent(download) + ';end';
+      $('open').hidden = false;
+      $('note').textContent = "If Animist isn't installed yet, Get Animist downloads it.";
+    } else {
+      $('note').textContent = 'Animist is an Android app. Open this link on your phone to watch it there.';
+    }
+
+    var query = 'query ($id: Int) { Media(id: $id, type: ANIME) { title { english romaji } coverImage { large } format seasonYear episodes genres description(asHtml: false) isAdult } }';
+    fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ query: query, variables: { id: Number(id) } })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        var m = json && json.data && json.data.Media;
+        if (!m || m.isAdult) { showEmpty(); return; }
+        var title = m.title.english || m.title.romaji;
+        var formats = { TV: 'TV', TV_SHORT: 'TV Short', MOVIE: 'Movie', SPECIAL: 'Special', OVA: 'OVA', ONA: 'ONA', MUSIC: 'Music' };
+        document.title = title + ' · Animist';
+        $('title').textContent = title;
+        $('poster').src = m.coverImage.large;
+        $('poster').alt = 'Poster of ' + title;
+        $('meta').textContent = [formats[m.format] || m.format, m.seasonYear, m.episodes ? m.episodes + (m.episodes === 1 ? ' episode' : ' episodes') : null]
+          .concat((m.genres || []).slice(0, 3)).filter(Boolean).join(' · ');
+        // The browser's parser turns the description into plain text (it never runs anything in it);
+        // it's shown with textContent, never as HTML.
+        var parsed = new DOMParser().parseFromString(String(m.description || ''), 'text/html');
+        var about = (parsed.body.textContent || '').replace(/\s+/g, ' ').trim();
+        $('about').textContent = about.length > 280 ? about.slice(0, 277).replace(/\s+\S*$/, '') + '…' : about;
+        $('anime').hidden = false;
+      })
+      .catch(function () {
+        showEmpty("Couldn't load this anime", 'Check your connection and try again, or open the link in Animist.');
+      });
+  })();
+</script>
+</body>
+</html>

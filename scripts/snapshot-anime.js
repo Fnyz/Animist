@@ -12,6 +12,8 @@ const EPISODES = path.join(__dirname, '..', 'data', 'episodes.json');
 
 const { MEDIA_FIELDS } = require('./anilistFields');
 
+const SNAPSHOT_FORMAT = 1;
+
 const LISTS = {
   trending: 'sort: [TRENDING_DESC, POPULARITY_DESC]',
   airing: 'sort: [POPULARITY_DESC], status: RELEASING',
@@ -109,14 +111,22 @@ const page = (filter, perPage) => `{
   }
 
   // A much smaller answer than last time means AniList had a problem, not that anime vanished.
-  const before = fs.existsSync(OUT) ? Object.keys(JSON.parse(fs.readFileSync(OUT, 'utf8')).media ?? {}).length : 0;
+  let before = 0;
+  try {
+    before = Object.keys(JSON.parse(fs.readFileSync(OUT, 'utf8')).media ?? {}).length;
+  } catch (e) {
+    if (e.code !== 'ENOENT') throw e; // no snapshot yet is fine; a broken one isn't
+  }
   const after = Object.keys(media).length;
   if (before && after < before * 0.8) {
     throw new Error(`only ${after} anime instead of ${before}; kept the old snapshot`);
   }
 
   fs.mkdirSync(path.dirname(OUT), { recursive: true });
-  fs.writeFileSync(OUT, JSON.stringify({ savedAt: new Date().toISOString(), lists, recent, schedule, genres, media }));
+  // `format` changes only when the file's shape changes in a way older apps can't read; apps that
+  // download the snapshot (episodeData.js) ignore a format they don't know and keep their own copy.
+  const snapshot = { format: SNAPSHOT_FORMAT, savedAt: new Date().toISOString(), lists, recent, schedule, genres, media };
+  fs.writeFileSync(OUT, JSON.stringify(snapshot));
   console.log(`\nSaved ${Object.keys(media).length} anime to ${path.relative(process.cwd(), OUT)}`);
 })().catch((err) => {
   console.error('\nSnapshot failed:', err.message);

@@ -111,8 +111,16 @@ jobs:
         continue-on-error: true
         run: node scripts/seasons.js
 
+      # Searches all of YouTube for free full movies, 30 a day (about 3,000 quota units). Official
+      # channels' uploads go into the app; unknown channels are listed for review in the pull
+      # request. A failure (quota, API) doesn't stop the rest.
+      - name: Search YouTube for free movies
+        if: env.YOUTUBE_API_KEY != ''
+        continue-on-error: true
+        run: node scripts/search-movies.js --summary "$RUNNER_TEMP/movies.md"
+
       # What changed, for the pull request: the episode summary (if the search ran and found
-      # something) and a line for fresh AniList data.
+      # something), the movie search, and a line for fresh AniList data.
       - name: Collect changes
         id: changes
         if: env.YOUTUBE_API_KEY != ''
@@ -121,13 +129,15 @@ jobs:
           anilist=$(git diff --quiet -- data/animeSnapshot.json data/seasons.json && echo false || echo true)
           summary="$RUNNER_TEMP/pr-body.md"
           : > "$summary"
-          if [ "$episodes" = "true" ]; then cat "$RUNNER_TEMP/summary.md" >> "$summary"; fi
+          if [ "$episodes" = "true" ] && [ -f "$RUNNER_TEMP/summary.md" ]; then cat "$RUNNER_TEMP/summary.md" >> "$summary"; fi
+          movies=$(git diff --quiet -- data/movieSearch.json 2>/dev/null && [ -z "$(git ls-files --others --exclude-standard data/movieSearch.json)" ] && echo false || echo true)
+          if [ -s "$RUNNER_TEMP/movies.md" ]; then cat "$RUNNER_TEMP/movies.md" >> "$summary"; fi
           if [ "$anilist" = "true" ]; then
             echo "AniList data refreshed: trending, airing this season, popular, movies, new episodes and seasons." >> "$summary"
           fi
           if [ "$episodes" = "true" ]; then title="New episodes from official YouTube channels"
           else title="Fresh AniList data (trending, airing, new episodes)"; fi
-          changed=$([ "$episodes" = "true" ] || [ "$anilist" = "true" ] && echo true || echo false)
+          changed=$([ "$episodes" = "true" ] || [ "$anilist" = "true" ] || [ "$movies" = "true" ] && echo true || echo false)
           echo "changed=$changed" >> "$GITHUB_OUTPUT"
           echo "title=$title" >> "$GITHUB_OUTPUT"
           echo "summary=$summary" >> "$GITHUB_OUTPUT"
@@ -144,6 +154,7 @@ jobs:
             data/finderCache.json
             data/animeSnapshot.json
             data/seasons.json
+            data/movieSearch.json
           commit-message: ${{ steps.changes.outputs.title }}
           title: ${{ steps.changes.outputs.title }}
           body-path: ${{ steps.changes.outputs.summary }}
@@ -154,7 +165,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/episodes.json data/finderCache.json data/animeSnapshot.json data/seasons.json
+          git add data/episodes.json data/finderCache.json data/animeSnapshot.json data/seasons.json data/movieSearch.json
           git commit -m "${{ steps.changes.outputs.title }}"
           git push
 
