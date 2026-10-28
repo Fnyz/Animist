@@ -122,3 +122,78 @@ describe('player size', () => {
     expect(vars).toEqual({});
   });
 });
+
+describe('picture brightness', () => {
+  const pageWithPlayer = () => {
+    const page = fakePage();
+    const window = {};
+    run(EARLY_SCRIPT, page.document, window);
+    run(PAGE_SCRIPT, page.document, window);
+    const rule = () => page.added.find((el) => el.id === 'animist-brightness')?.textContent;
+    return { window, rule, added: page.added };
+  };
+
+  it('brightens or dims only the video', () => {
+    const { window, rule } = pageWithPlayer();
+    window.__animist.brightness(1.3);
+    expect(rule()).toBe('video{filter:brightness(1.3)!important;}');
+    window.__animist.brightness(0.6);
+    expect(rule()).toBe('video{filter:brightness(0.6)!important;}');
+  });
+
+  it('removes the filter at normal brightness and keeps one style element', () => {
+    const { window, rule, added } = pageWithPlayer();
+    window.__animist.brightness(1.4);
+    window.__animist.brightness(1);
+    expect(rule()).toBe('');
+    expect(added.filter((el) => el.id === 'animist-brightness')).toHaveLength(1);
+  });
+
+  it('keeps the level in a safe range', () => {
+    const { window, rule } = pageWithPlayer();
+    window.__animist.brightness(9);
+    expect(rule()).toBe('video{filter:brightness(2)!important;}');
+    window.__animist.brightness(-1);
+    expect(rule()).toBe('video{filter:brightness(0.3)!important;}');
+  });
+});
+
+describe('video volume', () => {
+  // A page with a video element and YouTube's player object.
+  const pageWithVideo = ({ withYouTubePlayer = true } = {}) => {
+    const v = { volume: 1, muted: true };
+    const yt = { volume: null, unmuted: false, setVolume(n) { this.volume = n; }, unMute() { this.unmuted = true; } };
+    const page = fakePage();
+    page.document.querySelector = (sel) => (sel === 'video' ? v : null);
+    const getById = page.document.getElementById;
+    page.document.getElementById = (id) => (id === 'movie_player' && withYouTubePlayer ? yt : getById(id));
+    const window = {};
+    run(PAGE_SCRIPT, page.document, window);
+    return { window, v, yt };
+  };
+
+  it("sets the video's volume through YouTube's player and unmutes", () => {
+    const { window, v, yt } = pageWithVideo();
+    window.__animist.volume(0.35);
+    expect(yt.volume).toBe(35);
+    expect(yt.unmuted).toBe(true);
+    expect(v.volume).toBe(0.35);
+    expect(v.muted).toBe(false);
+  });
+
+  it('turns it all the way down without muting, and keeps 0 to 1', () => {
+    const { window, v, yt } = pageWithVideo();
+    window.__animist.volume(0);
+    expect(v.volume).toBe(0);
+    expect(yt.unmuted).toBe(false);
+    window.__animist.volume(4);
+    expect(v.volume).toBe(1);
+    expect(yt.volume).toBe(100);
+  });
+
+  it("works without YouTube's player object", () => {
+    const { window, v } = pageWithVideo({ withYouTubePlayer: false });
+    window.__animist.volume(0.5);
+    expect(v.volume).toBe(0.5);
+  });
+});

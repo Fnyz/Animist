@@ -100,6 +100,33 @@ export const PAGE_SCRIPT = `
     quality: function (q) {
       var p = document.getElementById('movie_player');
       if (p && p.setPlaybackQualityRange) p.setPlaybackQualityRange(q, q);
+    },
+    // Brightens or dims the picture only (1 = as uploaded), through a style rule so it also covers
+    // a video element YouTube swaps in later.
+    brightness: function (level) {
+      var b = Math.min(Math.max(Number(level) || 1, 0.3), 2);
+      var style = document.getElementById('animist-brightness');
+      if (!style) {
+        var root = document.head || document.documentElement;
+        if (!root) return;
+        style = document.createElement('style');
+        style.id = 'animist-brightness';
+        root.appendChild(style);
+      }
+      style.textContent = b === 1 ? '' : 'video{filter:brightness(' + b + ')!important;}';
+    },
+    // The video's own volume, 0 to 1 (the phone's volume stays as it is). Raising it unmutes.
+    // Set through YouTube's player too, so YouTube doesn't put its own level back.
+    volume: function (level) {
+      var l = Math.min(Math.max(Number(level), 0), 1);
+      if (isNaN(l)) return;
+      var p = document.getElementById('movie_player');
+      if (p && p.setVolume) p.setVolume(Math.round(l * 100));
+      if (p && l > 0 && p.unMute) p.unMute();
+      var v = video();
+      if (!v) return;
+      v.volume = l;
+      if (l > 0) v.muted = false;
     }
   };
   function qualityInfo() {
@@ -148,7 +175,8 @@ const embedUrl = (videoId, start = 0, muted = false) =>
   ].join('&');
 
 // A bare YouTube player. Parent components get status through onStatus/onError and
-// control it with ref.play(), pause(), seek(seconds) and mute(bool).
+// control it with ref.play(), pause(), seek(seconds), mute(bool), quality(level),
+// brightness(level) and volume(level).
 // `start` (seconds) and `muted` only apply when the view is created; give it a new `key` to restart elsewhere.
 const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, onError, onMuted, onTap, style }, ref) => {
   const web = useRef(null);
@@ -160,6 +188,8 @@ const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, o
     seek: (seconds) => run(`seek(${Number(seconds) || 0})`),
     mute: (muted) => run(`mute(${muted ? 'true' : 'false'})`),
     quality: (level) => run(`quality(${JSON.stringify(String(level))})`),
+    brightness: (level) => run(`brightness(${Number(level) || 1})`),
+    volume: (level) => run(`volume(${Number(level) || 0})`),
   }));
 
   const onMessage = (event) => {

@@ -13,6 +13,8 @@ Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 - A Schedule tab: what airs each day this week, in your time zone, with countdowns, and a filter for anime on your list.
 - Seasons on anime pages: every season in release order, plus movies and specials (like Jujutsu Kaisen 0), with ▶ on the ones you can watch free. Refreshed daily.
 - Trailer clips on Home: the top banners are now full width and play their trailer muted, one at a time. They fall back to the poster if a trailer won't load; turn them off in Profile to save data. The banner button is now "Watch free" (or your next episode) for anime with free episodes, and "Details" for the rest.
+- Video player: ⟲10 / ⟳10 buttons beside play/pause to skip back or forward 10 seconds.
+- Fullscreen: swipe up or down on the left side of the video to brighten or dim the picture (50–150%), and on the right side to turn the video's volume up or down. Both levels stay for the next episode.
 
 ### Fixed
 - "Change password" is no longer shown for Google accounts, which have no Animist password.

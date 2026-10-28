@@ -2,7 +2,7 @@ import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { View, Text, StyleSheet, Linking, Pressable, StatusBar, Dimensions, BackHandler, useWindowDimensions } from 'react-native';
 import { requireOptionalNativeModule } from 'expo';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import YouTubeView from './YouTubeView';
 import { FullscreenLayer } from './FullscreenHost';
@@ -56,6 +56,18 @@ const COVER_MAX_MS = 10000;
 
 // How long the center play/pause button (and the fullscreen controls) stay up while playing.
 const CONTROLS_HIDE_MS = 3000;
+// The skip buttons beside play/pause.
+const SKIP_SECONDS = 10;
+// Swiping up or down on the fullscreen video: the left part brightens or dims the picture
+// (1 = as uploaded), the right part turns the video's volume up or down. Both levels last for the
+// rest of the session: the next episode, inline or fullscreen, keeps them.
+const SWIPE_ZONE = 0.4; // the share of the video on each side that responds to swipes
+const LEVELS = {
+  brightness: { min: 0.5, max: 1.5, step: 0.1 },
+  volume: { min: 0, max: 1, step: 0.1 },
+};
+const LEVEL_HINT_MS = 900;
+const sessionLevels = { brightness: 1, volume: 1 };
 
 const EMPTY = { current: 0, duration: 0, paused: true, ended: false, muted: false, qualities: [], quality: null };
 
@@ -87,6 +99,18 @@ const PlayerCore = ({
   // Seconds left before the next episode starts, while the "Up next" card shows.
   const [countdown, setCountdown] = useState(null);
   const playNext = useEffectEvent(() => upNext?.onPlay());
+  const [swipeLevels, setSwipeLevels] = useState(() => ({ ...sessionLevels }));
+  // Which level a swipe is changing right now ('brightness' or 'volume'), and which indicator shows.
+  const [adjusting, setAdjusting] = useState(null);
+  const [hint, setHint] = useState(null);
+  const levelsApplied = useRef(false);
+
+  // The indicator stays a moment after the finger lifts.
+  useEffect(() => {
+    if (adjusting || !hint) return undefined;
+    const t = setTimeout(() => setHint(null), LEVEL_HINT_MS);
+    return () => clearTimeout(t);
+  }, [adjusting, hint]);
 
   useEffect(() => {
     if (countdown === null) return undefined;
@@ -124,6 +148,11 @@ const PlayerCore = ({
   }, []);
 
   const onStatus = (s) => {
+    if (!levelsApplied.current) {
+      levelsApplied.current = true;
+      if (swipeLevels.brightness !== 1) player.current?.brightness(swipeLevels.brightness);
+      if (swipeLevels.volume !== 1) player.current?.volume(swipeLevels.volume);
+    }
     if (!started && (!s.paused || s.ended)) setStarted(true);
     if (s.ended && !wasEnded.current) {
       onEnded?.();
@@ -209,6 +238,81 @@ const PlayerCore = ({
   }, [showControls, playing, scrubbing, qualityMenu, shownAt]);
 
   const current = scrubAt ?? seekTo ?? status.current;
+
+  // ⟲10 / ⟳10: jump from where the video is (or is about to be), within the video.
+  const skip = (delta) => {
+    const end = status.duration > 0 ? status.duration - 0.5 : Infinity;
+    seekToSeconds(Math.min(Math.max(current + delta, 0), end));
+    if (status.ended && delta < 0) setCountdown(null);
+    setShowControls(true);
+    setShownAt(Date.now());
+  };
+
+  const applyLevel = (kind, level) => {
+    const { min, max } = LEVELS[kind];
+    const next = Math.round(Math.min(Math.max(level, min), max) * 100) / 100;
+    if (next === swipeLevels[kind]) return;
+    sessionLevels[kind] = next;
+    setSwipeLevels((l) => ({ ...l, [kind]: next }));
+    if (kind === 'brightness') player.current?.brightness(next);
+    else {
+      player.current?.volume(next);
+      if (next > 0 && status.muted) setStatus((s) => ({ ...s, muted: false }));
+    }
+  };
+
+  // Touches on the video: a tap shows or hides the controls; in fullscreen, a vertical swipe on
+  // the left part changes the brightness and on the right part the volume (up = more). Anything
+  // else (a sideways swipe, a swipe in the middle, a page scroll inline) is left alone.
+  const gesture = useRef(null);
+  const layer = useRef({ width: 0, height: 0 });
+  const touchHandlers = {
+    onStartShouldSetResponder: () => true,
+    onResponderTerminationRequest: () => !gesture.current?.adjusting,
+    onResponderGrant: (e) => {
+      const { locationX, pageX, pageY } = e.nativeEvent;
+      const w = layer.current.width;
+      const kind = !fullscreen ? null : locationX < w * SWIPE_ZONE ? 'brightness' : locationX > w * (1 - SWIPE_ZONE) ? 'volume' : null;
+      gesture.current = { kind, pageX, pageY, from: kind ? swipeLevels[kind] : 0, adjusting: false, moved: false };
+    },
+    onResponderMove: (e) => {
+      const g = gesture.current;
+      if (!g) return;
+      const dx = e.nativeEvent.pageX - g.pageX;
+      const dy = e.nativeEvent.pageY - g.pageY;
+      if (Math.abs(dx) > 10 || Math.abs(dy) > 10) g.moved = true;
+      if (!g.adjusting && g.kind && Math.abs(dy) > 12 && Math.abs(dy) > Math.abs(dx)) {
+        g.adjusting = true;
+        g.pageY = e.nativeEvent.pageY;
+        setAdjusting(g.kind);
+        setHint(g.kind);
+        return;
+      }
+      if (g.adjusting) {
+        // Most of the video's height covers the whole range.
+        const span = (layer.current.height || 1) * 0.8;
+        const { min, max } = LEVELS[g.kind];
+        applyLevel(g.kind, g.from - (dy / span) * (max - min));
+      }
+    },
+    onResponderRelease: () => {
+      const g = gesture.current;
+      gesture.current = null;
+      if (g?.adjusting) setAdjusting(null);
+      else if (g && !g.moved) onTapVideo();
+    },
+    onResponderTerminate: () => {
+      if (gesture.current?.adjusting) setAdjusting(null);
+      gesture.current = null;
+    },
+  };
+
+  const hintFill = hint ? (swipeLevels[hint] - LEVELS[hint].min) / (LEVELS[hint].max - LEVELS[hint].min) : 0;
+  const hintIcon =
+    hint === 'brightness'
+      ? swipeLevels.brightness >= 1 ? 'sunny' : 'sunny-outline'
+      : swipeLevels.volume === 0 ? 'volume-mute' : swipeLevels.volume < 0.5 ? 'volume-low' : 'volume-high';
+
   const progress = status.duration ? Math.min(current / status.duration, 1) : 0;
   const icon = status.ended ? 'refresh' : playing ? 'pause' : 'play';
   const lower = label.toLowerCase();
@@ -339,16 +443,58 @@ const PlayerCore = ({
           <Image source={{ uri: `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` }} style={styles.coverImage} contentFit="cover" />
         </View>
       )}
-      {/* Covers the video so taps reach the app instead of YouTube: a tap shows or hides the
-          center play/pause button (and the controls in fullscreen). */}
-      <Pressable
+      {/* Covers the video so touches reach the app instead of YouTube: a tap shows or hides the
+          center buttons (and the controls in fullscreen); a swipe on the left changes brightness
+          and on the right the volume. */}
+      <View
         style={styles.tapLayer}
-        onPress={onTapVideo}
+        onLayout={(e) => {
+          layer.current = e.nativeEvent.layout;
+        }}
+        {...touchHandlers}
+        accessible
         accessibilityRole="button"
         accessibilityLabel={showControls ? 'Hide controls' : 'Show controls'}
+        accessibilityActions={
+          fullscreen
+            ? [
+                { name: 'activate' },
+                { name: 'brighter', label: 'Brighter video' },
+                { name: 'dimmer', label: 'Dimmer video' },
+                { name: 'louder', label: 'Louder' },
+                { name: 'quieter', label: 'Quieter' },
+              ]
+            : [{ name: 'activate' }]
+        }
+        onAccessibilityAction={(e) => {
+          const action = e.nativeEvent.actionName;
+          const step = { brighter: ['brightness', 1], dimmer: ['brightness', -1], louder: ['volume', 1], quieter: ['volume', -1] }[action];
+          if (step) applyLevel(step[0], swipeLevels[step[0]] + step[1] * LEVELS[step[0]].step);
+          else onTapVideo();
+        }}
       />
-      {countdown === null && (showControls || !playing) && (
-        <View style={styles.centerWrap} pointerEvents="box-none">
+      {hint && (
+        <View style={[styles.levelHint, hint === 'brightness' ? styles.levelHintLeft : styles.levelHintRight]} pointerEvents="none" accessibilityLiveRegion="polite">
+          <Ionicons name={hintIcon} size={18} color="#fff" />
+          <View style={styles.levelTrack}>
+            <View style={[styles.levelFill, { height: `${hintFill * 100}%` }]} />
+          </View>
+          <Text style={styles.levelText}>{Math.round(swipeLevels[hint] * 100)}%</Text>
+        </View>
+      )}
+      {countdown === null && (showControls || !playing) && !adjusting && (
+        <View style={[styles.centerWrap, fullscreen && styles.centerWrapFullscreen]} pointerEvents="box-none">
+          {status.duration > 0 && (
+            <Pressable
+              onPress={() => skip(-SKIP_SECONDS)}
+              hitSlop={12}
+              style={({ pressed }) => [styles.skipButton, pressed && { transform: [{ scale: 0.9 }] }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Back ${SKIP_SECONDS} seconds`}
+            >
+              <MaterialIcons name="replay-10" size={fullscreen ? 38 : 32} color="#fff" style={styles.centerIcon} />
+            </Pressable>
+          )}
           <Pressable
             onPress={() => {
               togglePlay();
@@ -362,6 +508,17 @@ const PlayerCore = ({
           >
             <Ionicons name={icon} size={40} color="#fff" style={[styles.centerIcon, icon === 'play' && { marginLeft: 4 }]} />
           </Pressable>
+          {status.duration > 0 && (
+            <Pressable
+              onPress={() => skip(SKIP_SECONDS)}
+              hitSlop={12}
+              style={({ pressed }) => [styles.skipButton, pressed && { transform: [{ scale: 0.9 }] }]}
+              accessibilityRole="button"
+              accessibilityLabel={`Forward ${SKIP_SECONDS} seconds`}
+            >
+              <MaterialIcons name="forward-10" size={fullscreen ? 38 : 32} color="#fff" style={styles.centerIcon} />
+            </Pressable>
+          )}
         </View>
       )}
       {countdown !== null && upNext && (
@@ -632,7 +789,26 @@ const styles = StyleSheet.create({
   tapLayer: { ...StyleSheet.absoluteFill },
   cover: { ...StyleSheet.absoluteFill, backgroundColor: '#000' },
   coverImage: { ...StyleSheet.absoluteFill, opacity: 0.6 },
-  centerWrap: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
+  centerWrap: { ...StyleSheet.absoluteFill, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.xxl },
+  centerWrapFullscreen: { gap: 56 },
+  skipButton: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center' },
+  levelHint: {
+    position: 'absolute',
+    top: '50%',
+    marginTop: -78,
+    width: 44,
+    height: 156,
+    borderRadius: 22,
+    paddingVertical: space.md,
+    alignItems: 'center',
+    gap: space.sm,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+  },
+  levelHintLeft: { left: space.xl },
+  levelHintRight: { right: space.xl },
+  levelTrack: { flex: 1, width: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.25)', justifyContent: 'flex-end', overflow: 'hidden' },
+  levelFill: { width: 4, borderRadius: 2, backgroundColor: colors.accent },
+  levelText: { fontFamily: fonts.bodyBold, fontSize: 10, color: '#fff', fontVariant: ['tabular-nums'] },
   centerButton: { width: 64, height: 64, alignItems: 'center', justifyContent: 'center' },
   // No background: a soft shadow keeps the icon readable on bright scenes.
   centerIcon: { textShadowColor: 'rgba(0,0,0,0.6)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 },
