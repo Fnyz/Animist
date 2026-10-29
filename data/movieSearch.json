@@ -1,6 +1,77 @@
 {
  "version": 1,
- "next": 6,
+ "next": 36,
  "found": {},
- "review": {}
+ "review": {
+  "UCsOtSH0C-hdkaFFDKAxb-jw": {
+   "title": "Anime Manga Official",
+   "url": "https://www.youtube.com/channel/UCsOtSH0C-hdkaFFDKAxb-jw",
+   "movies": [
+    "Akira"
+   ],
+   "firstSeen": "2026-10-29T01:18:34.771Z",
+   "example": "https://www.youtube.com/watch?v=mX4tAUlj2oY",
+   "subscribers": 275000
+  },
+  "UC6EYBttRux9SH4t_uY8n83A": {
+   "title": "Haylo & Kiss",
+   "url": "https://www.youtube.com/channel/UC6EYBttRux9SH4t_uY8n83A",
+   "movies": [
+    "Violet Evergarden: the Movie"
+   ],
+   "firstSeen": "2026-10-29T01:18:38.356Z",
+   "example": "https://www.youtube.com/watch?v=JgbyGal9cSA",
+   "subscribers": 253000
+  },
+  "UCT3reBg45JmNuTqvUZQC3OA": {
+   "title": "Letts React",
+   "url": "https://www.youtube.com/channel/UCT3reBg45JmNuTqvUZQC3OA",
+   "movies": [
+    "Chainsaw Man – The Movie: Reze Arc"
+   ],
+   "firstSeen": "2026-10-29T01:18:33.021Z",
+   "example": "https://www.youtube.com/watch?v=xlMBM_xXpBU",
+   "subscribers": 224000
+  },
+  "UCuPR3h0b30w47Xj8en2czhw": {
+   "title": "Ralaz",
+   "url": "https://www.youtube.com/channel/UCuPR3h0b30w47Xj8en2czhw",
+   "movies": [
+    "My Hero Academia: Two Heroes"
+   ],
+   "firstSeen": "2026-10-29T01:18:36.045Z",
+   "example": "https://www.youtube.com/watch?v=TNuVDCCRKb0",
+   "subscribers": 192000
+  },
+  "UCu9A1KYleZofU2WP8ks7acA": {
+   "title": "Rolex Movies",
+   "url": "https://www.youtube.com/channel/UCu9A1KYleZofU2WP8ks7acA",
+   "movies": [
+    "My Neighbor Totoro"
+   ],
+   "firstSeen": "2026-10-29T01:18:29.693Z",
+   "example": "https://www.youtube.com/watch?v=u-tqsUX3ybs",
+   "subscribers": 38500
+  },
+  "UCFaz30b03_mkAUwymLPTIsw": {
+   "title": "Royal Movies",
+   "url": "https://www.youtube.com/channel/UCFaz30b03_mkAUwymLPTIsw",
+   "movies": [
+    "My Neighbor Totoro"
+   ],
+   "firstSeen": "2026-10-29T01:18:29.694Z",
+   "example": "https://www.youtube.com/watch?v=PJPtLuj4rW8",
+   "subscribers": 27800
+  },
+  "UCB1vq6RfhisbQxxQ43F6rCQ": {
+   "title": "React Anime Pro",
+   "url": "https://www.youtube.com/channel/UCB1vq6RfhisbQxxQ43F6rCQ",
+   "movies": [
+    "Sword Art Online the Movie: Ordinal Scale"
+   ],
+   "firstSeen": "2026-10-29T01:18:38.963Z",
+   "example": "https://www.youtube.com/watch?v=SCzynqmg8nI",
+   "subscribers": 24100
+  }
+ }
 }
