@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 // Searches all of YouTube for free full anime movies, a few each day (see movieSearchLogic.js):
-// - uploads by the official channels in scripts/channels.js go into the app right away;
-// - full uploads by channels we don't know are listed for review in the pull request (maybe a
-//   licensor worth adding to channels.js, maybe a pirate). Nothing from them reaches the app.
+// only uploads by the official channels in scripts/channels.js count, and they go into the app right
+// away. Everything else (re-uploads, reaction and review videos) is ignored.
 // Saves data/movieSearch.json (what it found and where it stopped; find-episodes.js keeps the found
 // movies) and adds new movies to data/episodes.json.
 //
@@ -22,9 +21,6 @@ const STATE = path.join(ROOT, 'data', 'movieSearch.json');
 const args = process.argv.slice(2);
 const SUMMARY_FILE = args.includes('--summary') ? args[args.indexOf('--summary') + 1] : null;
 const COUNT = args.includes('--count') ? Number(args[args.indexOf('--count') + 1]) : SEARCHES_PER_DAY;
-const MAX_REVIEW = 40; // channels kept for review
-// Smaller channels aren't listed for review: official distributors are always bigger than this.
-const MIN_REVIEW_SUBSCRIBERS = 10000;
 
 const readJson = (file, fallback) => {
   try {
@@ -75,7 +71,8 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
   const episodes = readJson(EPISODES, null);
   const snapshot = readJson(SNAPSHOT, { media: {} });
   if (!episodes) throw new Error('data/episodes.json is missing; run find-episodes.js first');
-  const state = readJson(STATE, { version: 1, next: 0, found: {}, review: {} });
+  const state = readJson(STATE, { version: 1, next: 0, found: {} });
+  delete state.review; // the old "channels to review" list (only re-uploads and reactions)
 
   // Official channels by YouTube id (episodes.json knows the ids of the handles in channels.js).
   const flags = new Map(CHANNELS.map((c) => [c.handle, c]));
@@ -90,7 +87,6 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
   console.log(`Searching YouTube for ${batch.length} movies (about ${batch.length * 100} quota units).`);
 
   const newlyFound = [];
-  const reviewSeen = [];
   for (const movie of batch) {
     const results = await yt(
       'search',
@@ -114,13 +110,6 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
       };
       const verdict = classifyResult(video, movie, official);
       if (verdict === 'accept') accepted.push({ ...video, channel: official.get(video.channelId).title });
-      if (verdict === 'review') {
-        const entry = (state.review[video.channelId] ??= { title: video.channelTitle, url: `https://www.youtube.com/channel/${video.channelId}`, movies: [], firstSeen: new Date().toISOString() });
-        const title = movie.title?.english || movie.title?.romaji;
-        if (!entry.movies.includes(title)) entry.movies.push(title);
-        entry.example = `https://www.youtube.com/watch?v=${video.videoId}`;
-        reviewSeen.push(video.channelId);
-      }
     }
     if (accepted.length) {
       accepted.sort((a, b) => b.minutes - a.minutes);
@@ -131,18 +120,6 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
   }
   state.next = next;
 
-  // Channels to review: their subscriber counts, biggest first, at most MAX_REVIEW kept.
-  const reviewIds = Object.keys(state.review);
-  for (let i = 0; i < reviewIds.length; i += 50) {
-    const info = await yt('channels', { part: 'statistics', id: reviewIds.slice(i, i + 50).join(',') });
-    for (const c of info.items ?? []) state.review[c.id].subscribers = Number(c.statistics?.subscriberCount ?? 0);
-  }
-  state.review = Object.fromEntries(
-    Object.entries(state.review)
-      .filter(([, r]) => (r.subscribers ?? 0) >= MIN_REVIEW_SUBSCRIBERS)
-      .sort((a, b) => (b[1].subscribers ?? 0) - (a[1].subscribers ?? 0))
-      .slice(0, MAX_REVIEW)
-  );
   fs.writeFileSync(STATE, JSON.stringify(state, null, 1) + '\n');
 
   // New movies go into the app now (find-episodes.js keeps them from data/movieSearch.json).
@@ -159,18 +136,12 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
     fs.writeFileSync(EPISODES, JSON.stringify(episodes) + '\n');
   }
 
-  console.log(`Found ${newlyFound.length} new free movies; ${[...new Set(reviewSeen)].filter((id) => state.review[id]).length} unknown channels to review. Quota used: about ${units} units.`);
+  console.log(`Found ${newlyFound.length} new free movies from official channels. Quota used: about ${units} units.`);
   if (SUMMARY_FILE) {
     const lines = [];
     if (newlyFound.length) {
       lines.push('### Free movies found by search', '');
       for (const m of newlyFound) lines.push(`- ${m.title?.english || m.title?.romaji} (${state.found[m.id].videos[0].channel})`);
-      lines.push('');
-    }
-    const fresh = [...new Set(reviewSeen)].map((id) => [id, state.review[id]]).filter(([, r]) => r);
-    if (fresh.length) {
-      lines.push('### Channels to review', '', 'Full uploads of anime movies from channels Animist doesn\'t use. Only add a channel to `scripts/channels.js` if it\'s an official licensor (studio, distributor, TV network); most are not.', '');
-      for (const [, r] of fresh) lines.push(`- [${r.title}](${r.url}) · ${(r.subscribers ?? 0).toLocaleString('en-US')} subscribers · ${r.movies.slice(0, 3).join(', ')} ([example](${r.example}))`);
       lines.push('');
     }
     fs.writeFileSync(SUMMARY_FILE, lines.join('\n'));

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import YouTubeView from './YouTubeView';
+import { captionsFor } from '../api';
 import { FullscreenLayer } from './FullscreenHost';
 import { fullscreenBox } from './fullscreenBox';
 import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
@@ -151,6 +152,8 @@ const PlayerCore = ({
     if (!levelsApplied.current) {
       levelsApplied.current = true;
       if (swipeLevels.brightness !== 1) player.current?.brightness(swipeLevels.brightness);
+      const captions = captionsFor(videoId);
+      if (captions) player.current?.captions(captions);
       if (swipeLevels.volume !== 1) player.current?.volume(swipeLevels.volume);
     }
     if (!started && (!s.paused || s.ended)) setStarted(true);
@@ -433,6 +436,7 @@ const PlayerCore = ({
         ref={player}
         videoId={videoId}
         start={start}
+        captions={captionsFor(videoId)}
         onStatus={onStatus}
         onError={(text) => onError(text || 'Unknown error')}
         onMuted={() => setStatus((s) => ({ ...s, muted: true }))}

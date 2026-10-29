@@ -76,7 +76,7 @@ Animist does not host, download or scrape video. For each episode it picks the b
 | On an official streaming service listed by AniList | A link that opens that service (for example Crunchyroll) |
 | Neither | "Not available yet", plus the anime's official "Where to watch" links |
 
-The official channels are **Muse Asia, Muse Philippines, Ani-One Philippines, GUNDAM CHANNEL INTL, BEYBLADE and Cardfight!! Vanguard**. One anime can mix channels: when one channel is missing an episode, another fills the gap.
+The official channels are **Muse Asia, Muse Philippines, Ani-One Philippines, GUNDAM CHANNEL INTL, BEYBLADE, Cardfight!! Vanguard and Ani-One Asia**. Ani-One Asia's titles are in Chinese, but every episode carries official English subtitles as a caption track, which the player switches on. One anime can mix channels: when one channel is missing an episode, another fills the gap.
 
 The episode list is built ahead of time by [`scripts/find-episodes.js`](scripts/find-episodes.js), which reads the channels' playlists with the YouTube Data API and matches them to AniList by exact title and season. The app only ships the result ([`data/episodes.json`](data/episodes.json)); the API key never ships in the app.
 
@@ -88,7 +88,7 @@ A GitHub Actions workflow ([`episodes.yml`](.github/workflows/episodes.yml)) kee
 2. **Only when there are new episodes**, it runs a quick search, about 5 minutes. It skips everything already in the app: known videos keep their saved details, and AniList is only searched for playlists it hasn't seen ([`data/finderCache.json`](data/finderCache.json) remembers earlier lookups).
 3. **On Sundays** it runs the full search, which re-checks every video, in case one was removed or blocked.
    It also looks through every upload on the channels for **full movies** (a single video of 45 minutes or more whose title matches an AniList movie); quick runs only check the newest uploads.
-5. **Every day it also searches all of YouTube for 30 movies** ([`scripts/search-movies.js`](scripts/search-movies.js), about 3,000 quota units), most popular first, round and round. Only uploads from the official channels in [`scripts/channels.js`](scripts/channels.js) go into the app. Full uploads from other channels with 10,000+ subscribers are listed under **Channels to review** in the pull request: add a channel to `channels.js` only if it's an official licensor (most aren't). Progress and finds are kept in [`data/movieSearch.json`](data/movieSearch.json).
+5. **Every day it also searches all of YouTube for 30 movies** ([`scripts/search-movies.js`](scripts/search-movies.js), about 3,000 quota units), most popular first, round and round. Only uploads from the official channels in [`scripts/channels.js`](scripts/channels.js) count; re-uploads, reaction and review videos are ignored. Progress and finds are kept in [`data/movieSearch.json`](data/movieSearch.json).
 4. The result arrives as a **pull request** listing the new episodes. Merging it publishes an over-the-air update, so phones get the episodes the next time the app opens.
 
 You can also run it by hand: **Actions → Refresh episodes → Run workflow**, then choose:

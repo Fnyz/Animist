@@ -32,8 +32,21 @@ describe('what to do with a search result', () => {
     expect(classifyResult(video({ title: 'Your Name.', channelId: 'UCenglish' }), yourName, official)).toBe('accept');
   });
 
-  it('sends full uploads from unknown channels to review, never into the app', () => {
-    expect(classifyResult(video({ channelId: 'UCsomeone' }), yourName, official)).toBe('review');
+  it('never takes uploads from other channels (re-uploads, reactions)', () => {
+    expect(classifyResult(video({ channelId: 'UCsomeone' }), yourName, official)).toBe('skip');
+  });
+
+  it('skips reaction, review and watch-along videos, even from official channels', () => {
+    for (const title of [
+      'Your Name. REACTION [English Sub]',
+      'Reacting to Your Name. [English Sub]',
+      'Letts React: Your Name. [English Sub]',
+      'Your Name. Movie Review [English Sub]',
+      'Your Name. Watch Along [English Sub]',
+      'First Time Watching Your Name. [English Sub]',
+    ]) {
+      expect(classifyResult(video({ title }), yourName, official)).toBe('skip');
+    }
   });
 
   it('skips short videos, other movies, trailers and videos that only play on YouTube', () => {

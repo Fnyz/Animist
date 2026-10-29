@@ -25,7 +25,10 @@ const PAGE_CSS =
   ' html,body{background:#000!important;overflow:hidden!important;height:100%!important;margin:0!important;overscroll-behavior:none!important;touch-action:none!important;}' +
   ' #player,#movie_player,.html5-video-player,.html5-video-container{position:fixed!important;left:0!important;top:0!important;width:var(--animist-w,100%)!important;height:var(--animist-h,100%)!important;}' +
   ' video.html5-main-video{position:absolute!important;left:0!important;top:0!important;width:100%!important;height:100%!important;object-fit:contain!important;}' +
-  ' .html5-video-player > :not(.html5-video-container){display:none!important;}';
+  ' .html5-video-player > :not(.html5-video-container):not(.ytp-caption-window-container){display:none!important;}' +
+  // Subtitles (only switched on for videos whose official subtitles are a caption track) stay
+  // visible above the hidden controls.
+  ' .ytp-caption-window-container{display:block!important;z-index:10!important;}';
 
 // Adds PAGE_CSS to the page once (both scripts below call it), and sizes the player to the part of
 // the page that's actually visible. On some phones Android lays the page out larger than the
@@ -96,6 +99,29 @@ export const PAGE_SCRIPT = `
     pause: function () { var v = video(); if (v) v.pause(); },
     seek: function (s) { var v = video(); if (v) v.currentTime = s; },
     mute: function (m) { var v = video(); if (v) v.muted = m; },
+    // Shows the video's own caption track in a language (e.g. 'en'), or none with null. YouTube's
+    // player loads its captions module when asked.
+    // When the video's caption list arrives and has no track in that language, it reports an error,
+    // so the app moves on to a backup video instead of playing without subtitles.
+    captions: function (lang) {
+      var p = document.getElementById('movie_player');
+      if (!p || !p.setOption) return;
+      if (!lang) { if (p.unloadModule) p.unloadModule('captions'); return; }
+      if (p.loadModule) p.loadModule('captions');
+      p.setOption('captions', 'track', { languageCode: lang });
+      var tries = 0;
+      var check = setInterval(function () {
+        var list = p.getOption ? p.getOption('captions', 'tracklist') : null;
+        if (list && list.length) {
+          clearInterval(check);
+          var has = list.some(function (t) { return String(t.languageCode || '').indexOf(lang) === 0; });
+          if (has) p.setOption('captions', 'track', { languageCode: lang });
+          else post({ type: 'error', text: 'This video has no ' + lang + ' subtitles.' });
+        } else if (++tries > 15) {
+          clearInterval(check); // no list (YouTube changed something): keep playing as it is
+        }
+      }, 1000);
+    },
     // YouTube's own player object on the embed page picks the stream quality.
     quality: function (q) {
       var p = document.getElementById('movie_player');
@@ -165,20 +191,24 @@ export const PAGE_SCRIPT = `
 true;
 `;
 
-const embedUrl = (videoId, start = 0, muted = false) =>
+// `captions`: a caption language to show from the start (e.g. 'en'), or none.
+export const embedUrl = (videoId, start = 0, muted = false, captions = null) =>
   `https://www.youtube.com/embed/${videoId}?` +
   [
     `start=${Math.max(0, Math.floor(start))}`,
     ...(muted ? ['mute=1'] : []),
     'autoplay=1', 'controls=0', 'playsinline=1', 'rel=0', 'modestbranding=1', 'iv_load_policy=3',
-    'fs=0', 'disablekb=1', 'cc_load_policy=0', `widget_referrer=${encodeURIComponent(APP_REFERER)}`,
+    'fs=0', 'disablekb=1',
+    ...(captions ? ['cc_load_policy=1', `cc_lang_pref=${encodeURIComponent(captions)}`, `hl=${encodeURIComponent(captions)}`] : ['cc_load_policy=0']),
+    `widget_referrer=${encodeURIComponent(APP_REFERER)}`,
   ].join('&');
 
 // A bare YouTube player. Parent components get status through onStatus/onError and
 // control it with ref.play(), pause(), seek(seconds), mute(bool), quality(level),
 // brightness(level) and volume(level).
-// `start` (seconds) and `muted` only apply when the view is created; give it a new `key` to restart elsewhere.
-const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, onError, onMuted, onTap, style }, ref) => {
+// `start` (seconds), `muted` and `captions` only apply when the view is created; give it a new `key`
+// to restart elsewhere.
+const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, captions = null, onStatus, onError, onMuted, onTap, style }, ref) => {
   const web = useRef(null);
   const run = (code) => web.current?.injectJavaScript(`window.__animist && window.__animist.${code}; true;`);
 
@@ -190,6 +220,7 @@ const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, o
     quality: (level) => run(`quality(${JSON.stringify(String(level))})`),
     brightness: (level) => run(`brightness(${Number(level) || 1})`),
     volume: (level) => run(`volume(${Number(level) || 0})`),
+    captions: (lang) => run(`captions(${JSON.stringify(lang ?? null)})`),
   }));
 
   const onMessage = (event) => {
@@ -207,7 +238,7 @@ const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, onStatus, o
   return (
     <WebView
       ref={web}
-      source={{ uri: embedUrl(videoId, start, muted), headers: { Referer: APP_REFERER } }}
+      source={{ uri: embedUrl(videoId, start, muted, captions), headers: { Referer: APP_REFERER } }}
       style={[{ backgroundColor: '#000' }, style]}
       injectedJavaScriptBeforeContentLoaded={EARLY_SCRIPT}
       injectedJavaScript={PAGE_SCRIPT}

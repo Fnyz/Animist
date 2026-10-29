@@ -3,7 +3,9 @@
 // `skip` matches playlist and video titles to ignore.
 // `english: true` marks English-language channels: their videos don't say "English" in the title,
 // so every video counts, but only if it's at least MIN_MINUTES long (their playlists mix in clips).
-// Checked and left out: Ani-One Asia (Chinese subtitles only; Ani-One Philippines has English);
+// `captions: 'en'` marks channels whose English subtitles are a caption track (not in the picture
+// or the titles): their videos count when they have captions, and the app switches English on.
+// Checked and left out:
 // Crunchyroll, Crunchyroll Dubs, RetroCrush, TOHO animation, Pokémon and VIZ (clips, trailers or
 // private videos, not full series).
 const CHANNELS = [
@@ -14,6 +16,9 @@ const CHANNELS = [
   { handle: '@GundamInfo' },
   { handle: '@BeybladeOfficial', english: true },
   { handle: '@cardfightvanguard', english: true },
+  // Titles are Chinese, but every episode has official English captions (and others). Last, so the
+  // channels with English in the picture come first; it fills gaps and backs them up.
+  { handle: '@AniOneAsia', skip: /\bULTRA\b/, captions: 'en' },
 ];
 
 const MIN_MINUTES = 10;

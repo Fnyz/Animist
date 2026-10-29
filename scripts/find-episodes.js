@@ -55,10 +55,22 @@ const readKey = () => {
 const KEY = readKey();
 let unitsUsed = 0;
 
+// A network hiccup (a dropped connection) is retried a few times before the run gives up.
+const fetchRetrying = async (url, options, tries = 4) => {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await fetch(url, options);
+    } catch (e) {
+      if (attempt >= tries) throw e;
+      await new Promise((r) => setTimeout(r, 2000 * attempt));
+    }
+  }
+};
+
 const yt = async (endpoint, params) => {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
   for (const [k, v] of Object.entries({ ...params, key: KEY })) url.searchParams.set(k, v);
-  const res = await fetch(url);
+  const res = await fetchRetrying(url);
   unitsUsed += 1;
   const json = await res.json();
   if (json.error) throw new Error(`${endpoint}: ${json.error.message}`);
@@ -83,7 +95,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // AniList search, spaced out for its ~30 requests/minute limit. `format` narrows it (e.g. MOVIE).
 const anilistSearch = async (search, format = null) => {
   await sleep(2200);
-  const res = await fetch('https://graphql.anilist.co', {
+  const res = await fetchRetrying('https://graphql.anilist.co', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify({
@@ -99,16 +111,21 @@ const anilistSearch = async (search, format = null) => {
   return json.data?.Page?.media ?? [];
 };
 
+// Uploads with dubbed (not original Japanese) Chinese audio, on channels with caption tracks.
+const OTHER_AUDIO = /粵語|粤语|國語|国语|普通話|普通话|配音/;
+
 // English episodes in a playlist, by episode number, never above the season's length.
-// On an English-language channel, any video not marked as another language counts; `skip` drops
-// videos by title. Later seasons numbered on from the earlier ones are renumbered from 1.
-const englishEpisodes = (items, maxEpisode = Infinity, englishChannel = false, skip = null) => {
+// On an English-language channel, any video not marked as another language counts; on a channel
+// with English caption tracks (`captions`), any video with the original audio counts (its English
+// is checked through the video's caption flag later); `skip` drops videos by title. Later seasons
+// numbered on from the earlier ones are renumbered from 1.
+const englishEpisodes = (items, maxEpisode = Infinity, englishChannel = false, skip = null, captions = null) => {
   const found = [];
   for (const item of items) {
     const title = item.snippet.title;
     const n = episodeNumber(title);
     const videoId = item.contentDetails?.videoId;
-    const english = englishChannel ? !OTHER_LANGUAGES.test(title) : isEnglishSub(title);
+    const english = captions ? !OTHER_AUDIO.test(title) : englishChannel ? !OTHER_LANGUAGES.test(title) : isEnglishSub(title);
     if (n && videoId && english && !skip?.test(title)) found.push({ n, videoId, title });
   }
   const offset = continuedNumberingOffset(found.map((e) => e.n), maxEpisode);
@@ -121,9 +138,10 @@ const englishEpisodes = (items, maxEpisode = Infinity, englishChannel = false, s
   return episodes;
 };
 
-// One video as stored: its id, its channel when it isn't the anime's main one, and where it plays.
+// One video as stored: its id, its channel when it isn't the anime's main one, the caption language
+// the app switches on (if any), and where it plays.
 const videoEntry = (e, shared = {}) => {
-  const out = { videoId: e.videoId, ...(e.channel ? { channel: e.channel } : {}) };
+  const out = { videoId: e.videoId, ...(e.channel ? { channel: e.channel } : {}), ...(e.captions ? { captions: e.captions } : {}) };
   for (const key of ['allowedIn', 'blockedIn']) if (e[key] && !shared[key]) out[key] = e[key];
   return out;
 };
@@ -181,7 +199,7 @@ const seasonLength = (media) =>
   const channels = [];
   const channelInfo = []; // with each channel's uploads list, for step 4 (movies)
   const playlists = [];
-  for (const { handle, english = false, skip = null } of CHANNELS) {
+  for (const { handle, english = false, skip = null, captions = null } of CHANNELS) {
     const channel = (await yt('channels', { part: 'snippet,contentDetails', forHandle: handle })).items?.[0];
     if (!channel) {
       console.warn(`Channel ${handle} not found, skipping.`);
@@ -194,7 +212,7 @@ const seasonLength = (media) =>
     const usable = lists.filter(
       (pl) => (pl.contentDetails?.itemCount ?? 0) > 0 && !OTHER_LANGUAGES.test(pl.snippet.title) && !skip?.test(pl.snippet.title)
     );
-    for (const pl of usable) playlists.push({ id: pl.id, title: pl.snippet.title, channel: title, english, skip });
+    for (const pl of usable) playlists.push({ id: pl.id, title: pl.snippet.title, channel: title, english, skip, captions });
     console.log(`${title}: ${lists.length} playlists, ${usable.length} usable`);
   }
   const items = new Map();
@@ -209,7 +227,7 @@ const seasonLength = (media) =>
   const knownMatches = matchPlaylists(playlists, known);
   const usedPlaylists = new Set([...knownMatches.values()].flat().map((p) => p.id));
   const candidates = playlists.filter(
-    (pl) => !usedPlaylists.has(pl.id) && Object.keys(englishEpisodes(items.get(pl.id), Infinity, pl.english, pl.skip)).length >= 2
+    (pl) => !usedPlaylists.has(pl.id) && Object.keys(englishEpisodes(items.get(pl.id), Infinity, pl.english, pl.skip, pl.captions)).length >= 2
   );
   const knownIds = new Set(known.map((m) => m.id));
   const discovered = new Map();
@@ -258,10 +276,10 @@ const seasonLength = (media) =>
     const candidates = {};
     const seen = new Set();
     for (const pl of lists) {
-      for (const [n, ep] of Object.entries(englishEpisodes(items.get(pl.id), maxEpisode, pl.english, pl.skip))) {
+      for (const [n, ep] of Object.entries(englishEpisodes(items.get(pl.id), maxEpisode, pl.english, pl.skip, pl.captions))) {
         if (seen.has(ep.videoId)) continue;
         seen.add(ep.videoId);
-        (candidates[n] ??= []).push({ ...ep, channel: pl.channel, english: pl.english, playlist: pl });
+        (candidates[n] ??= []).push({ ...ep, channel: pl.channel, english: pl.english || Boolean(pl.captions), captions: pl.captions ?? undefined, playlist: pl });
       }
     }
 
@@ -275,6 +293,7 @@ const seasonLength = (media) =>
       if (QUICK && saved) Object.assign(ep, saved);
       else if (QUICK && rejected === 'short') ep.tooShort = true;
       else if (QUICK && rejected === 'embed') ep.embeddable = false;
+      else if (QUICK && rejected === 'nocaptions') ep.noCaptions = true;
       else unchecked.push(ep);
     }
     for (let i = 0; i < unchecked.length; i += 50) {
@@ -287,7 +306,10 @@ const seasonLength = (media) =>
           if (r?.blocked) ep.blockedIn = r.blocked;
           if (v.status?.embeddable === false) ep.embeddable = false;
           if (ep.english && minutesOf(v.contentDetails?.duration) < MIN_MINUTES) ep.tooShort = true;
+          // Its English is a caption track: no captions at all means no English.
+          if (ep.captions && v.contentDetails?.caption !== 'true') ep.noCaptions = true;
           if (ep.embeddable === false) cache.rejected[ep.videoId] = 'embed';
+          else if (ep.noCaptions) cache.rejected[ep.videoId] = 'nocaptions';
           else if (ep.tooShort) cache.rejected[ep.videoId] = 'short';
           else delete cache.rejected[ep.videoId];
         }
@@ -300,7 +322,7 @@ const seasonLength = (media) =>
     // clips on English-language channels.
     const episodes = {};
     for (const [n, options] of Object.entries(candidates)) {
-      const usable = options.filter((e) => e.embeddable !== false && !e.tooShort);
+      const usable = options.filter((e) => e.embeddable !== false && !e.tooShort && !e.noCaptions);
       if (usable.length) episodes[n] = { ...usable[0], alts: usable.slice(1) };
     }
     if (!Object.keys(episodes).length) continue;
@@ -336,6 +358,17 @@ const seasonLength = (media) =>
     const strip = (v) => (v.channel === main.channel ? { ...v, channel: undefined } : v);
     anime[id] = compact({ channel: main.channel, kind: 'movie', episodes: { 1: { ...strip(main), alts: alts.map(strip) } } });
     byId.set(id, movie);
+  }
+
+  // Quick runs only read the channels' newest uploads, so movies found by an earlier full run are
+  // kept as they were (the weekly full run checks them again).
+  if (QUICK) {
+    for (const [id, entry] of Object.entries(previous?.anime ?? {})) {
+      if (entry.kind !== 'movie' || anime[id]) continue;
+      anime[id] = entry;
+      const known = previous.media?.[id] ?? snapshot.media[id];
+      if (known) byId.set(Number(id), known);
+    }
   }
 
   // Movies the daily YouTube search found (scripts/search-movies.js), kept until a channel scan

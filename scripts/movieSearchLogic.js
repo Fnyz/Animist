@@ -19,9 +19,8 @@ const pickBatch = (movies, playing, next = 0, size = SEARCHES_PER_DAY) => {
   return { batch, next: (start + batch.length) % pool.length };
 };
 
-// What a YouTube search result for `movie` is:
-// 'accept' (an official channel's full English upload of this movie), 'review' (the same, but from
-// a channel we don't know: maybe a licensor to add, maybe a pirate, so a person decides), or 'skip'.
+// What a YouTube search result for `movie` is: 'accept' (an official channel's full English upload
+// of this movie) or 'skip' (anything else: other channels are re-uploads or reaction videos).
 // video: { title, channelId, minutes, embeddable }; official: Map(channelId -> { english, skip }).
 const classifyResult = (video, movie, official) => {
   if (!video || video.embeddable === false || !isFullMovie(video.minutes ?? 0)) return 'skip';
@@ -31,7 +30,7 @@ const classifyResult = (video, movie, official) => {
     if (channel.skip?.test(video.title)) return 'skip';
     return isMovieCandidate(video.title, channel.english) ? 'accept' : 'skip';
   }
-  return 'review';
+  return 'skip';
 };
 
 const searchQuery = (movie) => `${movie.title?.english || movie.title?.romaji} full movie`;

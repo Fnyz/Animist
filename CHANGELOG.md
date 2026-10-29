@@ -5,6 +5,15 @@ section below becomes the notes on the GitHub Release.
 
 Add new versions at the top, using the same `## [x.y.z] - YYYY-MM-DD` heading.
 
+## [Unreleased]
+
+### New
+- Ani-One Asia joins the official sources: its episodes play with their official English subtitles switched on (the app checks the English track is there, or uses a backup). The first run added 76 anime (including Bleach, Code Geass, Laid-Back Camp and To Your Eternity) and over 1,400 episodes.
+
+### Changed
+- The episode finder retries a request a few times when the connection drops, instead of stopping.
+- The daily movie search only uses the official channels: the "Channels to review" list is gone (it was only re-uploads and reaction videos), and reaction, review and watch-along videos never count as a movie.
+
 ## [1.4.0] - 2026-10-28
 
 ### New
