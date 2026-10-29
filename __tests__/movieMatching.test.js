@@ -16,6 +16,8 @@ describe('finding full anime movies', () => {
     expect(isMovieCandidate('劇場版 Some Title [Indonesia Sub]')).toBe(false);
     expect(isMovieCandidate('Some Movie')).toBe(false); // doesn't say it's English
     expect(isMovieCandidate('Private video', true)).toBe(false);
+    expect(isMovieCandidate('JUJUTSU KAISEN 0 Reaction [English Sub]')).toBe(false);
+    expect(isMovieCandidate('Watch Along: JUJUTSU KAISEN 0 (English Dub)')).toBe(false);
   });
 
   it('matches a video to its AniList movie, ignoring "movie" words', () => {

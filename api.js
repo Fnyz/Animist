@@ -137,7 +137,23 @@ export const replaceEpisodeData = (data) => {
   EPISODE_DATA = data;
   YOUTUBE_EPISODES = data.anime;
   EPISODE_MEDIA = data.media ?? {};
+  captionLanguages = null;
   dataChanged();
+};
+
+// Videos whose official subtitles are a caption track to switch on (Ani-One Asia's English track),
+// from the episode list in use: videoId -> language.
+let captionLanguages = null;
+export const captionsFor = (videoId) => {
+  if (!captionLanguages) {
+    captionLanguages = new Map();
+    for (const entry of Object.values(YOUTUBE_EPISODES)) {
+      for (const ep of Object.values(entry.episodes ?? {})) {
+        for (const v of [ep, ...(ep.alts ?? [])]) if (v.captions) captionLanguages.set(v.videoId, v.captions);
+      }
+    }
+  }
+  return captionLanguages.get(videoId) ?? null;
 };
 
 // Every video for an episode, best first: the main one, then backups from other official

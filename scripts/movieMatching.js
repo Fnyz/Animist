@@ -8,8 +8,9 @@ const MOVIE_MIN_MINUTES = 45;
 // Words channels add to a film's title ("… The Movie", "劇場版 …").
 const MOVIE_WORDS = /\b(?:the movie|movie|film)\b|劇場版|剧场版|映画/gi;
 // Uploads about a movie that aren't the movie.
+// Reaction, review and watch-along videos use the movie's title too, so they're excluded by name.
 const NOT_A_MOVIE =
-  /\b(pv|trailer|teaser|preview|promo|recap|opening|ending|op|ed|clip|highlights?|behind the scenes|making of|interview|reaction|event|stage|live|countdown|announcement|commercial|cm)\b|予告|預告|预告|特報|特报/i;
+  /\b(pv|trailer|teaser|preview|promo|recap|opening|ending|op|ed|clip|highlights?|behind the scenes|making of|interview|reacts?|reaction|reacting|watch ?along|first time watching|commentary|review|explained|breakdown|analysis|amv|edit|event|stage|live|countdown|announcement|commercial|cm)\b|予告|預告|预告|特報|特报/i;
 
 const stripMovieWords = (normalized) =>
   normalized

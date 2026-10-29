@@ -53,7 +53,7 @@
     "eslint-config-expo": "~58.0.4",
     "firebase-admin": "^14.5.0",
     "jest": "~30.5.2",
-    "jest-expo": "~58.0.12"
+    "jest-expo": "~58.0.13"
   },
   "private": true,
   "jest": {
@@ -65,5 +65,21 @@
   },
   "overrides": {
     "@grpc/grpc-js": "^1.14.6"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "expo",
+        "expo-constants",
+        "expo-file-system",
+        "expo-font",
+        "expo-image",
+        "expo-linking",
+        "expo-notifications",
+        "expo-splash-screen",
+        "expo-updates",
+        "react-native"
+      ]
+    }
   }
 }

@@ -111,9 +111,9 @@ jobs:
         continue-on-error: true
         run: node scripts/seasons.js
 
-      # Searches all of YouTube for free full movies, 30 a day (about 3,000 quota units). Official
-      # channels' uploads go into the app; unknown channels are listed for review in the pull
-      # request. A failure (quota, API) doesn't stop the rest.
+      # Searches all of YouTube for free full movies, 30 a day (about 3,000 quota units). Only the
+      # official channels' uploads count (re-uploads and reaction videos are ignored). A failure
+      # (quota, API) doesn't stop the rest.
       - name: Search YouTube for free movies
         if: env.YOUTUBE_API_KEY != ''
         continue-on-error: true

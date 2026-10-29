@@ -197,3 +197,20 @@ describe('video volume', () => {
     expect(v.volume).toBe(0.5);
   });
 });
+
+describe('caption tracks', () => {
+  it('switches captions on in the embed link only when asked', () => {
+    const { embedUrl } = require('../components/YouTubeView');
+    expect(embedUrl('abc', 0, false, 'en')).toContain('cc_load_policy=1');
+    expect(embedUrl('abc', 0, false, 'en')).toContain('cc_lang_pref=en');
+    expect(embedUrl('abc')).toContain('cc_load_policy=0');
+    expect(embedUrl('abc')).not.toContain('cc_lang_pref');
+  });
+
+  it('keeps the subtitle area visible while hiding the rest of YouTube', () => {
+    const { document, added } = fakePage();
+    run(EARLY_SCRIPT, document);
+    expect(added[0].textContent).toContain(':not(.ytp-caption-window-container)');
+    expect(added[0].textContent).toContain('.ytp-caption-window-container{display:block!important');
+  });
+});
