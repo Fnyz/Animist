@@ -12,6 +12,7 @@ import { signInMethod } from '../accountDeletion';
 import { myContext } from '../context';
 import { Button, Chip } from '../components/ui';
 import { CLIP_MODES, useHeroClips } from '../heroClips';
+import { useSetting } from '../settings';
 import { animeGenres } from '../api';
 import { computeStats } from '../stats';
 import { avatarFor, AVATAR_CREDIT } from '../avatars';
@@ -52,6 +53,7 @@ const ProfileScreen = ({ navigation }) => {
   const { profile, userWatchList, historyRecords, authUser, signedIn } = useContext(myContext);
   const [signingOut, setSigningOut] = useState(false);
   const [clips, setClips] = useHeroClips();
+  const [autoplay, setAutoplay] = useSetting('autoplayNext', true);
   const me = profile?.[0]?.data ?? {};
   const fullName = [me.firstname, me.lastname].filter(Boolean).join(' ') || 'Anime fan';
   const stats = computeStats(historyRecords ?? [], userWatchList, animeGenres);
@@ -78,6 +80,17 @@ const ProfileScreen = ({ navigation }) => {
         options={CLIP_MODES}
         value={clips}
         onChange={setClips}
+      />
+      <ChoiceRow
+        icon="play-forward-outline"
+        label="Play next episode automatically"
+        detail="After an episode ends, the next one starts after a short countdown."
+        options={[
+          { key: 'on', label: 'On' },
+          { key: 'off', label: 'Off' },
+        ]}
+        value={autoplay ? 'on' : 'off'}
+        onChange={(key) => setAutoplay(key === 'on')}
       />
       <Row icon="server-outline" label="Anime data" detail="AniList · updated daily + live" />
       <Row icon="information-circle-outline" label="Version" detail={Constants.expoConfig?.version ?? '1.0.0'} />

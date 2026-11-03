@@ -8,6 +8,9 @@ import { Chip, EmptyState, WatchBadge } from '../components/ui';
 import StatusSheet from '../components/StatusSheet';
 import { LIST_STATUSES, statusInfo, statusOf } from '../listStatus';
 import { byLatest, historyProgress, progressFraction, progressLabel } from '../progress';
+import { freeEpisodeNumbers } from '../api';
+import { useSetting } from '../settings';
+import { SORTS, newEpisodeCount, sortList } from '../listTools';
 import { colors, fonts, radius, space } from '../theme';
 
 const timeAgo = (ts) => {
@@ -28,13 +31,13 @@ const MyListScreen = ({ navigation }) => {
   // The list entry whose status sheet is open.
   const [editing, setEditing] = useState(null);
 
-  const watchlist = useMemo(
-    () =>
-      [...userWatchList].sort(
-        (a, b) => (b.data.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER) - (a.data.createdAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER)
-      ),
-    [userWatchList]
-  );
+  // Sorted by date added, A–Z, or anime with new episodes waiting first (saved on the phone).
+  const [sort, setSort] = useSetting('myListSort', 'recent');
+  const newCounts = useMemo(() => {
+    const records = new Map(historyRecords.map((r) => [String(r.data.titleId), r]));
+    return new Map(userWatchList.map((w) => [w.id, newEpisodeCount(freeEpisodeNumbers(w.data.titleId), records.get(String(w.data.titleId)))]));
+  }, [userWatchList, historyRecords]);
+  const watchlist = useMemo(() => sortList(userWatchList, sort, (w) => newCounts.get(w.id) ?? 0), [userWatchList, sort, newCounts]);
 
   const counts = useMemo(() => {
     const result = { all: watchlist.length };
@@ -93,12 +96,28 @@ const MyListScreen = ({ navigation }) => {
           contentContainerStyle={{ paddingHorizontal: space.xl, paddingBottom: space.xxl, flexGrow: 1 }}
           ListHeaderComponent={
             watchlist.length > 0 ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filterRow}>
-                <Chip label={`All · ${counts.all}`} active={filter === 'all'} onPress={() => setFilter('all')} />
-                {LIST_STATUSES.map(({ key, label, icon }) => (
-                  <Chip key={key} label={`${label} · ${counts[key] ?? 0}`} icon={icon} active={filter === key} onPress={() => setFilter(key)} />
-                ))}
-              </ScrollView>
+              <View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} style={styles.filterRow}>
+                  <Chip label={`All · ${counts.all}`} active={filter === 'all'} onPress={() => setFilter('all')} />
+                  {LIST_STATUSES.map(({ key, label, icon }) => (
+                    <Chip key={key} label={`${label} · ${counts[key] ?? 0}`} icon={icon} active={filter === key} onPress={() => setFilter(key)} />
+                  ))}
+                </ScrollView>
+                <View style={styles.sortRow} accessibilityRole="radiogroup" accessibilityLabel="Sort My List">
+                  <Ionicons name="swap-vertical" size={15} color={colors.muted} />
+                  {SORTS.map((o) => (
+                    <Pressable
+                      key={o.key}
+                      onPress={() => setSort(o.key)}
+                      hitSlop={6}
+                      accessibilityRole="radio"
+                      accessibilityState={{ selected: sort === o.key }}
+                    >
+                      <Text style={[styles.sortOption, sort === o.key && styles.sortOptionOn]}>{o.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             ) : null
           }
           renderItem={({ item }) => (
@@ -110,6 +129,11 @@ const MyListScreen = ({ navigation }) => {
               <View style={{ flex: 1, gap: 5 }}>
                 <Text style={styles.rowTitle} numberOfLines={2}>{item.data.title || `Anime #${item.data.titleId}`}</Text>
                 <Text style={styles.rowMeta}>{[item.data.type, timeAgo(item.data.createdAt)].filter(Boolean).join(' · ')}</Text>
+                {newCounts.get(item.id) > 0 ? (
+                  <Text style={styles.newEpisodes}>
+                    {newCounts.get(item.id) === 1 ? '1 episode to watch' : `${newCounts.get(item.id)} episodes to watch`}
+                  </Text>
+                ) : null}
               </View>
               <Pressable
                 onPress={() => setEditing(item)}
@@ -246,6 +270,10 @@ const styles = StyleSheet.create({
   statusPillText: { fontFamily: fonts.bodySemi, fontSize: 12, color: colors.text },
   filterRow: { marginHorizontal: -space.xl, marginBottom: space.sm },
   filters: { paddingHorizontal: space.xl, gap: space.sm },
+  sortRow: { flexDirection: 'row', alignItems: 'center', gap: space.md, marginBottom: space.md },
+  sortOption: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.muted },
+  sortOptionOn: { color: colors.accent, fontFamily: fonts.bodyBold },
+  newEpisodes: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.accent },
 });
 
 export default MyListScreen;

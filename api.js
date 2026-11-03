@@ -359,6 +359,22 @@ export const getNewOnAnimist = () =>
     .filter((a) => a.media && YOUTUBE_EPISODES[String(a.id)])
     .map(({ media, ...a }) => ({ ...a, anime: toAnime(media) }));
 
+// An anime's MyAnimeList id (for skip times), from the saved data or one small AniList request.
+const malIds = new Map();
+export const malIdFor = async (id) => {
+  const known = staticMedia(id)?.idMal;
+  if (known) return known;
+  if (!malIds.has(String(id))) {
+    malIds.set(
+      String(id),
+      request('query ($id: Int) { Media(id: $id, type: ANIME) { idMal } }', { id: Number(id) })
+        .then((d) => d?.Media?.idMal ?? null)
+        .catch(() => (malIds.delete(String(id)), null))
+    );
+  }
+  return malIds.get(String(id));
+};
+
 // An anime's genres from the saved or live data, or [] (for stats; no request).
 export const animeGenres = (id) => staticMedia(id)?.genres ?? [];
 
@@ -444,6 +460,19 @@ export const getSchedule = async () => {
     .filter((s) => isListable(s.media))
     .sort((a, b) => a.airingAt - b.airingAt)
     .map((s) => ({ anime: toAnime(s.media), episode: s.episode, airingAt: s.airingAt }));
+};
+
+// The episode numbers of an anime that play in the app, in order ([] when none).
+export const freeEpisodeNumbers = (id) =>
+  Object.keys(YOUTUBE_EPISODES[String(id)]?.episodes ?? {})
+    .map(Number)
+    .sort((a, b) => a - b);
+
+// "Surprise me": a random anime that plays in the app, or null. With `exceptId`, never that one.
+export const randomFreeAnime = (exceptId = null, random = Math.random) => {
+  const ids = freeToWatchIds().filter((id) => String(id) !== String(exceptId));
+  if (!ids.length) return null;
+  return toAnime(staticMedia(ids[Math.floor(random() * ids.length)]));
 };
 
 // Full movies that play in the app (official uploads), most popular first.
