@@ -145,7 +145,7 @@ jobs:
 
       - name: Open a pull request
         if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'pull-request'
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           branch: bot/refresh-episodes
           delete-branch: true
