@@ -78,7 +78,8 @@
         "expo-notifications",
         "expo-splash-screen",
         "expo-updates",
-        "react-native"
+        "react-native",
+        "react-native-screens"
       ]
     }
   }

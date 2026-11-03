@@ -3,7 +3,9 @@ import { View, Text, ScrollView, Pressable, StyleSheet, Linking, useWindowDimens
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useDataVersion, getAnimeInfo, refreshAnimeLive } from '../api';
+import { useDataVersion, getAnimeInfo, refreshAnimeLive, malIdFor, getSeasons, freeEpisodeToStart } from '../api';
+import { fetchSkipTimes } from '../skipTimes';
+import { useSetting } from '../settings';
 import { myContext } from '../context';
 import { formatTime, isFinished, progressFraction, progressLabel, resumePoint } from '../progress';
 import { statusAfterWatching, statusOf } from '../listStatus';
@@ -56,6 +58,22 @@ const WatchScreen = ({ route, navigation }) => {
   useEffect(() => {
     refreshAnimeLive(animeId);
   }, [animeId]);
+
+  // Opening and ending times for "Skip intro" / "Skip outro" (none when AniSkip doesn't know them).
+  const [skips, setSkips] = useState({ key: null, times: [] });
+  // Profile setting: start the next episode by itself after a countdown, or wait for a tap.
+  const [autoplay] = useSetting('autoplayNext', true);
+  useEffect(() => {
+    let cancelled = false;
+    const key = `${animeId}/${number}`;
+    malIdFor(animeId)
+      .then((mal) => fetchSkipTimes(mal, number))
+      .then((times) => !cancelled && setSkips({ key, times }))
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [animeId, number]);
 
   const episode = anime?.episodes.find((e) => e.number === number);
 
@@ -138,6 +156,25 @@ const WatchScreen = ({ route, navigation }) => {
   const sourceIndex = source.number === number ? source.index : 0;
   const nextEpisode = anime.episodes.find((e) => e.number === number + 1);
   const upNextTitle = `Episode ${number + 1}${nextEpisode?.title ? ` · ${nextEpisode.title}` : ''}`;
+  // After a season's last episode, Up next continues into the next season when it plays free.
+  const nextSeason = (() => {
+    if (hasNext || isMovie) return null;
+    const seasons = getSeasons(anime.id)?.seasons ?? [];
+    const here = seasons.findIndex((p) => p.current);
+    const next = here >= 0 ? seasons[here + 1] : null;
+    const episodeOne = next?.free ? freeEpisodeToStart(next.id) : null;
+    return episodeOne ? { id: next.id, title: next.title, episode: episodeOne } : null;
+  })();
+  const upNext = hasNext
+    ? { title: upNextTitle, onPlay: () => goTo(number + 1), auto: autoplay }
+    : nextSeason
+      ? {
+          title: `${nextSeason.title} · Episode ${nextSeason.episode}`,
+          onPlay: () => navigation.replace('View', { animeId: nextSeason.id, episode: nextSeason.episode }),
+          auto: autoplay,
+        }
+      : null;
+  const skipTimes = skips.key === `${animeId}/${number}` ? skips.times : [];
   const playingFrom = episode?.youtube
     ? [episode.youtube, ...episode.youtube.alternatives][sourceIndex] ?? episode.youtube
     : null;
@@ -165,7 +202,8 @@ const WatchScreen = ({ route, navigation }) => {
                 label="Episode"
                 startAt={startAt}
                 onProgress={onProgress}
-                upNext={hasNext ? { title: upNextTitle, onPlay: () => goTo(number + 1) } : null}
+                upNext={upNext}
+                skipTimes={skipTimes}
                 fallback={episode.link ? { title: `Watch on ${episode.link.site}`, onPress: () => openLink(episode.link.url) } : null}
               />
             </View>

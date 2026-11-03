@@ -14,7 +14,7 @@ const normalize = (text) =>
     .normalize('NFKD')
     .replace(/[̀-ͯ]/g, '')
     .replace(/[[(【「].*?[\])】」]/g, ' ')
-    .replace(/\b(eng(lish)?\s*sub(bed|s|title[sd]?)?|full episodes?|playlist|muse (asia|philippines|ph)|ani-?one( asia| philippines)?|hd remaster(ed)?|remaster(ed)?|director[’']?s cut|edited video)\b/g, ' ')
+    .replace(/\b(eng(lish)?\s*sub(bed|s|title[sd]?)?|full episodes?|full series|complete series|playlist|muse (asia|philippines|ph)|ani-?one( asia| philippines)?|hd remaster(ed)?|remaster(ed)?|director[’']?s cut|edited video)\b/g, ' ')
     .replace(/[’'`]/g, '')
     .replace(/[^a-z0-9]+/g, ' ')
     // One way to write seasons: "2nd Season", "Second Season" and "Season2" become "season 2",
@@ -49,9 +49,16 @@ const keepSeasons = (text) =>
 const GENERIC = new Set(['the', 'final', 'season', 'part', 'cour', 'movie', 'special', 'ova', 'ona', 'tv', 'series', 'new', 'all', 'episodes', 'ultra']);
 const isGeneric = (normalized) => normalized.split(' ').every((w) => GENERIC.has(w) || /^\d+(st|nd|rd|th)?$/.test(w));
 
+// "DIGIDROP 2026 - ": a campaign name and year before the real title.
+const PROMO_PREFIX = /^[^-–|｜]*\b(?:19|20)\d\d\s+[-–]\s+/;
+
 const titleParts = (playlistTitle) => {
   const raw = keepSeasons(String(playlistTitle ?? ''));
-  const parts = [raw, ...raw.split(/[|｜]/), ...[...raw.matchAll(/《([^》]+)》/g)].map((m) => m[1])];
+  // The whole name, each part between "|", Ani-One's 《…》 titles, and the name without a promo
+  // prefix that has a year ("DIGIDROP 2026 - Digimon Adventure: (2020)"). Names aren't split at other
+  // dashes: "BLEACH: Thousand-Year Blood War - The Separation" is its own season.
+  const withoutPromo = raw.replace(PROMO_PREFIX, '');
+  const parts = [raw, withoutPromo, ...raw.split(/[|｜]/), ...[...raw.matchAll(/《([^》]+)》/g)].map((m) => m[1])];
   return [...new Set(parts.map(normalize).filter((p) => p && !isGeneric(p)))];
 };
 
@@ -79,8 +86,15 @@ const titleVariants = (title) => {
 // 100 when a playlist title equals the anime's main title, 80 for an alternate name, else 0.
 // Containment isn't enough: "Another" is inside "Re:ZERO ... in Another World", and
 // "Dr. STONE" is inside "Dr. STONE Season 4", which is a different season.
+// A year in brackets in a playlist name ("Digimon Adventure: (2020)"), or null.
+const yearOf = (playlistTitle) => Number(String(playlistTitle ?? '').match(/[(（]\s*((?:19|20)\d\d)\s*[)）]/)?.[1]) || null;
+
 const scorePlaylist = (playlistTitle, media) => {
   if (OTHER_LANGUAGES.test(playlistTitle ?? '')) return 0;
+  // "(2020)" means that version: a same-named anime from another year doesn't count.
+  const year = yearOf(playlistTitle);
+  const mediaYear = media.seasonYear ?? media.startDate?.year;
+  if (year && mediaYear && Math.abs(year - mediaYear) > 1) return 0;
   const parts = titleParts(playlistTitle);
   const season = seasonOf(playlistTitle);
   const fits = (title) =>
@@ -174,7 +188,14 @@ const searchTextFor = (playlistTitle) => {
     .split(/[|｜《》]/)
     .map((p) => p.replace(/\s+/g, ' ').trim())
     .filter((p) => /[a-z]{3}/i.test(p));
-  const text = parts[0]?.replace(/\s*\b(?:season\s*0*1|s0*1|1st\s+season)\s*$/i, '').trim();
+  const text = parts[0]
+    // A promo prefix with a year ("DIGIDROP 2026 - …") and "Full Series" aren't part of the name.
+    ?.replace(PROMO_PREFIX, '')
+    .replace(/\b(?:full|complete)\s+(?:series|episodes?)\b/gi, ' ')
+    .replace(/[(（]\s*(?:19|20)\d\d\s*[)）]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*\b(?:season\s*0*1|s0*1|1st\s+season)\s*$/i, '')
+    .trim();
   return text || null;
 };
 

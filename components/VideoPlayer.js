@@ -6,6 +6,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import YouTubeView from './YouTubeView';
 import { captionsFor } from '../api';
+import { activeSkip, fitToVideo } from '../skipTimes';
 import { FullscreenLayer } from './FullscreenHost';
 import { fullscreenBox } from './fullscreenBox';
 import { isNetworkError, reportNetworkError, useOnline } from '../connectivity';
@@ -69,6 +70,9 @@ const LEVELS = {
 };
 const LEVEL_HINT_MS = 900;
 const sessionLevels = { brightness: 1, volume: 1 };
+// Playback speeds, in the order the speed button steps through them; the choice lasts the session.
+const SPEEDS = [1, 1.25, 1.5, 2, 0.75];
+let sessionSpeed = 1;
 
 const EMPTY = { current: 0, duration: 0, paused: true, ended: false, muted: false, qualities: [], quality: null };
 
@@ -85,7 +89,7 @@ const qualityLabel = (q) => (q && q !== 'auto' ? QUALITY_LABELS[q] ?? q : 'Auto'
 // mid-playback stretches the picture.
 const PlayerCore = ({
   videoId, start, width, height, label, fullscreen, onToggleFullscreen, onProgress, onEnded, onError,
-  quality, onQualityChange, edgePad, box, upNext, fullBleed,
+  quality, onQualityChange, edgePad, box, upNext, fullBleed, skipTimes = [],
 }) => {
   const player = useRef(null);
   const wasEnded = useRef(false);
@@ -101,6 +105,14 @@ const PlayerCore = ({
   const [countdown, setCountdown] = useState(null);
   const playNext = useEffectEvent(() => upNext?.onPlay());
   const [swipeLevels, setSwipeLevels] = useState(() => ({ ...sessionLevels }));
+  const [speed, setSpeed] = useState(sessionSpeed);
+  const nextSpeed = () => {
+    const next = SPEEDS[(SPEEDS.indexOf(speed) + 1) % SPEEDS.length];
+    sessionSpeed = next;
+    setSpeed(next);
+    player.current?.speed(next);
+    setShownAt(Date.now());
+  };
   // Which level a swipe is changing right now ('brightness' or 'volume'), and which indicator shows.
   const [adjusting, setAdjusting] = useState(null);
   const [hint, setHint] = useState(null);
@@ -114,7 +126,8 @@ const PlayerCore = ({
   }, [adjusting, hint]);
 
   useEffect(() => {
-    if (countdown === null) return undefined;
+    // 'manual': autoplay is off, so the card waits for a tap.
+    if (countdown === null || countdown === 'manual') return undefined;
     if (countdown <= 0) {
       playNext();
       return undefined;
@@ -152,6 +165,7 @@ const PlayerCore = ({
     if (!levelsApplied.current) {
       levelsApplied.current = true;
       if (swipeLevels.brightness !== 1) player.current?.brightness(swipeLevels.brightness);
+      if (speed !== 1) player.current?.speed(speed);
       const captions = captionsFor(videoId);
       if (captions) player.current?.captions(captions);
       if (swipeLevels.volume !== 1) player.current?.volume(swipeLevels.volume);
@@ -159,7 +173,7 @@ const PlayerCore = ({
     if (!started && (!s.paused || s.ended)) setStarted(true);
     if (s.ended && !wasEnded.current) {
       onEnded?.();
-      if (upNext) setCountdown(UP_NEXT_SECONDS);
+      if (upNext) setCountdown(upNext.auto === false ? 'manual' : UP_NEXT_SECONDS);
     }
     wasEnded.current = s.ended;
     setStatus(s);
@@ -241,6 +255,8 @@ const PlayerCore = ({
   }, [showControls, playing, scrubbing, qualityMenu, shownAt]);
 
   const current = scrubAt ?? seekTo ?? status.current;
+  // "Skip intro" / "Skip outro" while the opening or ending plays (times from AniSkip).
+  const partSkip = activeSkip(fitToVideo(skipTimes, status.duration), status.current);
 
   // ⟲10 / ⟳10: jump from where the video is (or is about to be), within the video.
   const skip = (delta) => {
@@ -369,6 +385,17 @@ const PlayerCore = ({
       <Text style={styles.qualityText}>{qualityLabel(quality)}</Text>
     </Pressable>
   );
+  const speedButton = (
+    <Pressable
+      onPress={nextSpeed}
+      hitSlop={8}
+      style={[styles.qualityButton, speed !== 1 && styles.speedOn]}
+      accessibilityRole="button"
+      accessibilityLabel={`Playback speed ${speed} times. Tap to change.`}
+    >
+      <Text style={[styles.qualityText, speed !== 1 && { color: colors.onAccent }]}>{`${speed}×`}</Text>
+    </Pressable>
+  );
   const fullscreenButton = (
     <Pressable
       onPress={() => onToggleFullscreen(current)}
@@ -387,6 +414,7 @@ const PlayerCore = ({
       {seekBar}
       {time}
       {muteButton}
+      {speedButton}
       {qualityButton}
       {fullscreenButton}
     </View>
@@ -400,6 +428,7 @@ const PlayerCore = ({
         {playButton}
         {muteButton}
         <View style={{ flex: 1 }} />
+        {speedButton}
         {qualityButton}
         {fullscreenButton}
       </View>
@@ -525,6 +554,20 @@ const PlayerCore = ({
           )}
         </View>
       )}
+      {partSkip && countdown === null && (
+        <Pressable
+          onPress={() => {
+            seekToSeconds(partSkip.end);
+            setShownAt(Date.now());
+          }}
+          style={({ pressed }) => [styles.skipPart, fullscreen && styles.skipPartFullscreen, pressed && { opacity: 0.85 }]}
+          accessibilityRole="button"
+          accessibilityLabel={partSkip.type === 'op' ? 'Skip intro' : 'Skip outro'}
+        >
+          <MaterialIcons name="skip-next" size={20} color={colors.onAccent} />
+          <Text style={styles.skipPartText}>{partSkip.type === 'op' ? 'Skip intro' : 'Skip outro'}</Text>
+        </Pressable>
+      )}
       {countdown !== null && upNext && (
         <View style={styles.upNext} accessibilityLiveRegion="polite">
           <Text style={styles.upNextLabel}>Up next</Text>
@@ -540,7 +583,7 @@ const PlayerCore = ({
               accessibilityLabel={`Play ${upNext.title} now`}
             >
               <Ionicons name="play" size={16} color={colors.onAccent} />
-              <Text style={styles.upNextPlayText}>Play in {countdown}</Text>
+              <Text style={styles.upNextPlayText}>{countdown === 'manual' ? 'Play' : `Play in ${countdown}`}</Text>
             </Pressable>
             <Pressable onPress={() => setCountdown(null)} style={styles.upNextCancel} accessibilityRole="button">
               <Text style={styles.upNextCancelText}>Cancel</Text>
@@ -587,7 +630,7 @@ const PlayerCore = ({
 // because it's blocked in this country; `onSourceChange(index)` says which one is playing
 // (0 = `videoId`, 1 = the first alternative, ...).
 const VideoPlayer = ({
-  videoId, alternatives = [], width, label = 'Video', onEnded, fallback, startAt = 0, onProgress, onSourceChange, upNext,
+  videoId, alternatives = [], width, label = 'Video', onEnded, fallback, startAt = 0, onProgress, onSourceChange, upNext, skipTimes,
   fullBleed = false,
 }) => {
   const insets = useSafeAreaInsets();
@@ -740,6 +783,7 @@ const VideoPlayer = ({
       box={fullscreenSize}
       upNext={upNext}
       fullBleed={fullBleed}
+      skipTimes={skipTimes}
     />
   );
 
@@ -835,6 +879,21 @@ const styles = StyleSheet.create({
   },
   qualityButtonOpen: { borderColor: colors.accent },
   qualityText: { fontFamily: fonts.bodyBold, fontSize: 11, color: colors.text },
+  speedOn: { backgroundColor: colors.accent, borderColor: colors.accent },
+  skipPart: {
+    position: 'absolute',
+    right: space.lg,
+    bottom: space.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    height: 38,
+    paddingHorizontal: 14,
+    borderRadius: 19,
+    backgroundColor: colors.accent,
+  },
+  skipPartFullscreen: { bottom: 84, right: space.xxl },
+  skipPartText: { fontFamily: fonts.bodyBold, fontSize: 13, color: colors.onAccent },
   qualityMenu: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   qualityMenuFullscreen: { flexWrap: 'nowrap', justifyContent: 'flex-end', alignItems: 'center' },
   qualityOption: {

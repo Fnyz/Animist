@@ -1,6 +1,7 @@
 // The AniList fields the app needs for each anime, shared by the data scripts.
 const MEDIA_FIELDS = `
   id
+  idMal
   title { romaji english native }
   synonyms
   coverImage { extraLarge large }

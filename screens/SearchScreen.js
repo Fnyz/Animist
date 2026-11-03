@@ -1,15 +1,17 @@
 import React, { useContext, useEffect, useRef, useState } from 'react';
-import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, FlatList, Pressable, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { searchAnime } from '../api';
+import { searchAnime, randomFreeAnime } from '../api';
+import { useSetting } from '../settings';
+import { addRecentSearch } from '../listTools';
 import { myContext } from '../context';
 import { useRequireAccount } from '../requireAccount';
 import { Chip, EmptyState, ErrorState, WatchBadge } from '../components/ui';
 import FilterSheet from '../components/FilterSheet';
 import { activeFilterCount, filterChips, NO_FILTERS, withoutFilter } from '../searchFilters';
-import { colors, fonts, space } from '../theme';
+import { colors, fonts, radius, space } from '../theme';
 
 // Genres and AniList tags people can browse without typing.
 const BROWSE = [
@@ -92,7 +94,18 @@ const SearchScreen = ({ navigation }) => {
     return () => clearTimeout(t);
   }, [query, filters]);
 
-  const openAnime = (anime) => navigation.navigate('AnimeDetail', { animeId: anime.id });
+  // The last searches, saved on the phone: kept when a search is submitted or a result opened.
+  const [recent, setRecent] = useSetting('recentSearches', []);
+  const remember = () => setRecent(addRecentSearch(recent, query));
+  const openAnime = (anime) => {
+    remember();
+    navigation.navigate('AnimeDetail', { animeId: anime.id });
+  };
+  // A random anime that plays in the app, for when you don't know what to watch.
+  const surprise = () => {
+    const anime = randomFreeAnime();
+    if (anime) navigation.navigate('AnimeDetail', { animeId: anime.id });
+  };
   const searching = query.trim().length >= 2 || filterCount > 0;
   const searchText = query.trim().length >= 2 ? query.trim() : '';
 
@@ -111,6 +124,7 @@ const SearchScreen = ({ navigation }) => {
             style={styles.input}
             autoCorrect={false}
             returnKeyType="search"
+            onSubmitEditing={remember}
             accessibilityLabel="Search anime"
           />
           {query ? (
@@ -161,14 +175,37 @@ const SearchScreen = ({ navigation }) => {
       />
 
       {!searching ? (
-        <View style={{ paddingHorizontal: space.xl, gap: space.md }}>
+        <ScrollView contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.md, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+          <Pressable onPress={surprise} style={({ pressed }) => [styles.surprise, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+            <Ionicons name="shuffle" size={20} color={colors.onAccent} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.surpriseTitle}>Surprise me</Text>
+              <Text style={styles.surpriseText}>A random anime you can watch free</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.onAccent} />
+          </Pressable>
+          {recent.length > 0 && (
+            <>
+              <View style={styles.recentHeader}>
+                <Text style={styles.sectionLabel}>Recent searches</Text>
+                <Pressable onPress={() => setRecent([])} hitSlop={10} accessibilityRole="button" accessibilityLabel="Clear recent searches">
+                  <Text style={styles.clear}>Clear</Text>
+                </Pressable>
+              </View>
+              <View style={styles.genreGrid}>
+                {recent.map((r) => (
+                  <Chip key={r} label={r} icon="time-outline" onPress={() => setQuery(r)} />
+                ))}
+              </View>
+            </>
+          )}
           <Text style={styles.sectionLabel}>Browse by genre</Text>
           <View style={styles.genreGrid}>
             {BROWSE.map((g) => (
               <Chip key={g} label={browseLabel(g)} onPress={() => navigation.navigate('List', { kind: 'genre', genre: g, title: browseLabel(g) })} />
             ))}
           </View>
-        </View>
+        </ScrollView>
       ) : error ? (
         <ErrorState message={error} onRetry={() => run(searchText)} />
       ) : (
@@ -244,6 +281,18 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   activeChipText: { fontFamily: fonts.bodyBold, fontSize: 12, color: colors.onAccent },
+  surprise: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: space.md,
+    padding: space.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+  },
+  surpriseTitle: { fontFamily: fonts.bodyBold, fontSize: 15, color: colors.onAccent },
+  surpriseText: { fontFamily: fonts.body, fontSize: 12, color: colors.onAccent, opacity: 0.85 },
+  recentHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  clear: { fontFamily: fonts.bodySemi, fontSize: 13, color: colors.accent },
   sectionLabel: { fontFamily: fonts.bodyBold, fontSize: 12, letterSpacing: 1.5, textTransform: 'uppercase', color: colors.muted },
   genreGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   count: { fontFamily: fonts.body, fontSize: 13, color: colors.muted, paddingBottom: 4 },

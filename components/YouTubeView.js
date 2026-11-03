@@ -99,6 +99,13 @@ export const PAGE_SCRIPT = `
     pause: function () { var v = video(); if (v) v.pause(); },
     seek: function (s) { var v = video(); if (v) v.currentTime = s; },
     mute: function (m) { var v = video(); if (v) v.muted = m; },
+    // Playback speed (1 = normal), through YouTube's player so it keeps it.
+    speed: function (rate) {
+      var r = Number(rate) || 1;
+      var p = document.getElementById('movie_player');
+      if (p && p.setPlaybackRate) p.setPlaybackRate(r);
+      var v = video(); if (v) v.playbackRate = r;
+    },
     // Shows the video's own caption track in a language (e.g. 'en'), or none with null. YouTube's
     // player loads its captions module when asked.
     // When the video's caption list arrives and has no track in that language, it reports an error,
@@ -221,6 +228,7 @@ const YouTubeView = forwardRef(({ videoId, start = 0, muted = false, captions = 
     brightness: (level) => run(`brightness(${Number(level) || 1})`),
     volume: (level) => run(`volume(${Number(level) || 0})`),
     captions: (lang) => run(`captions(${JSON.stringify(lang ?? null)})`),
+    speed: (rate) => run(`speed(${Number(rate) || 1})`),
   }));
 
   const onMessage = (event) => {
