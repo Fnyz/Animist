@@ -6,11 +6,17 @@ name: Refresh episodes
 # Automatic: every day at about 06:00 Philippine time. It refreshes the AniList data (free, about a
 #   minute), reads the channels' RSS feeds (free, no quota) and only runs the episode search when
 #   something new was uploaded. On Sundays it runs the full search, which re-checks every video.
-#   Everything that changed arrives as one pull request, or as a commit to main when the repository
-#   variable EPISODES_DELIVERY is set to "commit".
+#   Everything that changed arrives as one pull request. The repository variable EPISODES_DELIVERY
+#   picks what happens next: "pull-request" (default) waits for you to merge it; "auto-merge" merges it
+#   by itself once the required checks pass (needs the secret EPISODES_TOKEN, below); "commit" pushes
+#   straight to main instead (only works when the ruleset on main lets GitHub Actions bypass it).
 # Manual: Actions > Refresh episodes > Run workflow, then pick the mode and the delivery.
 #
 # Needs the repository secret YOUTUBE_API_KEY. Skips itself until it's added.
+# EPISODES_TOKEN (for auto-merge): a fine-grained personal access token for this repository only, with
+#   Contents and Pull requests set to read and write. A pull request opened with the default token
+#   doesn't start CI (and waits for approval), and its merge doesn't start the OTA update; one opened
+#   and merged with this token behaves like yours: checks run, and the merge publishes the update.
 on:
   schedule:
     # 21:47 UTC = 05:47 in the Philippines. Off the hour on purpose: GitHub delays scheduled runs that
@@ -24,9 +30,9 @@ on:
         options: [quick, full]
         default: quick
       delivery:
-        description: 'pull-request: you review and merge. commit: straight to main (then published to phones).'
+        description: 'pull-request: you review and merge. auto-merge: merged once checks pass. commit: straight to main.'
         type: choice
-        options: [pull-request, commit]
+        options: [pull-request, auto-merge, commit]
         default: pull-request
       skip_feed_check:
         description: 'Run the search even if the RSS feeds show nothing new'
@@ -143,10 +149,20 @@ jobs:
           echo "summary=$summary" >> "$GITHUB_OUTPUT"
           [ "$changed" = "true" ] && cat "$summary" >> "$GITHUB_STEP_SUMMARY" || echo "Nothing new today." >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Check EPISODES_TOKEN for auto-merge
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'auto-merge' && env.EPISODES_TOKEN == ''
+        env:
+          EPISODES_TOKEN: ${{ secrets.EPISODES_TOKEN }}
+        run: |
+          echo "::error::Auto-merge needs the repository secret EPISODES_TOKEN (see the top of episodes.yml)."
+          exit 1
+
       - name: Open a pull request
-        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'pull-request'
+        id: pr
+        if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery != 'commit'
         uses: peter-evans/create-pull-request@v8
         with:
+          token: ${{ secrets.EPISODES_TOKEN || github.token }}
           branch: bot/refresh-episodes
           delete-branch: true
           add-paths: |
@@ -159,6 +175,14 @@ jobs:
           title: ${{ steps.changes.outputs.title }}
           body-path: ${{ steps.changes.outputs.summary }}
           labels: episodes
+
+      # GitHub merges it once "Lint and tests" and "Security" pass; if they fail, it stays open for you.
+      # The merge is a normal push to main, so update.yml publishes the OTA update and notifications.
+      - name: Merge it automatically once the checks pass
+        if: steps.plan.outputs.delivery == 'auto-merge' && steps.pr.outputs.pull-request-number != ''
+        env:
+          GH_TOKEN: ${{ secrets.EPISODES_TOKEN }}
+        run: gh pr merge "${{ steps.pr.outputs.pull-request-number }}" --auto --merge
 
       - name: Commit to main
         if: steps.changes.outputs.changed == 'true' && steps.plan.outputs.delivery == 'commit'
