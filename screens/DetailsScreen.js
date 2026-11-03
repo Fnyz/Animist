@@ -11,6 +11,7 @@ import { Button, IconButton, Loading, ErrorState, Tag } from '../components/ui';
 import TrailerModal from '../components/TrailerModal';
 import StatusSheet from '../components/StatusSheet';
 import SeasonsRow from '../components/SeasonsRow';
+import ImageViewer from '../components/ImageViewer';
 import { statusInfo, statusOf } from '../listStatus';
 import CheckEpisodesButton from '../components/CheckEpisodesButton';
 import { progressFraction, progressLabel } from '../progress';
@@ -29,6 +30,8 @@ const DetailsScreen = ({ route, navigation }) => {
   const [allEpisodes, setAllEpisodes] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showTrailer, setShowTrailer] = useState(false);
+  // The picture open full screen (index into `pictures`), or null.
+  const [viewing, setViewing] = useState(null);
   const [statusSheet, setStatusSheet] = useState(false);
   const [scrollY] = useState(() => new Animated.Value(0));
 
@@ -98,6 +101,11 @@ const DetailsScreen = ({ route, navigation }) => {
 
   // A link that opens this anime in Animist, or a page with the download when it isn't installed.
   const share = () => Share.share({ message: shareMessage(anime) }).catch(() => {});
+  // The poster, and the banner when the anime has its own (otherwise it's the poster again).
+  const pictures = [
+    { uri: anime.image, label: 'Poster' },
+    ...(anime.banner && anime.banner !== anime.image ? [{ uri: anime.banner, label: 'Banner' }] : []),
+  ];
 
   const isMovie = anime.type === 'Movie' && anime.episodes.length <= 1;
   const episodes = allEpisodes ? anime.episodes : anime.episodes.slice(0, EPISODES_SHOWN);
@@ -112,8 +120,10 @@ const DetailsScreen = ({ route, navigation }) => {
         scrollEventThrottle={16}
       >
         <View style={styles.banner}>
-          <Image source={{ uri: anime.banner }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
-          <View style={styles.bannerShade} />
+          <Pressable onPress={() => setViewing(pictures.length > 1 ? 1 : 0)} style={StyleSheet.absoluteFill} accessibilityRole="imagebutton" accessibilityLabel="View the banner full screen">
+            <Image source={{ uri: anime.banner }} style={StyleSheet.absoluteFill} contentFit="cover" transition={300} />
+            <View style={styles.bannerShade} />
+          </Pressable>
           {anime.trailer && (
             <Pressable onPress={() => setShowTrailer(true)} style={styles.playButton} accessibilityLabel="Play trailer">
               <Ionicons name="play" size={28} color={colors.onAccent} style={{ marginLeft: 3 }} />
@@ -122,9 +132,9 @@ const DetailsScreen = ({ route, navigation }) => {
         </View>
 
         <View style={styles.titleRow}>
-          <View style={styles.poster}>
+          <Pressable onPress={() => setViewing(0)} style={styles.poster} accessibilityRole="imagebutton" accessibilityLabel="View the poster full screen">
             <Image source={{ uri: anime.image }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          </View>
+          </Pressable>
           <View style={{ flex: 1, gap: 6, paddingBottom: 4 }}>
             <Text style={styles.title}>{anime.title}</Text>
             <Text style={styles.subtitle} numberOfLines={2}>
@@ -291,6 +301,7 @@ const DetailsScreen = ({ route, navigation }) => {
         onClose={() => setStatusSheet(false)}
       />
       <TrailerModal videoId={showTrailer ? anime.trailer : null} title={anime.title} onClose={() => setShowTrailer(false)} />
+      <ImageViewer images={pictures} start={viewing} title={anime.title} onClose={() => setViewing(null)} />
     </View>
   );
 };

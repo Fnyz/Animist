@@ -16,6 +16,9 @@ const CHANNELS = [
   { handle: '@GundamInfo' },
   { handle: '@BeybladeOfficial', english: true },
   { handle: '@cardfightvanguard', english: true },
+  // English-language uploads (Digimon Adventure (2020), Ghost Sweeper Mikami, Precure…). Most play
+  // only in the Americas and Europe, not in Southeast Asia; there the app moves on to a backup.
+  { handle: '@ToeiAnimationOfficial', english: true },
   // Titles are Chinese, but every episode has official English captions (and others). Last, so the
   // channels with English in the picture come first; it fills gaps and backs them up.
   { handle: '@AniOneAsia', skip: /\bULTRA\b/, captions: 'en' },

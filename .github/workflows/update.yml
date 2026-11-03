@@ -30,7 +30,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         if: env.EXPO_TOKEN != ''
         with:
           eas-version: latest

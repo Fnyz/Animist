@@ -36,7 +36,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - uses: expo/expo-github-action@v8
+      - uses: expo/expo-github-action@v9
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
@@ -60,7 +60,7 @@ jobs:
             --title "Test build (not released)" \
             --notes "Branch: ${GITHUB_REF_NAME} · Commit: ${GITHUB_SHA::7} · Version: $(node -p "require('./app.json').expo.version") · Built: $(date -u '+%Y-%m-%d %H:%M UTC') · Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: animist-test-${{ github.run_number }}
           path: animist-test.apk

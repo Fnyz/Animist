@@ -281,3 +281,34 @@ describe('searchTextFor', () => {
     expect(searchTextFor(null)).toBeNull();
   });
 });
+
+describe('playlist names with promos, years and "Full Series"', () => {
+  const { scorePlaylist, searchTextFor } = require('../scripts/episodeMatching');
+  const digimon2020 = { title: { english: 'Digimon Adventure:', romaji: 'Digimon Adventure:' }, synonyms: [], seasonYear: 2020 };
+  const digimon1999 = { title: { english: 'Digimon Adventure', romaji: 'Digimon Adventure' }, synonyms: [], seasonYear: 1999 };
+  const toei = 'DIGIDROP 2026 - Digimon Adventure: (2020) [English Sub - Full Episodes]';
+
+  it('matches the part after a promo prefix, and the year picks the right version', () => {
+    expect(scorePlaylist(toei, digimon2020)).toBe(100);
+    expect(scorePlaylist(toei, digimon1999)).toBe(0);
+  });
+
+  it('ignores "Full Series" and searches AniList for the plain title', () => {
+    const mikami = { title: { english: 'Ghost Sweeper Mikami', romaji: 'GS Mikami' }, synonyms: [], seasonYear: 1993 };
+    expect(scorePlaylist('Ghost Sweeper Mikami (1993) Full Series | English Sub', mikami)).toBe(100);
+    expect(searchTextFor(toei)).toBe('Digimon Adventure:');
+    expect(searchTextFor('Ghost Sweeper Mikami (1993) Full Series | English Sub')).toBe('Ghost Sweeper Mikami');
+  });
+});
+
+describe('dashes inside real titles', () => {
+  const { matchPlaylists } = require('../scripts/episodeMatching');
+  it('keeps "… - The Separation" on its own season, not the first one', () => {
+    const base = { id: 1, title: { english: 'BLEACH: Thousand-Year Blood War' }, synonyms: [], popularity: 900, seasonYear: 2022 };
+    const separation = { id: 2, title: { english: 'BLEACH: Thousand-Year Blood War - The Separation' }, synonyms: [], popularity: 500, seasonYear: 2023 };
+    const playlists = [{ id: 'p', title: 'BLEACH: Thousand-Year Blood War - The Separation [English Sub]' }];
+    const matches = matchPlaylists(playlists, [base, separation]);
+    expect(matches.get(2)?.map((p) => p.id)).toEqual(['p']);
+    expect(matches.get(1)).toBeUndefined();
+  });
+});
