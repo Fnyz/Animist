@@ -3,7 +3,8 @@ import { View, Text, Pressable, StyleSheet, Share, Linking, Animated } from 'rea
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { useDataVersion, getAnimeInfo, refreshAnimeLive } from '../api';
+import { useDataVersion, getAnimeInfo, refreshAnimeLive, compilationParts } from '../api';
+import { lengthLabel, partTitle, useCompilationProgress } from '../compilationTools';
 import { shareMessage } from '../shareLinks';
 import { myContext } from '../context';
 import { useRequireAccount } from '../requireAccount';
@@ -34,6 +35,7 @@ const DetailsScreen = ({ route, navigation }) => {
   const [viewing, setViewing] = useState(null);
   const [statusSheet, setStatusSheet] = useState(false);
   const [scrollY] = useState(() => new Animated.Value(0));
+  const [compilationProgress] = useCompilationProgress(animeId);
 
   const load = useCallback(async () => {
     try {
@@ -108,6 +110,7 @@ const DetailsScreen = ({ route, navigation }) => {
   ];
 
   const isMovie = anime.type === 'Movie' && anime.episodes.length <= 1;
+  const compilation = compilationParts(anime.id);
   const episodes = allEpisodes ? anime.episodes : anime.episodes.slice(0, EPISODES_SHOWN);
   const tags = [anime.type, anime.totalEpisodes ? `${anime.totalEpisodes} episode${anime.totalEpisodes === 1 ? '' : 's'}` : null, anime.status, ...anime.genres].filter(Boolean);
 
@@ -188,6 +191,46 @@ const DetailsScreen = ({ route, navigation }) => {
 
         {/* Other seasons, movies and specials of the same story (push: back returns here). */}
         <SeasonsRow animeId={anime.id} onOpen={(id) => navigation.push('AnimeDetail', { animeId: id })} />
+
+        {/* The series recut into a few long videos by an official channel (no AniList entry of its own). */}
+        {compilation.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Compilation</Text>
+            <View style={[styles.notice, styles.noticeGood]}>
+              <Ionicons name="checkmark-circle" size={18} color={colors.success} />
+              <Text style={styles.noticeText}>
+                The series recut into {compilation.length > 1 ? `${compilation.length} long videos` : 'one long video'}, free from {compilation[0].channel} on YouTube.
+              </Text>
+            </View>
+            {compilation.map((part) => {
+              const progress = compilationProgress[part.videoId] ?? { position: 0, duration: 0 };
+              const fraction = progressFraction(progress);
+              return (
+                <Pressable
+                  key={part.videoId}
+                  onPress={() => navigation.navigate('Compilation', { animeId: anime.id, title: anime.title, part: part.part })}
+                  style={styles.episode}
+                  accessibilityRole="button"
+                >
+                  <View style={styles.episodeThumb}>
+                    <Image source={{ uri: `https://i.ytimg.com/vi/${part.videoId}/mqdefault.jpg` }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                    <Text style={styles.episodeNum}>{compilation.length > 1 ? `PART ${part.part}` : 'FULL'}</Text>
+                    {fraction > 0 && (
+                      <View style={styles.thumbBar}>
+                        <View style={[styles.thumbBarFill, { width: `${fraction * 100}%` }]} />
+                      </View>
+                    )}
+                  </View>
+                  <View style={{ flex: 1, gap: 3 }}>
+                    <Text style={styles.episodeTitle} numberOfLines={1}>{partTitle(compilation, part)}</Text>
+                    <Text style={styles.muted} numberOfLines={1}>{progressLabel(progress) ?? `${lengthLabel(part.minutes)} · Plays in the app`}</Text>
+                  </View>
+                  <Ionicons name="play-circle" size={20} color={colors.text} />
+                </Pressable>
+              );
+            })}
+          </View>
+        )}
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>

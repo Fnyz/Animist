@@ -162,6 +162,10 @@ export const captionsFor = (videoId) => {
 export const episodeVideos = (entry, ep) =>
   ep ? [ep, ...(ep.alts ?? [])].map((v) => ({ videoId: v.videoId, channel: v.channel ?? entry.channel })) : [];
 
+// Official compilations of an anime (a season recut into a few long videos, found by
+// scripts/compilations.js): [{ part, videoId, channel, minutes }] in order, or [].
+export const compilationParts = (id) => EPISODE_DATA.compilations?.[String(id)] ?? [];
+
 // Franchises (seasons, movies, specials linked as prequel/sequel on AniList), refreshed daily by
 // scripts/seasons.js.
 const SEASONS = require('./data/seasons.json');

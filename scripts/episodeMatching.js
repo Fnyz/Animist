@@ -200,5 +200,5 @@ const searchTextFor = (playlistTitle) => {
 };
 
 module.exports = {
-  normalize, titleParts, seasonOf, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor, OTHER_LANGUAGES,
+  normalize, titleParts, titlesOf, seasonOf, scorePlaylist, matchPlaylists, episodeNumber, isEnglishSub, continuedNumberingOffset, searchTextFor, OTHER_LANGUAGES,
 };

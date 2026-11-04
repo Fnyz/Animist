@@ -13,6 +13,7 @@ const path = require('path');
 const { CHANNELS } = require('./channels');
 const { pickBatch, classifyResult, searchQuery, SEARCHES_PER_DAY } = require('./movieSearchLogic');
 const { summarizeChanges, recentAdditions } = require('./episodeDiff');
+const { membersOnlyVideos } = require('./membersOnly');
 
 const ROOT = path.join(__dirname, '..');
 const EPISODES = path.join(ROOT, 'data', 'episodes.json');
@@ -86,6 +87,23 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
   const { batch, next } = pickBatch(unique, playing, state.next, COUNT);
   console.log(`Searching YouTube for ${batch.length} movies (about ${batch.length * 100} quota units).`);
 
+  // Members-only videos of each channel (membersOnly.js), read the first time one of its uploads matches.
+  const membersOnly = new Map();
+  const all = async (endpoint, params) => {
+    const items = [];
+    let pageToken;
+    do {
+      const page = await yt(endpoint, { ...params, maxResults: 50, ...(pageToken ? { pageToken } : {}) });
+      items.push(...(page.items ?? []));
+      pageToken = page.nextPageToken;
+    } while (pageToken);
+    return items;
+  };
+  const isMembersOnly = async (video) => {
+    if (!membersOnly.has(video.channelId)) membersOnly.set(video.channelId, new Set(await membersOnlyVideos(video.channelId, all)));
+    return membersOnly.get(video.channelId).has(video.videoId);
+  };
+
   const newlyFound = [];
   for (const movie of batch) {
     const results = await yt(
@@ -109,7 +127,7 @@ const stored = ({ videoId, channel, allowedIn, blockedIn }) => ({
         blockedIn: v.contentDetails?.regionRestriction?.blocked,
       };
       const verdict = classifyResult(video, movie, official);
-      if (verdict === 'accept') accepted.push({ ...video, channel: official.get(video.channelId).title });
+      if (verdict === 'accept' && !(await isMembersOnly(video))) accepted.push({ ...video, channel: official.get(video.channelId).title });
     }
     if (accepted.length) {
       accepted.sort((a, b) => b.minutes - a.minutes);

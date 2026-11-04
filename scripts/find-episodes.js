@@ -23,6 +23,8 @@ const { MEDIA_FIELDS } = require('./anilistFields');
 const { CHANNELS, MIN_MINUTES } = require('./channels');
 const { sameContent, suspiciousDrop, summarizeChanges, summaryMarkdown, recentAdditions } = require('./episodeDiff');
 const { findMovies } = require('./findMovies');
+const { membersOnlyVideos, dropMembersOnly } = require('./membersOnly');
+const { findCompilations } = require('./compilations');
 
 const args = process.argv.slice(2);
 const QUICK = args.includes('--quick');
@@ -199,6 +201,7 @@ const seasonLength = (media) =>
   const channels = [];
   const channelInfo = []; // with each channel's uploads list, for step 4 (movies)
   const playlists = [];
+  const membersOnly = new Set(); // videos only paying channel members can watch (membersOnly.js)
   for (const { handle, english = false, skip = null, captions = null } of CHANNELS) {
     const channel = (await yt('channels', { part: 'snippet,contentDetails', forHandle: handle })).items?.[0];
     if (!channel) {
@@ -208,6 +211,7 @@ const seasonLength = (media) =>
     const title = channel.snippet.title;
     channels.push({ handle, id: channel.id, title });
     channelInfo.push({ handle, title, english, skip, uploadsId: channel.contentDetails?.relatedPlaylists?.uploads });
+    for (const videoId of await membersOnlyVideos(channel.id, all)) membersOnly.add(videoId);
     const lists = await all('playlists', { part: 'snippet,contentDetails', channelId: channel.id });
     const usable = lists.filter(
       (pl) => (pl.contentDetails?.itemCount ?? 0) > 0 && !OTHER_LANGUAGES.test(pl.snippet.title) && !skip?.test(pl.snippet.title)
@@ -215,9 +219,11 @@ const seasonLength = (media) =>
     for (const pl of usable) playlists.push({ id: pl.id, title: pl.snippet.title, channel: title, english, skip, captions });
     console.log(`${title}: ${lists.length} playlists, ${usable.length} usable`);
   }
+  console.log(`${membersOnly.size} members-only videos skipped.`);
   const items = new Map();
+  const free = (list) => list.filter((item) => !membersOnly.has(item.contentDetails?.videoId));
   for (const [i, pl] of playlists.entries()) {
-    items.set(pl.id, await all('playlistItems', { part: 'snippet,contentDetails', playlistId: pl.id }, MAX_PAGES_PER_PLAYLIST));
+    items.set(pl.id, free(await all('playlistItems', { part: 'snippet,contentDetails', playlistId: pl.id }, MAX_PAGES_PER_PLAYLIST)));
     if ((i + 1) % 100 === 0) console.log(`  read ${i + 1}/${playlists.length} playlists`);
   }
 
@@ -268,7 +274,7 @@ const seasonLength = (media) =>
   const byId = new Map(allMedia.map((m) => [m.id, m]));
   const matches = matchPlaylists(playlists, allMedia);
 
-  const anime = {};
+  let anime = {};
   for (const [mediaId, lists] of matches) {
     const maxEpisode = seasonLength(byId.get(mediaId));
     // Every candidate video per episode number, best playlist first. A video counts once per anime:
@@ -339,10 +345,13 @@ const seasonLength = (media) =>
 
   // 4) Full movies the channels uploaded (often outside any playlist), stored as one-episode anime
   //    (the app plays a movie as episode 1). An anime already filled from playlists keeps those.
+  const uploads = []; // every upload read, for step 5 (compilations)
   const movies = await findMovies({
     channels: channelInfo,
     playlists,
     playlistItems: items,
+    membersOnly,
+    onUpload: (item, channel) => uploads.push({ item, channel }),
     movies: allMedia.filter((m) => m.format === 'MOVIE'),
     all,
     yt,
@@ -387,16 +396,36 @@ const seasonLength = (media) =>
     byId.set(Number(id), movie);
   }
 
+  // Movies kept from earlier runs or the daily search were checked before members-only videos were.
+  anime = dropMembersOnly(anime, membersOnly);
+
+  // 5) Compilations (a season recut into a few long videos), shown on the series' page.
+  const compilations = await findCompilations({
+    uploads,
+    media: allMedia,
+    membersOnly,
+    yt,
+    minutesOf,
+    previous: QUICK ? previous?.compilations : {},
+  });
+  // Kept ones of anime this quick run didn't come across need the AniList data saved last time.
+  for (const id of Object.keys(compilations)) {
+    const known = byId.get(Number(id)) ?? previous?.media?.[id] ?? snapshot.media[id];
+    if (known) byId.set(Number(id), known);
+    else delete compilations[id];
+  }
+  console.log(`${Object.keys(compilations).length} anime with compilations.`);
+
   // AniList data for anime that aren't in the snapshot, so the app can show them.
   const media = {};
-  for (const id of Object.keys(anime)) if (!knownIds.has(Number(id))) media[id] = byId.get(Number(id));
+  for (const id of [...Object.keys(anime), ...Object.keys(compilations)]) if (!knownIds.has(Number(id))) media[id] = byId.get(Number(id));
 
   // Saved even when the episodes didn't change, so the next quick run can skip this run's lookups.
   fs.writeFileSync(CACHE, JSON.stringify(cache) + '\n');
 
   // `format` changes only when the file's shape changes in a way older apps can't read; apps that
   // download the list (episodeData.js) ignore a format they don't know and keep their own list.
-  const result = { format: EPISODES_FORMAT, generatedAt: new Date().toISOString(), channels, anime, media };
+  const result = { format: EPISODES_FORMAT, generatedAt: new Date().toISOString(), channels, anime, media, compilations };
   const changes = summarizeChanges(previous, result);
   // What this run added, kept a week, for the app's "New on Animist" row on Home.
   result.added = recentAdditions(previous?.added, changes, Date.now(), (id) => anime[id]?.kind === 'movie');
