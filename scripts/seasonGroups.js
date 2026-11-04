@@ -44,4 +44,23 @@ const buildGroups = (entries) => {
 const SEASON_FORMATS = new Set(['TV', 'TV_SHORT', 'ONA']);
 const isSeason = (format) => !format || SEASON_FORMATS.has(format);
 
-module.exports = { buildGroups, isSeason, CHAIN };
+// A playlist numbered straight through several seasons (Muse Asia's "Attack on Titan": episodes
+// 1-89) matches the first season only. Its later episodes belong to the seasons after that one, in
+// release order: [{ id, from, to }], where playlist episodes from..to are that season's 1, 2, …
+// Stops at a season whose length isn't known yet. groups/entries: data/seasons.json.
+const laterSeasons = (firstId, groups, entries) => {
+  const seasons = (groups.find((g) => g.includes(firstId)) ?? []).filter((id) => isSeason(entries[id]?.format));
+  const at = seasons.indexOf(firstId);
+  let end = entries[firstId]?.episodes;
+  if (at < 0 || !end) return [];
+  const later = [];
+  for (const id of seasons.slice(at + 1)) {
+    const length = entries[id]?.episodes;
+    if (!length) break;
+    later.push({ id, from: end + 1, to: end + length });
+    end += length;
+  }
+  return later;
+};
+
+module.exports = { buildGroups, isSeason, laterSeasons, CHAIN };
