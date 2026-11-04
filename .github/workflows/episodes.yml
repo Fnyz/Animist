@@ -4,8 +4,8 @@ name: Refresh episodes
 # and the episodes on the official YouTube channels (data/episodes.json).
 #
 # Automatic: every day at about 06:00 Philippine time. It refreshes the AniList data (free, about a
-#   minute), reads the channels' RSS feeds (free, no quota) and only runs the episode search when
-#   something new was uploaded. On Sundays it runs the full search, which re-checks every video.
+#   minute) and runs the episode search (about 2,000-3,500 of the 10,000 daily YouTube quota units;
+#   the movie search adds about 3,000). On Sundays it runs the full search, which re-checks every video.
 #   Everything that changed arrives as one pull request. The repository variable EPISODES_DELIVERY
 #   picks what happens next: "pull-request" (default) waits for you to merge it; "auto-merge" merges it
 #   by itself once the required checks pass (needs the secret EPISODES_TOKEN, below); "commit" pushes
@@ -84,7 +84,9 @@ jobs:
             # Scheduled: the full search on Sundays (Philippine time), otherwise quick.
             mode=$([ "$(TZ=Asia/Manila date +%u)" = "7" ] && echo full || echo quick)
             delivery="${DEFAULT_DELIVERY:-pull-request}"
-            check_feeds=$([ "$mode" = "quick" ] && echo true || echo false)
+            # Searched every day (not only when the RSS feeds show new uploads): channels added to
+            # channels.js and changes to the matching take effect the next morning.
+            check_feeds=false
           fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "delivery=$delivery" >> "$GITHUB_OUTPUT"

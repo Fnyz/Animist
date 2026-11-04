@@ -7,7 +7,8 @@
 // or the titles): their videos count when they have captions, and the app switches English on.
 // Checked and left out:
 // Crunchyroll, Crunchyroll Dubs, RetroCrush, TOHO animation, Pokémon and VIZ (clips, trailers or
-// private videos, not full series).
+// private videos, not full series); Muse Asia / Muse Philippines "Best Anime Collection" and
+// Ani-One PH Collection (whole seasons as one marathon video, not episodes).
 const CHANNELS = [
   { handle: '@MuseAsia' },
   { handle: '@MusePhilippines' },
@@ -19,6 +20,9 @@ const CHANNELS = [
   // English-language uploads (Digimon Adventure (2020), Ghost Sweeper Mikami, Precure…). Most play
   // only in the Americas and Europe, not in Southeast Asia; there the app moves on to a backup.
   { handle: '@ToeiAnimationOfficial', english: true },
+  // TROPICS Entertainment (NADA Group), licensor for Southeast Asia: Death Note, Witch Watch, Grand
+  // Blue… Each series has a playlist per language; only the "English Sub" ones count.
+  { handle: '@tropicsanimeasia', skip: /members only/i },
   // Titles are Chinese, but every episode has official English captions (and others). Last, so the
   // channels with English in the picture come first; it fills gaps and backs them up.
   { handle: '@AniOneAsia', skip: /\bULTRA\b/, captions: 'en' },

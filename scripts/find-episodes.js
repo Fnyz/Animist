@@ -25,6 +25,7 @@ const { sameContent, suspiciousDrop, summarizeChanges, summaryMarkdown, recentAd
 const { findMovies } = require('./findMovies');
 const { membersOnlyVideos, dropMembersOnly } = require('./membersOnly');
 const { findCompilations } = require('./compilations');
+const { laterSeasons } = require('./seasonGroups');
 
 const args = process.argv.slice(2);
 const QUICK = args.includes('--quick');
@@ -274,6 +275,25 @@ const seasonLength = (media) =>
   const byId = new Map(allMedia.map((m) => [m.id, m]));
   const matches = matchPlaylists(playlists, allMedia);
 
+  // A playlist that keeps counting past its season's last episode also fills the seasons after it
+  // (laterSeasons in seasonGroups.js), as a copy holding only that season's episodes.
+  const seasons = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'seasons.json'), 'utf8'));
+  for (const [mediaId, lists] of [...matches]) {
+    for (const pl of lists) {
+      const numbers = Object.keys(englishEpisodes(items.get(pl.id), Infinity, pl.english, pl.skip, pl.captions)).map(Number);
+      if (Math.min(...numbers) !== 1) continue; // already a later season's own numbering
+      for (const { id, from, to } of laterSeasons(mediaId, seasons.groups, seasons.entries)) {
+        if (!byId.has(id) || !numbers.some((n) => n >= from && n <= to)) continue;
+        const copy = { ...pl, id: `${pl.id}#${id}`, playlistId: pl.id };
+        items.set(copy.id, items.get(pl.id).filter((item) => {
+          const n = episodeNumber(item.snippet.title);
+          return n >= from && n <= to;
+        }));
+        matches.set(id, [...(matches.get(id) ?? []), copy]);
+      }
+    }
+  }
+
   let anime = {};
   for (const [mediaId, lists] of matches) {
     const maxEpisode = seasonLength(byId.get(mediaId));
@@ -340,7 +360,7 @@ const seasonLength = (media) =>
     for (const ep of Object.values(episodes)) {
       for (const video of [ep, ...ep.alts]) if (video.channel === main.channel) delete video.channel;
     }
-    anime[mediaId] = compact({ channel: main.channel, playlistId: main.id, playlistTitle: main.title, episodes });
+    anime[mediaId] = compact({ channel: main.channel, playlistId: main.playlistId ?? main.id, playlistTitle: main.title, episodes });
   }
 
   // 4) Full movies the channels uploaded (often outside any playlist), stored as one-episode anime
