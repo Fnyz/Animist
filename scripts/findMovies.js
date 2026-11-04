@@ -9,6 +9,8 @@ const UPLOAD_PAGES = { full: 300, quick: 2 };
 
 // ctx: {
 //   channels: [{ handle, title, english, skip, uploadsId }], playlistItems: Map(playlistId -> items),
+//   membersOnly: Set of video ids only paying channel members can watch (skipped),
+//   onUpload(item, channel): sees every playlist item and upload read (for compilations.js),
 //   playlists: [{ id, channel, english, skip }], movies: AniList MOVIE media already known,
 //   all(endpoint, params, maxPages), yt(endpoint, params), searchMovies(text) -> [media],
 //   minutesOf(isoDuration), cache: { movieSearches, rejected, media }, quick, log
@@ -16,14 +18,15 @@ const UPLOAD_PAGES = { full: 300, quick: 2 };
 // Returns Map(movieId -> { media, videos: [{ videoId, title, channel, allowedIn?, blockedIn? }] }),
 // best video first.
 const findMovies = async (ctx) => {
-  const { channels, playlistItems, playlists, all, yt, searchMovies, minutesOf, cache, quick, log } = ctx;
+  const { channels, playlistItems, playlists, membersOnly = new Set(), onUpload, all, yt, searchMovies, minutesOf, cache, quick, log } = ctx;
 
   // 1) Uploads that could be whole films, from the playlists already read and the channels' uploads.
   const videos = new Map();
   const add = (item, channel) => {
     const videoId = item.contentDetails?.videoId;
     const title = item.snippet?.title;
-    if (!videoId || videos.has(videoId) || channel.skip?.test(title ?? '')) return;
+    onUpload?.(item, channel);
+    if (!videoId || videos.has(videoId) || membersOnly.has(videoId) || channel.skip?.test(title ?? '')) return;
     if (isMovieCandidate(title, channel.english)) videos.set(videoId, { videoId, title, channel: channel.title });
   };
   const channelOf = new Map(channels.map((c) => [c.title, c]));

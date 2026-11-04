@@ -6,8 +6,8 @@ const episodeTotal = (data) =>
 
 // True when the two versions hold the same episodes and anime (the timestamp doesn't count).
 const sameContent = (before, after) =>
-  JSON.stringify([before?.channels, before?.anime, before?.media]) ===
-  JSON.stringify([after?.channels, after?.anime, after?.media]);
+  JSON.stringify([before?.channels, before?.anime, before?.media, before?.compilations ?? {}]) ===
+  JSON.stringify([after?.channels, after?.anime, after?.media, after?.compilations ?? {}]);
 
 // A run that loses more than `maxDrop` of the episodes probably hit an API problem, not real removals.
 const suspiciousDrop = (before, after, maxDrop = 0.1) => {
