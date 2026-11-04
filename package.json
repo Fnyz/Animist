@@ -53,7 +53,7 @@
     "eslint-config-expo": "~58.0.4",
     "firebase-admin": "^14.5.0",
     "jest": "~30.5.2",
-    "jest-expo": "~58.0.13"
+    "jest-expo": "~58.0.14"
   },
   "private": true,
   "jest": {
@@ -76,9 +76,11 @@
         "expo-image",
         "expo-linking",
         "expo-notifications",
+        "expo-screen-orientation",
         "expo-splash-screen",
         "expo-updates",
         "react-native",
+        "react-native-safe-area-context",
         "react-native-screens"
       ]
     }
