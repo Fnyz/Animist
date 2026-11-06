@@ -26,6 +26,7 @@ const { findMovies } = require('./findMovies');
 const { membersOnlyVideos, dropMembersOnly } = require('./membersOnly');
 const { findCompilations } = require('./compilations');
 const { laterSeasons } = require('./seasonGroups');
+const { isTemporaryError } = require('./youtubeErrors');
 
 const args = process.argv.slice(2);
 const QUICK = args.includes('--quick');
@@ -70,14 +71,20 @@ const fetchRetrying = async (url, options, tries = 4) => {
   }
 };
 
-const yt = async (endpoint, params) => {
+// A passing YouTube server error (youtubeErrors.js) is asked again a few times, waiting longer
+// each time; one bad answer among thousands of requests shouldn't stop the whole run.
+const yt = async (endpoint, params, tries = 5) => {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
   for (const [k, v] of Object.entries({ ...params, key: KEY })) url.searchParams.set(k, v);
-  const res = await fetchRetrying(url);
-  unitsUsed += 1;
-  const json = await res.json();
-  if (json.error) throw new Error(`${endpoint}: ${json.error.message}`);
-  return json;
+  for (let attempt = 1; ; attempt++) {
+    const res = await fetchRetrying(url);
+    unitsUsed += 1;
+    const json = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }));
+    if (!json.error) return json;
+    if (attempt >= tries || !isTemporaryError(res.status, json.error)) throw new Error(`${endpoint}: ${json.error.message}`);
+    console.warn(`  ${endpoint}: ${json.error.message} Trying again (${attempt}/${tries - 1}).`);
+    await new Promise((r) => setTimeout(r, 5000 * attempt));
+  }
 };
 
 // Every page of a paginated list.
