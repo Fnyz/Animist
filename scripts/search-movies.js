@@ -14,6 +14,7 @@ const { CHANNELS } = require('./channels');
 const { pickBatch, classifyResult, searchQuery, SEARCHES_PER_DAY } = require('./movieSearchLogic');
 const { summarizeChanges, recentAdditions } = require('./episodeDiff');
 const { membersOnlyVideos } = require('./membersOnly');
+const { isTemporaryError } = require('./youtubeErrors');
 
 const ROOT = path.join(__dirname, '..');
 const EPISODES = path.join(ROOT, 'data', 'episodes.json');
@@ -46,13 +47,18 @@ const readKey = () => {
 };
 const KEY = readKey();
 let units = 0;
-const yt = async (endpoint, params, cost = 1) => {
+// A passing YouTube server error (youtubeErrors.js) is asked again a few times.
+const yt = async (endpoint, params, cost = 1, tries = 4) => {
   const url = new URL(`https://www.googleapis.com/youtube/v3/${endpoint}`);
   for (const [k, v] of Object.entries({ ...params, key: KEY })) url.searchParams.set(k, v);
-  units += cost;
-  const json = await (await fetch(url)).json();
-  if (json.error) throw new Error(`${endpoint}: ${json.error.message}`);
-  return json;
+  for (let attempt = 1; ; attempt++) {
+    units += cost;
+    const res = await fetch(url);
+    const json = await res.json().catch(() => ({ error: { message: `HTTP ${res.status}` } }));
+    if (!json.error) return json;
+    if (attempt >= tries || !isTemporaryError(res.status, json.error)) throw new Error(`${endpoint}: ${json.error.message}`);
+    await new Promise((r) => setTimeout(r, 5000 * attempt));
+  }
 };
 
 const minutesOf = (iso) => {
